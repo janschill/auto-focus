@@ -1,4 +1,4 @@
-module github.com/zendesk/auto-focus
+module github.com/janschill/auto-focus
 
 go 1.19
 

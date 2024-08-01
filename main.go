@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/getlantern/systray"
+	"github.com/janschill/auto-focus/pkg"
 	"github.com/joho/godotenv"
-	"github.com/zendesk/auto-focus/pkg"
 )
 
 var appCtx pkg.AppContext
