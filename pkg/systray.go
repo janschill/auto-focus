@@ -20,6 +20,4 @@ func OnReady(appCtx AppContext) {
 	go MonitorFocusApp(appCtx)
 }
 
-func OnExit() {
-	// Clean up here if necessary
-}
+func OnExit() {}

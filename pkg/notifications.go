@@ -9,9 +9,9 @@ import (
 func HandleNotifications(enable bool, repoPath string) {
 	var scriptPath string
 	if enable {
-		scriptPath = fmt.Sprintf("%s/auto-focus/disableFocus.scpt", repoPath)
+		scriptPath = fmt.Sprintf("%s/disableFocus.scpt", repoPath)
 	} else {
-		scriptPath = fmt.Sprintf("%s/auto-focus/enableFocus.scpt", repoPath)
+		scriptPath = fmt.Sprintf("%s/enableFocus.scpt", repoPath)
 	}
 
 	cmd := exec.Command("osascript", scriptPath)
