@@ -2,26 +2,26 @@ package pkg
 
 import (
 	"fmt"
-	"html/template"
 	"os"
+	"text/template"
 )
 
 const plistTemplate = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>Label</key>
-	<string>com.jschill.auto-focus</string>
-	<key>ProgramArguments</key>
-	<array>
-		<string>{{.RepoPath}}/auto-focus/auto-focus</string>
-	</array>
-	<key>RunAtLoad</key>
-	<true/>
-	<key>StandardOutPath</key>
-	<string>/tmp/auto-focus.out</string>
-	<key>StandardErrorPath</key>
-	<string>/tmp/auto-focus.err</string>
+    <key>Label</key>
+    <string>com.jschill.auto-focus</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>{{.RepoPath}}/auto-focus</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/tmp/auto-focus.out</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/auto-focus.err</string>
 </dict>
 </plist>`
 

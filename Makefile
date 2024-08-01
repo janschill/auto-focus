@@ -32,6 +32,7 @@ init: build
 
 generate-plist: build
 	@echo "Generating plist ..."
+	rm -f com.jschill.auto-focus.plist
 	./auto-focus -init
 
 build:
