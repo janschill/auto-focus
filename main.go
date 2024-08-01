@@ -1,110 +1,71 @@
 package main
 
 import (
-	"bytes"
+	"flag"
 	"fmt"
-	"os/exec"
-	"strings"
+	"os"
+	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/getlantern/systray"
+	"github.com/joho/godotenv"
+	"github.com/zendesk/auto-focus/pkg"
 )
 
-var (
-	vscodeActive         bool = false
-	timeSpent            time.Duration
-	notificationsEnabled bool = true
-)
+var appCtx pkg.AppContext
 
-const (
-	checkInterval = 1 * time.Second
-	focusTime     = 12 * time.Minute
-)
+func init() {
+	execPath, err := os.Executable()
+	if err != nil {
+		fmt.Println("Failed to get executable path:", err)
+		return
+	}
+	execDir := filepath.Dir(execPath)
+	envPath := filepath.Join(execDir, ".env")
+	fmt.Println("Loading .env file from:", envPath) // Debug print
+	err = godotenv.Load(envPath)
+	if err != nil {
+		fmt.Println("Failed to load .env file")
+		return
+	}
+
+	showMenuItem, err := strconv.ParseBool(os.Getenv("SHOW_IN_MENU"))
+	if err != nil {
+		fmt.Println("Failed to parse SHOW_IN_MENU:", err)
+		return
+	}
+	checkInterval, err := strconv.Atoi(os.Getenv("INTERVAL_TIME_IN_SECONDS"))
+	if err != nil {
+		fmt.Println("Failed to parse FOCUS_TIME_IN_MINUTES:", err)
+		return
+	}
+	focusTime, err := strconv.Atoi(os.Getenv("FOCUS_TIME_IN_MINUTES"))
+	if err != nil {
+		fmt.Println("Failed to parse FOCUS_TIME_IN_MINUTES:", err)
+		return
+	}
+	appCtx = pkg.AppContext{
+		CurrentTimer:  nil,
+		RepoPath:      os.Getenv("REPO_PATH"),
+		FocusApp:      os.Getenv("FOCUS_APP_BUNDLE_IDENTIFIER"),
+		ShowMenuItem:  showMenuItem,
+		CheckInterval: time.Duration(checkInterval) * time.Second,
+		FocusTime:     time.Duration(focusTime) * time.Minute,
+	}
+}
 
 func main() {
-	systray.Run(onReady, onExit)
-}
+	generatePlistFlag := flag.Bool("init", false, "Generate the plist file")
+	flag.Parse()
 
-func onReady() {
-	systray.SetTitle("Auto-Focus")
-	systray.SetTooltip("Blocks Slack notifications when focused in VSCode")
-
-	mQuit := systray.AddMenuItem("Quit", "Quit the whole app")
-
-	go monitorVSCode()
-	go func() {
-		<-mQuit.ClickedCh
-		systray.Quit()
-	}()
-}
-
-func onExit() {
-	// Clean up here if necessary
-}
-
-func monitorVSCode() {
-	for {
-		inFront, err := isVSCodeInFront()
+	if *generatePlistFlag {
+		err := pkg.GeneratePlist(appCtx.RepoPath)
 		if err != nil {
-			fmt.Println("Failed to get active window:", err)
-			time.Sleep(checkInterval)
-			continue
+			fmt.Println("Failed to generate plist:", err)
 		}
-
-		if inFront {
-			if !vscodeActive {
-				vscodeActive = true
-				timeSpent = 0
-			} else {
-				timeSpent += checkInterval
-				if notificationsEnabled && timeSpent >= focusTime {
-					handleNotifications(false)
-					notificationsEnabled = false
-				}
-			}
-		} else {
-			if vscodeActive || !notificationsEnabled {
-				vscodeActive = false
-				timeSpent = 0
-				if !notificationsEnabled {
-					handleNotifications(true)
-					notificationsEnabled = true
-				}
-			}
-		}
-
-		time.Sleep(checkInterval)
-	}
-}
-
-func isVSCodeInFront() (bool, error) {
-	cmd := exec.Command("osascript", "-e", `tell application "System Events" to get bundle identifier of application processes whose frontmost is true`)
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	err := cmd.Run()
-	if err != nil {
-		return false, err
+		return
 	}
 
-	if strings.TrimSpace(out.String()) == "com.microsoft.VSCode" {
-		return true, nil
-	}
-	return false, nil
-}
-
-func handleNotifications(enable bool) {
-	var scriptPath string
-	if enable {
-		scriptPath = "/Users/jschill/Code/zendesk/auto-focus/disableFocus.scpt"
-	} else {
-		scriptPath = "/Users/jschill/Code/zendesk/auto-focus/enableFocus.scpt"
-	}
-
-	cmd := exec.Command("osascript", scriptPath)
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-	err := cmd.Run()
-	if err != nil {
-		fmt.Printf("Failed to set Focus mode: %v, %s\n", err, stderr.String())
-	}
+	systray.Run(func() { pkg.OnReady(appCtx) }, pkg.OnExit)
 }

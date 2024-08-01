@@ -12,28 +12,21 @@ The Go script is launched as a LaunchAgent to start on boot.
 
 ## Getting Started
 
-1. Compile the code
+1. Set up a macOS Focus profile and configure the applications that are *mission critical* and you still want to receive notifications from. I allow the Zoom client, as it sends me reminders when a meeting is about to start.
+2. Update the profile name in `enableFocus.scpt` and `disableFocus.scpt` with the profile you just created. I've set it by default name to `Coding`.
+3. Generate the .env file. By default it will focus on VSCode and show the menu item.
 
     ```sh
-    go build -o auto-focus main.go
+    make init
     ```
 
-2. Set up a macOS Focus profile and configure the applications that are *mission critical* and you still want to receive notifications from. I allow the Zoom client, as it sends me reminders when a meeting is about to start.
-3. Update the profile name in `enableFocus.scpt` and `disableFocus.scpt` with the profile you just created.
-4. Update the `plist` file with your computer's username.
-5. Copy the `plist` file to `~/Library/LaunchAgents`
+4. Load your new LaunchAgent
 
     ```sh
-    cp com.jschill.auto-focus.plist ~/Library/LaunchAgents
+    make run
     ```
 
-6. Load your new LaunchAgent
-
-    ```sh
-    launchctl load ~/Library/LaunchAgents/com.jschill.auto-focus.plist
-    ```
-
-7. Enjoy your uninterupted coding sessions! 🚀
+5. Enjoy your uninterupted coding sessions! 🚀
 
 **Disclaimer:** The first time the script wants to set your focus, it will need permission to communicate to StatusEvents. A popup will interupt your first session and ask if it is allowed. Sorry about that!
 
@@ -66,11 +59,11 @@ The LaunchAgent won't keep the script running if it fails or gets stopped. If yo
 ### Slack Integration
 
 Ideally, I would like to set a Slack status and stop notification from that layer, as it would also inform people that I am currently focussing and if really needed, they could still bypass my status and reach me if something is burning.
-Integrating with Slack requires a Slack App and API access. This is not impossible, but a bit more involved. Consider this an MVP and if it works well, we can iterate and ask IT for a Slack App.
+Integrating with Slack requires a Slack App and API access. This is not impossible, but a bit more involved.
 
 ### Support Other IDEs
 
-Not everyone is using VSCode or other applications could be also considered to be part of being in focus. Replacing VSCode as the main application is trivial, just change `com.microsoft.VSCode` in `main.go` to your IDE. Of course, we can also make this configurable or have a list, but again: MVP.
+Not everyone is using VSCode or other applications could be also considered to be part of being in focus. Replacing VSCode as the main application is trivial, just change `com.microsoft.VSCode` in `.env` to your IDE. At some point we should support multiple applications.
 
 ### Detect Activity
 
