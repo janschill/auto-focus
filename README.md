@@ -12,22 +12,28 @@ The Go script is launched as a LaunchAgent to start on boot.
 
 ## Getting Started
 
-1. Set up a macOS Focus profile and configure the applications that are *mission critical* and you still want to receive notifications from. I allow the Zoom client, as it sends me reminders when a meeting is about to start.
-2. Update the profile name in `enableFocus.scpt` and `disableFocus.scpt` with the profile you just created.
-3. Update the `plist` file with your computer's username.
-4. Copy the `plist` file to `~/Library/LaunchAgents`
+1. Compile the code
+
+    ```sh
+    go build -o auto-focus main.go
+    ```
+
+2. Set up a macOS Focus profile and configure the applications that are *mission critical* and you still want to receive notifications from. I allow the Zoom client, as it sends me reminders when a meeting is about to start.
+3. Update the profile name in `enableFocus.scpt` and `disableFocus.scpt` with the profile you just created.
+4. Update the `plist` file with your computer's username.
+5. Copy the `plist` file to `~/Library/LaunchAgents`
 
     ```sh
     cp com.jschill.auto-focus.plist ~/Library/LaunchAgents
     ```
 
-5. Load your new LaunchAgent
+6. Load your new LaunchAgent
 
     ```sh
     launchctl load ~/Library/LaunchAgents/com.jschill.auto-focus.plist
     ```
 
-6. Enjoy your uninterupted coding sessions! 🚀
+7. Enjoy your uninterupted coding sessions! 🚀
 
 **Disclaimer:** The first time the script wants to set your focus, it will need permission to communicate to StatusEvents. A popup will interupt your first session and ask if it is allowed. Sorry about that!
 
