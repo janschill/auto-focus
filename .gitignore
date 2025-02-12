@@ -1,3 +1,4 @@
 auto-focus
 .env
 *.plist
+.DS_Store
