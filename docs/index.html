@@ -26,7 +26,6 @@
 </head>
 <body class="gradient-bg min-h-screen">
     <div class="max-w-6xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
-
         <div class="text-center mb-16">
             <h1 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl mb-6">
                 Don't Lose Focus
@@ -36,7 +35,6 @@
                 No more disruptions from notifications when you're in the flow.
             </p>
         </div>
-
 
         <div class="grid md:grid-cols-2 gap-12 items-center mb-16">
             <div>
@@ -61,7 +59,7 @@
         </div>
 
         <div class="text-center">
-            <a href="app/Auto-Focus-0.15.dmg"
+            <a href="app/Auto-Focus-0.16.dmg"
                 class="inline-block custom-blue text-white px-8 py-6 rounded-lg text-lg font-semibold transition-colors">
                 Download for macOS
             </a>
@@ -69,7 +67,6 @@
                 Compatible with macOS Sonoma and later
             </p>
         </div>
-
 
         <div class="grid sm:grid-cols-3 gap-8 mt-20">
             <div class="text-center">
@@ -98,6 +95,33 @@
                 </div>
                 <h3 class="font-semibold">Focus Insights</h3>
                 <p class="text-gray-600 mt-2">Track your focus sessions and productivity patterns</p>
+            </div>
+        </div>
+
+        <div class="mt-20 max-w-3xl mx-auto">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-6 text-center">Getting Started</h2>
+
+            <div class="space-y-8">
+                <div class="bg-gray-50 rounded-lg p-6">
+                    <h3 class="font-semibold mb-2 text-lg">1. First Launch</h3>
+                    <p class="text-gray-600 mb-4">Since Auto-Focus is currently not notarized by Apple, you'll need to take one of these steps:</p>
+                    <div class="space-y-2">
+                        <p class="text-gray-600"><span class="font-medium">Option A:</span> Open System Settings → Privacy & Security, and click "Open Anyway" when prompted.</p>
+                        <p class="text-gray-600"><span class="font-medium">Option B:</span> Remove the quarantine attribute by running this command in Terminal:</p>
+                        <pre class="bg-gray-100 p-3 rounded text-sm font-mono">xattr -d com.apple.quarantine /Applications/auto-focus.app</pre>
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 rounded-lg p-6">
+                    <h3 class="font-semibold mb-2 text-lg">2. Install the Shortcut</h3>
+                    <p class="text-gray-600">Auto-Focus requires a Shortcuts automation to toggle Do Not Disturb mode:</p>
+                    <ol class="list-decimal list-inside space-y-2 mt-2 text-gray-600">
+                        <li>Open the Shortcuts folder in the downloaded DMG</li>
+                        <li>Double-click the "Toggle Do Not Disturb" shortcut</li>
+                        <li>Click "Add Shortcut" when prompted</li>
+                        <li>Launch Auto-Focus and complete the setup</li>
+                    </ol>
+                </div>
             </div>
         </div>
 
