@@ -1,0 +1,52 @@
+//
+//  auto_focusApp.swift
+//  auto-focus
+//
+//  Created by Jan Schill on 25/01/2025.
+//
+
+import SwiftUI
+
+@main
+struct auto_focusApp: App {
+    @StateObject private var focusManager = FocusManager()
+    
+    var body: some Scene {
+        Settings {
+            SettingsView()
+                .environmentObject(focusManager)
+        }
+        
+        MenuBarExtra {
+            MenuBarView()
+                .environmentObject(focusManager)
+        } label: {
+            HStack(spacing: 4) {
+                if focusManager.isFocusAppActive {
+                    if focusManager.isInFocusMode {
+                        Image(systemName: "brain.head.profile.fill")
+                    } else {
+                        Image(systemName: "brain.head.profile")
+                            .foregroundStyle(.blue)
+                    }
+                } else {
+                    Image(systemName: "brain.head.profile")
+                }
+                if focusManager.isInBufferPeriod {
+                    Text(timeString(from: focusManager.bufferTimeRemaining))
+                        .font(.system(size: 10, weight: .medium))
+                } else if focusManager.isFocusAppActive {
+                    Text(timeString(from: focusManager.timeSpent))
+                        .font(.system(size: 10, weight: .medium))
+                }
+            }
+        }
+        .menuBarExtraStyle(.window)
+    }
+    
+    private func timeString(from timeInterval: TimeInterval) -> String {
+        let minutes = Int(timeInterval) / 60
+        let seconds = Int(timeInterval.truncatingRemainder(dividingBy: 60))
+        return String(format: "%02d:%02d", minutes, seconds)
+    }
+}

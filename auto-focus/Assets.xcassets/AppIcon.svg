@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <!-- Outer circle (focus ring) -->
+    <circle cx="50" cy="50" r="45" fill="none" stroke="#007AFF" stroke-width="2"/>
+    
+    <!-- Brain silhouette -->
+    <path d="M35 30 C25 35, 25 45, 30 50 C25 55, 25 65, 35 70 L65 70 C75 65, 75 55, 70 50 C75 45, 75 35, 65 30 L35 30" 
+          fill="none" 
+          stroke="#007AFF" 
+          stroke-width="2"
+          stroke-linecap="round"/>
+    
+    <!-- Brain details -->
+    <path d="M40 30 C35 40, 45 45, 40 50 C45 55, 35 60, 40 70" 
+          fill="none" 
+          stroke="#007AFF" 
+          stroke-width="2"
+          stroke-linecap="round"/>
+    
+    <path d="M60 30 C65 40, 55 45, 60 50 C55 55, 65 60, 60 70" 
+          fill="none" 
+          stroke="#007AFF" 
+          stroke-width="2"
+          stroke-linecap="round"/>
+    
+    <!-- Center focus point -->
+    <circle cx="50" cy="50" r="3" fill="#007AFF"/>
+</svg>
