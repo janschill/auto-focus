@@ -5,10 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Auto-Focus - Stay in the Flow</title>
     <meta name="description" content="Auto-Focus automatically enables Do Not Disturb mode when you're in deep work, helping you stay focused and productive.">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css"></script>
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <style>
         .gradient-bg {
             background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+        }
+        .custom-blue {
+            background-color: rgb(38, 109, 174);
+        }
+        .custom-blue-text {
+            color: rgb(38, 109, 174);
+        }
+        .custom-blue-light {
+            background-color: rgba(38, 109, 174, 0.1);
+        }
+        .custom-blue:hover {
+            background-color: rgb(31, 88, 141);
         }
     </style>
 </head>
@@ -20,7 +32,7 @@
                 Don't Lose Focus
             </h1>
             <p class="text-xl text-gray-600 max-w-2xl mx-auto">
-                Automatically enter focus mode after 12 minutes of deep work. 
+                Automatically enter focus mode after 12 minutes of deep work.
                 No more disruptions from notifications when you're in the flow.
             </p>
         </div>
@@ -44,13 +56,13 @@
                 </div>
             </div>
             <div class="rounded-lg bg-gray-100 p-4">
-                <img src="/api/placeholder/600/400" alt="Auto-Focus app screenshot" class="rounded-md shadow-lg w-full">
+                <img src="images/auto-focus-menubar-window.jpeg" alt="Auto-Focus app screenshot" class="rounded-md shadow-lg w-full">
             </div>
         </div>
 
         <div class="text-center">
-            <a href="https://github.com/yourusername/auto-focus/releases/latest/download/Auto-Focus.dmg" 
-               class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 rounded-lg text-lg font-semibold transition-colors">
+            <a href="app/Auto-Focus-0.15.dmg"
+                class="inline-block custom-blue text-white px-8 py-6 rounded-lg text-lg font-semibold transition-colors">
                 Download for macOS
             </a>
             <p class="mt-4 text-sm text-gray-500">
@@ -61,8 +73,8 @@
 
         <div class="grid sm:grid-cols-3 gap-8 mt-20">
             <div class="text-center">
-                <div class="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div class="custom-blue-light w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-6 h-6 custom-blue-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                 </div>
@@ -70,8 +82,8 @@
                 <p class="text-gray-600 mt-2">Detects when you're in deep work and enables focus mode automatically</p>
             </div>
             <div class="text-center">
-                <div class="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div class="custom-blue-light w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-6 h-6 custom-blue-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                 </div>
@@ -79,8 +91,8 @@
                 <p class="text-gray-600 mt-2">Configurable buffer time prevents losing focus during quick switches</p>
             </div>
             <div class="text-center">
-                <div class="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div class="custom-blue-light w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-6 h-6 custom-blue-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
                 </div>
@@ -90,7 +102,7 @@
         </div>
 
         <footer class="mt-20 text-center text-gray-500 text-sm">
-            <p>© <script>document.write(new Date().getFullYear())</script> Auto-Focus. All rights reserved.</p>
+            <p>You don't need more time, you need more focus.</p>
         </footer>
     </div>
 </body>
