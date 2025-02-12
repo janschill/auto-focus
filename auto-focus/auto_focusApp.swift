@@ -23,20 +23,16 @@ struct auto_focusApp: App {
         } label: {
             HStack(spacing: 4) {
                 if focusManager.isFocusAppActive {
-                    if focusManager.isInFocusMode {
-                        Image(systemName: "brain.head.profile.fill")
-                    } else {
-                        Image(systemName: "brain.head.profile")
-                            .foregroundStyle(.blue)
-                    }
+                    Text(timeString(from: focusManager.timeSpent))
+                        .font(.system(size: 10, weight: .medium))
+                }
+                if focusManager.isInFocusMode {
+                    Image(systemName: "brain.head.profile.fill")
                 } else {
                     Image(systemName: "brain.head.profile")
                 }
                 if focusManager.isInBufferPeriod {
                     Text(timeString(from: focusManager.bufferTimeRemaining))
-                        .font(.system(size: 10, weight: .medium))
-                } else if focusManager.isFocusAppActive {
-                    Text(timeString(from: focusManager.timeSpent))
                         .font(.system(size: 10, weight: .medium))
                 }
             }
