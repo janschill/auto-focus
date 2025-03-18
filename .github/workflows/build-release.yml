@@ -109,7 +109,7 @@ jobs:
             --hide-extension "README.txt" \
             --app-drop-link 415 180 \
             --no-internet-enable \
-            "Auto-Focus-.dmg" \
+            "Auto-Focus.dmg" \
             "dmg-build/Auto-Focus/"
 
       - name: Upload DMG Artifact
