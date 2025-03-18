@@ -1,6 +1,6 @@
 # Auto-Focus
 
-Automatically enable Focus mode when you're in deep work.
+Automatically enable Do Not Disturb mode when you're in deep work.
 
 Auto-Focus periodically checks what application is in the front and enables Do Not Disturb mode after 12 minutes of focused work in your chosen applications. When you switch to non-work apps, it gives you a buffer period before re-enabling notifications.
 
