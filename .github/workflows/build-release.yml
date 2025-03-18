@@ -19,18 +19,18 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 2
-      
+
       - name: Check version change
         id: check_version
         run: |
           echo "Checking previous version..."
           OLD_VERSION=$(git show HEAD^:auto-focus.xcodeproj/project.pbxproj | grep 'MARKETING_VERSION = ' | head -n1 | sed 's/.*= //' | tr -d ';' | tr -d ' ')
           echo "Previous version: $OLD_VERSION"
-          
+
           echo "Checking current version..."
           NEW_VERSION=$(grep 'MARKETING_VERSION = ' auto-focus.xcodeproj/project.pbxproj | head -n1 | sed 's/.*= //' | tr -d ';' | tr -d ' ')
           echo "Current version: $NEW_VERSION"
-          
+
           if [ "$OLD_VERSION" != "$NEW_VERSION" ]; then
             echo "Version changed from $OLD_VERSION to $NEW_VERSION"
             echo "changed=true" >> $GITHUB_OUTPUT
@@ -78,15 +78,15 @@ jobs:
           mkdir -p dmg-build/Auto-Focus
           cp -r build/Build/Products/Release/auto-focus.app dmg-build/Auto-Focus/
           ln -s /Applications dmg-build/Auto-Focus/
-          
+
           # Create Shortcuts directory and copy the shortcut file
           mkdir -p dmg-build/Auto-Focus/Shortcuts
           cp auto-focus/Shortcuts/Toggle\ Do\ Not\ Disturb.shortcut dmg-build/Auto-Focus/Shortcuts/
-          
+
           # Create a README
           cat > dmg-build/Auto-Focus/README.txt << 'EOF'
           Auto-Focus Installation
-          
+
           1. Drag Auto-Focus to the Applications folder
           2. Double-click the Shortcuts folder
           3. Double-click the Toggle Do Not Disturb shortcut to install it (do not rename the shortcut)
@@ -109,7 +109,7 @@ jobs:
             --hide-extension "README.txt" \
             --app-drop-link 415 180 \
             --no-internet-enable \
-            "Auto-Focus-${{ needs.check-version.outputs.new_version }}.dmg" \
+            "Auto-Focus-.dmg" \
             "dmg-build/Auto-Focus/"
 
       - name: Upload DMG Artifact
@@ -123,7 +123,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: Auto-Focus-${{ needs.check-version.outputs.new_version }}.dmg
+          files: Auto-Focus.dmg
           tag_name: v${{ needs.check-version.outputs.new_version }}
           name: Auto-Focus v${{ needs.check-version.outputs.new_version }}
           draft: false
