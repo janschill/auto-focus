@@ -116,7 +116,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Auto-Focus-${{ needs.check-version.outputs.new_version }}
-          path: Auto-Focus-${{ needs.check-version.outputs.new_version }}.dmg
+          path: Auto-Focus.dmg
           retention-days: 90
           compression-level: 0 # DMG is already compressed
 
