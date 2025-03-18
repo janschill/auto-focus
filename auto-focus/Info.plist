@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Auto-Focus needs to control Focus modes</string>
+	<key>com.apple.security.temporary-exception.apple-events</key>
+	<array>
+		<string>com.apple.shortcuts.events</string>
+		<string>com.apple.controlcenter</string>
+	</array>
+    <key>Privacy - Accessibility Usage Description</key>
+    <string>Auto-Focus needs accessibility access to manage Do Not Disturb settings</string>
+    <key>com.apple.security.automation.apple-events</key>
+    <true/>
+    <key>LSUIElement</key>
+    <true/>
+</dict>
+</plist>
