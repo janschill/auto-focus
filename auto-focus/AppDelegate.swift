@@ -1,3 +1,11 @@
+//
+//  AppDelegate.swift
+//  auto-focus
+//
+//  Created by Jan Schill on 21/03/2025.
+//
+
+
 // Add this AppDelegate to your project or update your existing one
 
 import SwiftUI

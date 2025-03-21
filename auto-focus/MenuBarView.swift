@@ -17,7 +17,7 @@ struct MenuBarView: View {
                     .font(.system(size: 13, weight: .semibold))
                 Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0")
                 Spacer()
-                Text("\(focusManager.isInFocusMode ? "On" : "Off")")
+                Text("\(focusManager.isInFocusMode ? "In Focus" : "Out of Focus")")
                     .foregroundStyle(.secondary)
             }
             
@@ -52,10 +52,14 @@ struct MenuBarView: View {
                         Text("Settings...")
                             .foregroundStyle(.primary)
                     }
+                    .onTapGesture {
+                        openSettings()
+                    }
                     .keyboardShortcut(",", modifiers: .command)
                 } else {
                     Button("Settings...") {
                         NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+                        openSettings()
                     }
                 }
                 
@@ -80,6 +84,18 @@ struct MenuBarView: View {
     private func formatDuration(_ duration: TimeInterval) -> String {
         let minutes = Int(duration) / 60
         return "\(minutes)m"
+    }
+    
+    private func openSettings() {
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+        
+        DispatchQueue.main.async {
+            NSApp.windows.first?.orderFrontRegardless()
+            
+            // If you're using macOS 13 or later, you can try this alternative:
+            // NSApp.windows.first?.makeKey()
+        }
     }
 }
 

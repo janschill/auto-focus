@@ -10,7 +10,8 @@ import SwiftUI
 @main
 struct auto_focusApp: App {
     @StateObject private var focusManager = FocusManager()
-    
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
     var body: some Scene {
         Settings {
             SettingsView()
