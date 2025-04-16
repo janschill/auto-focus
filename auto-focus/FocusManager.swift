@@ -58,6 +58,9 @@ class FocusManager: ObservableObject {
     @Published private(set) var bufferTimeRemaining: TimeInterval = 0
     @Published private(set) var isInBufferPeriod = false
     
+    private var freeAppLimit: Int = 2
+    @Published var isPremiumUser: Bool = false
+    
     private var focusLossTimer: Timer?
     private var remainingBufferTime: TimeInterval = 0
     private var timer: Timer?
@@ -71,6 +74,38 @@ class FocusManager: ObservableObject {
         return focusSessions.filter { session in
             calendar.startOfDay(for: session.startTime) == today
         }
+    }
+    
+    var weekSessions: [FocusSession] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        guard let oneWeekAgo = calendar.date(byAdding: .day, value: -7, to: today) else {
+            return []
+        }
+        
+        return focusSessions.filter { session in
+            session.startTime >= oneWeekAgo
+        }
+    }
+    
+    var monthSessions: [FocusSession] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        guard let oneMonthAgo = calendar.date(byAdding: .month, value: -1, to: today) else {
+            return []
+        }
+        
+        return focusSessions.filter { session in
+            session.startTime >= oneMonthAgo
+        }
+    }
+    
+    var canAddMoreApps: Bool {
+        return isPremiumUser || focusApps.count < freeAppLimit
+    }
+    
+    var isPremiumRequired: Bool {
+        return !isPremiumUser && focusApps.count >= freeAppLimit
     }
     
     init() {
@@ -311,6 +346,10 @@ class FocusManager: ObservableObject {
     }
     
     func selectFocusApplication() {
+        if !canAddMoreApps {
+            return
+        }
+        
         let openPanel = NSOpenPanel()
         openPanel.canChooseFiles = true
         openPanel.canChooseDirectories = false

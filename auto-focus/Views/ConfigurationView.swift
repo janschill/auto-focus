@@ -1,47 +1,11 @@
 //
-//  SettingsView.swift
+//  ConfigurationView.swift
 //  auto-focus
 //
-//  Created by Jan Schill on 25/01/2025.
+//  Created by Jan Schill on 16/04/2025.
 //
-
 import SwiftUI
 import LaunchAtLogin
-
-struct SettingsView: View {
-    @EnvironmentObject var focusManager: FocusManager
-    @Environment(\.dismiss) var dismiss
-    
-    var body: some View {
-        TabView {
-            ConfigurationView()
-                .tabItem {
-                    Label("Configuration", systemImage: "gear")
-                }
-            
-            InsightsView()
-                .tabItem {
-                    Label("Insights", systemImage: "chart.bar")
-                }
-        }
-        .frame(width: 550, height: 500)
-        .onAppear {
-            // When settings appear, show in dock and activate
-            NSApp.setActivationPolicy(.regular)
-            NSApp.activate(ignoringOtherApps: true)
-            
-            // Additional step to bring window to front
-            DispatchQueue.main.async {
-                NSApp.windows.first?.orderFrontRegardless()
-            }
-        }
-        .onDisappear {
-            // When settings disappear, hide from dock
-            NSApp.setActivationPolicy(.accessory)
-            NSApp.deactivate()
-        }
-    }
-}
 
 struct AppRowView: View {
     let app: AppInfo
@@ -73,11 +37,34 @@ struct AppsListView: View {
             }
         }
         .listStyle(.bordered)
+        
+        if focusManager.isPremiumRequired {
+            HStack {
+                Image(systemName: "lock.fill")
+                    .foregroundColor(.secondary)
+                Text("Upgrade to Premium for unlimited apps")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Spacer()
+                Button("Upgrade") {
+                    // Switch to the Premium tab
+                    // This would need a custom implementation with a TabView binding
+                }
+                .buttonStyle(.borderless)
+                .font(.caption)
+                .foregroundColor(.blue)
+            }
+            .padding(.vertical, 6)
+            .padding(.horizontal, 8)
+            .background(Color.secondary.opacity(0.1))
+            .cornerRadius(6)
+        }
     }
 }
 
 struct ConfigurationView: View {
     @EnvironmentObject var focusManager: FocusManager
+    @EnvironmentObject var licenseManager: LicenseManager
     @State private var shortcutInstalled: Bool = false
     
     var body: some View {
@@ -150,6 +137,7 @@ struct ConfigurationView: View {
                         } label: {
                             Image(systemName: "plus")
                         }
+                        .disabled(!focusManager.canAddMoreApps)
                         
                         Button {
                             DispatchQueue.main.async {
@@ -179,9 +167,4 @@ private func installShortcut() {
     }
     
     NSWorkspace.shared.open(shortcutUrl)
-}
-
-#Preview {
-    ConfigurationView()
-        .environmentObject(FocusManager())
 }
