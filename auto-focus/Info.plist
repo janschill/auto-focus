@@ -4,11 +4,6 @@
 <dict>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>Auto-Focus needs to control Focus modes</string>
-	<key>com.apple.security.temporary-exception.apple-events</key>
-	<array>
-		<string>com.apple.shortcuts.events</string>
-		<string>com.apple.controlcenter</string>
-	</array>
     <key>Privacy - Accessibility Usage Description</key>
     <string>Auto-Focus needs accessibility access to manage Do Not Disturb settings</string>
     <key>com.apple.security.automation.apple-events</key>
