@@ -59,7 +59,7 @@ class FocusManager: ObservableObject {
     @Published private(set) var isInBufferPeriod = false
     
     private var freeAppLimit: Int = 2
-    @Published var isPremiumUser: Bool = false
+    @Published var isPremiumUser: Bool = true
     
     private var focusLossTimer: Timer?
     private var remainingBufferTime: TimeInterval = 0
@@ -180,7 +180,6 @@ class FocusManager: ObservableObject {
     }
     
     private func handleFocusAppInFront() {
-        print(">>> focus app in front")
         focusLossTimer?.invalidate()
         focusLossTimer = nil
         
@@ -192,14 +191,12 @@ class FocusManager: ObservableObject {
     }
     
     private func startFocusSession() {
-        print("starting new session")
         isFocusAppActive = true
         timeSpent = 0
         currentSessionStartTime = Date()
     }
     
     private func updateFocusSession() {
-        print("updating existing session; time spent: \(timeSpent)")
         timeSpent += checkInterval
         if shouldEnterFocusMode {
             print("activating focus mode")
@@ -218,18 +215,14 @@ class FocusManager: ObservableObject {
     }
     
     private func handleNonFocusAppInFront() {
-        print("<<< non focus app in front")
         
         if focusLossTimer != nil {
-            print("buffer timer already running, skipping...")
             return
         }
         
         if isInFocusMode {
-            print("isInFocusMode; starting buffer timer")
             startBufferTimer()
         } else {
-            print("else; resetting focus state")
             resetFocusState()
 
             if !isNotificationsEnabled {
@@ -253,10 +246,8 @@ class FocusManager: ObservableObject {
             
             self.remainingBufferTime -= 1
             self.bufferTimeRemaining = self.remainingBufferTime
-            print("buffer time remaining: \(self.remainingBufferTime)")
             
             if self.remainingBufferTime <= 0 {
-                print("buffer time expired, saving session and resetting focus state")
                 self.saveFocusSession()
                 self.resetFocusState()
                 if !self.isNotificationsEnabled {
@@ -299,20 +290,6 @@ class FocusManager: ObservableObject {
             end tell
         end tell
         """
-                
-//        let script = """
-//        on run
-//            tell application "System Events"
-//                tell process "ControlCenter"
-//                    click menu bar item "Control Center" of menu bar 1
-//                    delay 0.5
-//                    click button "Focus" of group 1 of window "Control Center"
-//                    delay 0.5
-//                    click button "Do Not Disturb" of window "Control Center"
-//                end tell
-//            end tell
-//        end run
-//        """
         
         var error: NSDictionary?
         if let scriptObject = NSAppleScript(source: toggleScript) {

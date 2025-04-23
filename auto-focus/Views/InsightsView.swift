@@ -194,34 +194,6 @@ struct InsightsView: View {
         return nil
     }
     
-    // Calculate distraction metrics - patterns when focus is broken
-    var distractionPatterns: [(hour: Int, count: Int)] {
-        // Use all sessions to find patterns
-        let calendar = Calendar.current
-        let sortedSessions = focusManager.focusSessions.sorted(by: { $0.startTime < $1.startTime })
-        
-        var distractionsByHour: [Int: Int] = [:]
-        
-        for i in 0..<(sortedSessions.count - 1) {
-            let currentSession = sortedSessions[i]
-            let nextSession = sortedSessions[i + 1]
-            
-            // Only count if less than 4 hours apart (might be same work period)
-            let timeBetween = nextSession.startTime.timeIntervalSince(currentSession.endTime)
-            
-            // Only count breaks between 1 minute and 4 hours as distractions
-            if timeBetween > 60 && timeBetween < 14400 {
-                let hour = calendar.component(.hour, from: currentSession.endTime)
-                distractionsByHour[hour, default: 0] += 1
-            }
-        }
-        
-        // Convert to array and sort by hour
-        return (0..<24).map { hour in
-            (hour: hour, count: distractionsByHour[hour] ?? 0)
-        }
-    }
-    
     // Weekly consistency (average focus time per weekday)
     // This doesn't change with the time filter - always shows a full week
     var weekdayAverages: [(day: String, average: TimeInterval)] {
@@ -342,8 +314,7 @@ struct InsightsView: View {
                             AdvancedAnalyticsView(
                                 productiveTimeRange: productiveTimeRange,
                                 productiveWeekday: productiveWeekday,
-                                weekdayAverages: weekdayAverages,
-                                distractionPatterns: distractionPatterns
+                                weekdayAverages: weekdayAverages
                             )
                         }
                     }
@@ -367,7 +338,6 @@ struct AdvancedAnalyticsView: View {
     let productiveTimeRange: (startHour: Int, endHour: Int, duration: TimeInterval)?
     let productiveWeekday: (weekday: Int, duration: TimeInterval)?
     let weekdayAverages: [(day: String, average: TimeInterval)]
-    let distractionPatterns: [(hour: Int, count: Int)]
     
     private func formatHourRange(_ startHour: Int, _ endHour: Int) -> String {
         let formatter = DateFormatter()
@@ -403,52 +373,41 @@ struct AdvancedAnalyticsView: View {
     var body: some View {
         VStack(spacing: 20) {
             // Productivity insights
-            GroupBox("Productivity Insights") {
                 VStack(alignment: .leading, spacing: 16) {
-                    HStack(spacing: 24) {
-                        VStack(alignment: .leading) {
-                            Text("Most Productive Time")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            if let timeRange = productiveTimeRange {
-                                Text(formatHourRange(timeRange.startHour, timeRange.endHour))
-                                    .font(.title3)
-                                    .fontWeight(.medium)
-                            } else {
-                                Text("Not enough data")
-                                    .font(.callout)
-                                    .foregroundColor(.secondary)
-                            }
+                    HStack(spacing: 16) {
+                        if let timeRange = productiveTimeRange {
+                            MetricCard(
+                                title: "Most Productive Time",
+                                value: formatHourRange(timeRange.startHour, timeRange.endHour)
+                            )
+                        } else {
+                            MetricCard(
+                                title: "Most Productive Time",
+                                value: "Not enough data"
+                            )
                         }
-                        
-                        VStack(alignment: .leading) {
-                            Text("Most Productive Day")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            if let weekday = productiveWeekday {
-                                let calendar = Calendar.current
-                                let weekdaySymbol = calendar.weekdaySymbols[weekday.weekday - 1]
-                                Text(weekdaySymbol)
-                                    .font(.title3)
-                                    .fontWeight(.medium)
-                            } else {
-                                Text("Not enough data")
-                                    .font(.callout)
-                                    .foregroundColor(.secondary)
-                            }
+
+                        if let weekday = productiveWeekday {
+                            let calendar = Calendar.current
+                            let weekdaySymbol = calendar.weekdaySymbols[weekday.weekday - 1]
+                            MetricCard(
+                                title: "Most Productive Day",
+                                value: weekdaySymbol
+                            )
+                        } else {
+                            MetricCard(
+                                title: "Most Productive Day",
+                                value: "Not enough data"
+                            )
                         }
                     }
                 }
-                .padding()
-            }
+
+
             
             // Weekly consistency (average time per weekday)
             GroupBox("Weekly Consistency") {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Average focus time per weekday")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                    
                     HStack(alignment: .bottom, spacing: 6) {
                         ForEach(weekdayAverages, id: \.day) { day in
                             VStack(spacing: 4) {
@@ -475,32 +434,6 @@ struct AdvancedAnalyticsView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
-                }
-                .padding()
-            }
-            
-            // Distraction patterns
-            GroupBox("Distraction Patterns") {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("When you're most likely to get distracted")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                    
-                    Text("The chart shows times when your focus is typically broken.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    Chart {
-                        ForEach(distractionPatterns.filter { $0.count > 0 }, id: \.hour) { item in
-                            BarMark(
-                                x: .value("Hour", "\(item.hour)"),
-                                y: .value("Count", item.count)
-                            )
-                            .foregroundStyle(.red.opacity(0.7))
-                        }
-                    }
-                    .frame(height: 120)
-                    .padding(.top, 8)
                 }
                 .padding()
             }
@@ -558,6 +491,15 @@ struct MetricCard: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, 8)
+            .padding(.horizontal, 8)
         }
     }
+}
+
+
+#Preview {
+    InsightsView()
+        .environmentObject(FocusManager())
+        .environmentObject(LicenseManager())
+        .frame(width: 600, height: 600)
 }
