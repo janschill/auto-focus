@@ -16,7 +16,7 @@ struct AppRowView: View {
                let appIcon = Optional(NSWorkspace.shared.icon(forFile: appUrl.path)) {
                 Image(nsImage: appIcon)
                     .resizable()
-                    .frame(width: 32, height: 32)
+                    .frame(width: 24, height: 24)
             }
             VStack(alignment: .leading) {
                 Text(app.name)
@@ -68,65 +68,144 @@ struct ConfigurationView: View {
     @State private var shortcutInstalled: Bool = false
     
     var body: some View {
-        Form {
-            Section(header: Text("General").font(.headline)) {
-                LaunchAtLogin.Toggle().padding(.bottom, 8)
-                HStack {
-                    Button("Add Shortcut") {
-                        installShortcut()
-                    }
-                    .disabled(shortcutInstalled)
-                    
-                    if shortcutInstalled {
-                        Text("✓ Installed")
-                            .foregroundColor(.green)
-                    } else {
-                        Text("⚠️ Not installed")
-                            .foregroundColor(.red)
-                    }
+        VStack(spacing: 10) {
+            GroupBox() {
+                VStack() {
+                    Text("General").font(.title)
+                        .fontDesign(.default)
+                        .fontWeight(.bold)
+                        .bold()
+                    Text("Manage your overall setup and preferences for Auto-Focus, such as launch at login, buffer times, focus apps, and more.")
+                        .font(.callout)
+                        .fontDesign(.default)
+                        .fontWeight(.regular)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
                 }
-                
-                Text("This shortcut is required for Auto-Focus to toggle Do Not Disturb mode.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
-            
-            Section(header: Text("Thresholds").font(.headline)) {
-                Text("Configure when to disable notifications automatically and start a focussed session. Give yourself a buffer time to not lose your focussed session immediately after you leave your focus apps.").font(.caption).foregroundColor(.secondary)
-                VStack {
+                .padding(.horizontal, 40)
+                .padding(.vertical)
+            }.frame(maxWidth: .infinity)
+
+            GroupBox() {
+                VStack() {
                     HStack {
+                        Text("Launch at Login")
+                            .frame(width: 150, alignment: .leading)
+                        Spacer()
+                        // Convert to Switch
+                        Toggle("", isOn: Binding(
+                            get: { LaunchAtLogin.isEnabled },
+                            set: { LaunchAtLogin.isEnabled = $0 }
+                        ))
+                        .toggleStyle(SwitchToggleStyle())
+                        .labelsHidden()
+                        .scaleEffect(0.8)
+                        .padding(.trailing, 5)
+                    }
+                    
+                    Divider().padding(.vertical, 5).contrast(0.5)
+                
+                    HStack {
+                        Text("Shortcut Installation")
+                            .frame(width: 150, alignment: .leading)
+                        
+                        Spacer()
+                        
+                        if shortcutInstalled {
+                            Text("✓ Installed")
+                                .foregroundColor(.green)
+                        } else {
+                            Text("⚠️ Not installed")
+                                .foregroundColor(.red)
+                        }
+                        
+                        Button("Add Shortcut") {
+                            installShortcut()
+                        }
+                        .disabled(shortcutInstalled)
+                    }
+                    
+                    HStack {
+                        Text("Auto-Focus will install a custom Shortcut that will be used to toggle the Do Not Disturb focus mode. This Shortcut is necessary to block notifications.")
+                            .font(.callout)
+                            .fontDesign(.default)
+                            .fontWeight(.regular)
+                            .foregroundColor(.secondary)
+                        
+                    }.frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(.horizontal, 5)
+                .padding(.vertical)
+            }
+            .frame(maxWidth: .infinity)
+            
+            
+            GroupBox(label: Text("Thresholds").font(.headline)) {
+                VStack() {
+                    HStack {
+                        Text("Focus Activation")
+                            .frame(width: 250, alignment: .leading)
+                        
+                        Spacer()
+                        
                         Slider(
                             value: $focusManager.focusThreshold,
-                            in: 2...24,
-                            step: 2
+                            in: 1...12,
+                            step: 1
                         )
                         Text("\(Int(focusManager.focusThreshold)) m")
                             .frame(width: 40)
+
                     }
-                    Text("Focus activation threshold (in minutes)")
-                }
-                
-                VStack {
+                    
                     HStack {
+                        Text("This is the time it takes to start a focus session. When the time is reached notifications are disabled.")
+                            .font(.callout)
+                            .fontDesign(.default)
+                            .fontWeight(.regular)
+                            .foregroundColor(.secondary)
+                        
+                    }.frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    Divider().padding(.vertical, 5).contrast(0.5)
+                    
+                    HStack {
+                        Text("Focus Loss Buffer")
+                            .frame(width: 250, alignment: .leading)
+                        
+                        Spacer()
+                        
                         Slider(
                             value: $focusManager.focusLossBuffer,
-                            in: 0...60,
+                            in: 0...30,
                             step: 2
                         )
                         Text("\(Int(focusManager.focusLossBuffer)) s")
                             .frame(width: 40)
-                    }
-                    Text("Focus loss buffer (in seconds)")
-                }
-            }
 
-            Spacer()
+                    }
+                    
+                    HStack {
+                        Text("Give yourself a buffer time to not lose your focussed session immediately after you leave your focus apps.")
+                            .font(.callout)
+                            .fontDesign(.default)
+                            .fontWeight(.regular)
+                            .foregroundColor(.secondary)
+                        
+                    }.frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(.horizontal, 5)
+                .padding(.vertical)
+            }.frame(maxWidth: .infinity)
             
-            Section(header: Text("Focus Applications").font(.headline)) {
-                Text("Being in any of these apps will automatically activate focus mode").font(.caption).foregroundColor(.secondary)
-                VStack {
+            
+            GroupBox(label: Text("Focus Applications").font(.headline)) {
+                VStack(alignment: .leading) {
+                    Text("Being in any of these apps will automatically activate focus mode.")                .font(.callout)
+                        .fontDesign(.default)
+                        .fontWeight(.regular)
+                        .foregroundColor(.secondary)
+                    
                     AppsListView()
                     
                     HStack {
@@ -151,13 +230,23 @@ struct ConfigurationView: View {
                         Spacer()
                     }
                 }
-            }
+                .padding(.horizontal, 5)
+                .padding(.vertical)
+            }.frame(maxWidth: .infinity)
+            
         }
-        .padding(8)
+        .padding()
         .onAppear() {
             shortcutInstalled = focusManager.checkShortcutExists()
         }
     }
+}
+
+#Preview {
+    ConfigurationView()
+        .environmentObject(FocusManager())
+        .environmentObject(LicenseManager())
+        .frame(width: 600, height: 900)
 }
 
 private func installShortcut() {

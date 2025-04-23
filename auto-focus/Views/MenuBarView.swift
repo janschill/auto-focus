@@ -9,13 +9,20 @@ import SwiftUI
 
 struct MenuBarView: View {
     @EnvironmentObject var focusManager: FocusManager
+    var version: String {
+    #if DEBUG
+            return "DEBUG"
+    #else
+            return Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+    #endif
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("Auto-Focus")
                     .font(.system(size: 13, weight: .semibold))
-                Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0")
+                Text(version)
                 Spacer()
                 
                 if focusManager.isPaused {
@@ -110,9 +117,6 @@ struct MenuBarView: View {
         
         DispatchQueue.main.async {
             NSApp.windows.first?.orderFrontRegardless()
-            
-            // If you're using macOS 13 or later, you can try this alternative:
-            // NSApp.windows.first?.makeKey()
         }
     }
 }

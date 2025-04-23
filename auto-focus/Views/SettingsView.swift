@@ -31,7 +31,7 @@ struct SettingsView: View {
                 }
                 .environmentObject(licenseManager)
         }
-        .frame(width: 600, height: 600)
+        .frame(width: 600, height: 800)
         .onAppear {
             // When settings appear, show in dock and activate
             NSApp.setActivationPolicy(.regular)
@@ -48,4 +48,8 @@ struct SettingsView: View {
             NSApp.deactivate()
         }
     }
+}
+
+#Preview {
+    SettingsView()
 }
