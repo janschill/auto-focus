@@ -25,6 +25,11 @@ struct SettingsView: View {
                     Label("Insights", systemImage: "chart.bar")
                 }
             
+            EnhancedInsightsView()
+                .tabItem {
+                    Label("EnhancedInsights", systemImage: "chart.line.text.clipboard")
+                }
+            
             LicenseView()
                 .tabItem {
                     Label("License", systemImage: "star.fill")
