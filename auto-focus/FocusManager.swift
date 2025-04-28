@@ -26,6 +26,11 @@ class FocusManager: ObservableObject {
     @Published var timeSpent: TimeInterval = 0
     @Published var isFocusAppActive = false
     @Published var isNotificationsEnabled: Bool = true
+    @Published var isPaused: Bool = false {
+        didSet {
+            UserDefaults.standard.set(isPaused, forKey: "isPaused")
+        }
+    }
     @Published var focusApps: [AppInfo] = [] {
         didSet {
             if let encoded = try? JSONEncoder().encode(focusApps) {
@@ -73,7 +78,21 @@ class FocusManager: ObservableObject {
         loadSessions()
         focusLossBuffer = UserDefaults.standard.double(forKey: "focusLossBuffer")
         if focusLossBuffer == 0 { focusLossBuffer = 2 }
+        isPaused = UserDefaults.standard.bool(forKey: "isPaused")
         startMonitoring()
+    }
+    
+    func togglePause() {
+        isPaused = !isPaused
+        if isPaused {
+            if isFocusAppActive {
+                saveFocusSession()
+                resetFocusState()
+                if !isNotificationsEnabled {
+                    setFocusMode(enabled: false)
+                }
+            }
+        }
     }
     
     private func saveSessions() {
@@ -110,6 +129,10 @@ class FocusManager: ObservableObject {
     }
     
     private func checkActiveApp() {
+        if isPaused {
+            return
+        }
+        
         guard let workspace = NSWorkspace.shared.frontmostApplication else { return }
         let currentApp = workspace.bundleIdentifier
         let isFocusAppInFront = focusApps.contains { $0.bundleIdentifier == currentApp }
