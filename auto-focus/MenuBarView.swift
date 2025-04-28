@@ -17,8 +17,14 @@ struct MenuBarView: View {
                     .font(.system(size: 13, weight: .semibold))
                 Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0")
                 Spacer()
-                Text("\(focusManager.isInFocusMode ? "In Focus" : "Out of Focus")")
-                    .foregroundStyle(.secondary)
+                
+                if focusManager.isPaused {
+                    Text("Paused")
+                        .foregroundStyle(.orange)
+                } else {
+                    Text("\(focusManager.isInFocusMode ? "In Focus" : "Out of Focus")")
+                        .foregroundStyle(.secondary)
+                }
             }
             
             Divider()
@@ -62,6 +68,18 @@ struct MenuBarView: View {
                         openSettings()
                     }
                 }
+                
+                Spacer()
+                
+                Button(action: {
+                    focusManager.togglePause()
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: focusManager.isPaused ? "play.fill" : "pause.fill")
+                        Text(focusManager.isPaused ? "Resume" : "Pause")
+                    }
+                }
+                .help(focusManager.isPaused ? "Resume focus tracking" : "Pause focus tracking")
                 
                 Spacer()
                 

@@ -23,7 +23,9 @@ struct auto_focusApp: App {
                 .environmentObject(focusManager)
         } label: {
             HStack(spacing: 4) {
-                if focusManager.isFocusAppActive {
+                if focusManager.isPaused {
+                    Image(systemName: "pause.circle")
+                } else if focusManager.isFocusAppActive {
                     Text(timeString(from: focusManager.timeSpent))
                         .font(.system(size: 10, weight: .medium))
                 }
