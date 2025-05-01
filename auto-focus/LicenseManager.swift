@@ -12,7 +12,9 @@ class LicenseManager: ObservableObject {
     @Published var isLicensed: Bool = true
     @Published var licenseKey: String = "" {
         didSet {
+            #if !DEBUG
             validateLicense()
+            #endif
         }
     }
     @Published var licenseStatus: LicenseStatus = .inactive
@@ -37,29 +39,35 @@ class LicenseManager: ObservableObject {
     }
     
     private func loadLicense() {
+        #if DEBUG
         self.licenseStatus = .valid
         self.isLicensed = true
-//        if let licenseData = UserDefaults.standard.data(forKey: "licenseData"),
-//           let license = try? JSONDecoder().decode(License.self, from: licenseData) {
-//            // License exists, validate it
-//            self.licenseKey = license.licenseKey
-//            self.licenseOwner = license.ownerName
-//            self.licenseEmail = license.email
-//            self.licenseExpiry = license.expiryDate
-//            
-//            // Check if license is expired
-//            if let expiryDate = license.expiryDate, expiryDate < Date() {
-//                self.licenseStatus = .expired
-//                self.isLicensed = false
-//            } else {
-//                self.licenseStatus = .valid
-//                self.isLicensed = true
-//            }
-//        } else {
-//            // No license found
-//            self.licenseStatus = .inactive
-//            self.isLicensed = false
-//        }
+        self.licenseOwner = "Debugger Boy"
+        self.licenseEmail = "debugger-boy@janschill.de"
+        return
+        #endif
+        
+        if let licenseData = UserDefaults.standard.data(forKey: "licenseData"),
+           let license = try? JSONDecoder().decode(License.self, from: licenseData) {
+            // License exists, validate it
+            self.licenseKey = license.licenseKey
+            self.licenseOwner = license.ownerName
+            self.licenseEmail = license.email
+            self.licenseExpiry = license.expiryDate
+            
+            // Check if license is expired
+            if let expiryDate = license.expiryDate, expiryDate < Date() {
+                self.licenseStatus = .expired
+                self.isLicensed = false
+            } else {
+                self.licenseStatus = .valid
+                self.isLicensed = true
+            }
+        } else {
+            // No license found
+            self.licenseStatus = .inactive
+            self.isLicensed = false
+        }
     }
     
     func activateLicense() {
