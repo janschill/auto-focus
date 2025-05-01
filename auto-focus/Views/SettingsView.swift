@@ -35,6 +35,15 @@ struct SettingsView: View {
                     Label("License", systemImage: "star.fill")
                 }
                 .environmentObject(licenseManager)
+            
+            if focusManager.canShowDebugOptions {
+                DebugMenuView()
+                    .tabItem {
+                        Label("Debug", systemImage: "ladybug")
+                    }
+                    .tag(3)
+                    .environmentObject(focusManager)
+            }
         }
         .frame(width: 600, height: 800)
         .onAppear {
