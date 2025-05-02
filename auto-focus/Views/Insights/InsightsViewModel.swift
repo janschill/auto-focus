@@ -12,8 +12,6 @@ class InsightsViewModel: ObservableObject {
     
     func updateFocusManager(_ focusManager: FocusManager) {
         dataProvider.focusManager = focusManager
-        // Trigger UI updates
-        objectWillChange.send()
     }
     
     var displayedDateString: String {
@@ -43,11 +41,6 @@ class InsightsViewModel: ObservableObject {
     var averageDailyMinutes: Int {
         dataProvider.averageDailyMinutes(weekdayData: weekdayData)
     }
-    
-//    var weeklyComparison: (Int, Bool)? {
-//        guard selectedTimeframe == .week else { return nil }
-//        return dataProvider.weeklyComparison()
-//    }
     
     func navigateDay(forward: Bool) {
         let calendar = Calendar.current

@@ -19,7 +19,6 @@ struct InsightsGraphsContainerView: View {
 
 struct WeeklyBarChartView: View {
     @EnvironmentObject var dataProvider: InsightsViewModel
-    
     var body: some View {
         VStack(alignment: .leading) {
             Chart {
@@ -123,7 +122,6 @@ struct EnhancedInsightsView: View {
 
 struct InsightsHeaderView: View {
     @EnvironmentObject var dataProvider: InsightsViewModel
-    @State private var isHovering = false
 
     var body: some View {
         HStack {
@@ -149,7 +147,7 @@ struct InsightsHeaderView: View {
                     dataProvider.selectedTimeframe = .week
                 } label: {
                     HStack {
-                        Text("This Week")
+                        Text("Last Week")
                         if dataProvider.selectedTimeframe == .week {
                             Image(systemName: "checkmark")
                         }
@@ -163,7 +161,6 @@ struct InsightsHeaderView: View {
             }
             .foregroundColor(.primary)
             .frame(maxWidth: 160)
-            
             
             DateNavigationView()
         }
@@ -236,15 +233,6 @@ struct FocusTimeOverviewView: View {
                         .foregroundColor(.secondary)
                         .padding(.leading, 4)
                 }
-                
-//                if let (percentage, isDecrease) = dataProvider.weeklyComparison {
-//                    HStack {
-//                        Image(systemName: isDecrease ? "arrow.down" : "arrow.up")
-//                            .foregroundColor(isDecrease ? .red : .green)
-//                        Text("\(percentage) % from last week")
-//                            .foregroundColor(.secondary)
-//                    }
-//                }
             }
         }
     }
