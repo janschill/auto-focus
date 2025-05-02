@@ -46,21 +46,21 @@ struct SettingsView: View {
             }
         }
         .frame(width: 600, height: 800)
-        .onAppear {
-            // When settings appear, show in dock and activate
-            NSApp.setActivationPolicy(.regular)
-            NSApp.activate(ignoringOtherApps: true)
-            
-            // Additional step to bring window to front
-            DispatchQueue.main.async {
-                NSApp.windows.first?.orderFrontRegardless()
-            }
-        }
-        .onDisappear {
-            // When settings disappear, hide from dock
-            NSApp.setActivationPolicy(.accessory)
-            NSApp.deactivate()
-        }
+//        .onAppear {
+//            // When settings appear, show in dock and activate
+//            NSApp.setActivationPolicy(.regular)
+//            NSApp.activate(ignoringOtherApps: true)
+//            
+//            // Additional step to bring window to front
+//            DispatchQueue.main.async {
+//                NSApp.windows.first?.orderFrontRegardless()
+//            }
+//        }
+//        .onDisappear {
+//            // When settings disappear, hide from dock
+//            NSApp.setActivationPolicy(.accessory)
+//            NSApp.deactivate()
+//        }
     }
 }
 
