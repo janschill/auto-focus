@@ -2,15 +2,15 @@ import SwiftUI
 import Charts
 
 struct InsightsGraphsContainerView: View {
-    @EnvironmentObject var dataProvider: InsightsViewModel
+    @ObservedObject var dataProvider: InsightsViewModel
     
     var body: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: 12) {
-                WeeklyBarChartView()
+                WeeklyBarChartView(dataProvider: dataProvider)
                 
                 if dataProvider.selectedTimeframe == .day {
-                    HourlyBarChartView()
+                    HourlyBarChartView(dataProvider: dataProvider)
                 }
             }
         }
@@ -18,7 +18,8 @@ struct InsightsGraphsContainerView: View {
 }
 
 struct WeeklyBarChartView: View {
-    @EnvironmentObject var dataProvider: InsightsViewModel
+    @ObservedObject var dataProvider: InsightsViewModel
+    
     var body: some View {
         VStack(alignment: .leading) {
             Chart {
@@ -46,7 +47,7 @@ struct WeeklyBarChartView: View {
 }
 
 struct HourlyBarChartView: View {
-    @EnvironmentObject var dataProvider: InsightsViewModel
+    @ObservedObject var dataProvider: InsightsViewModel
     
     var body: some View {
         VStack(alignment: .leading) {
@@ -88,9 +89,9 @@ struct EnhancedInsightsView: View {
         VStack {
             GroupBox {
                 VStack(alignment: .leading, spacing: 8) {
-                    InsightsHeaderView()
-                    FocusTimeOverviewView()
-                    InsightsGraphsContainerView()
+                    InsightsHeaderView(dataProvider: dataProvider)
+                    FocusTimeOverviewView(dataProvider: dataProvider)
+                    InsightsGraphsContainerView(dataProvider: dataProvider)
                 }
                 .padding(8)
             }
@@ -107,7 +108,6 @@ struct EnhancedInsightsView: View {
             Spacer()
         }
         .padding()
-        .environmentObject(dataProvider)
         .onAppear {
             dataProvider.updateFocusManager(focusManager)
         }
@@ -115,7 +115,7 @@ struct EnhancedInsightsView: View {
 }
 
 struct InsightsHeaderView: View {
-    @EnvironmentObject var dataProvider: InsightsViewModel
+    @ObservedObject var dataProvider: InsightsViewModel
 
     var body: some View {
         HStack {
@@ -156,13 +156,13 @@ struct InsightsHeaderView: View {
             .foregroundColor(.primary)
             .frame(maxWidth: 160)
 
-            DateNavigationView()
+            DateNavigationView(dataProvider: dataProvider)
         }
     }
 }
 
 struct DateNavigationView: View {
-    @EnvironmentObject var dataProvider: InsightsViewModel
+    @ObservedObject var dataProvider: InsightsViewModel
 
     var body: some View {
         HStack(spacing: 4) {
@@ -197,7 +197,7 @@ struct DateNavigationView: View {
 }
 
 struct FocusTimeOverviewView: View {
-    @EnvironmentObject var dataProvider: InsightsViewModel
+    @ObservedObject var dataProvider: InsightsViewModel
 
     var body: some View {
         HStack {
