@@ -76,40 +76,34 @@ struct HourlyBarChartView: View {
         }
     }
 }
-
 struct EnhancedInsightsView: View {
     @EnvironmentObject var focusManager: FocusManager
     @StateObject private var dataProvider: InsightsViewModel
-    
+
     init() {
-        // Note: We're using StateObject with a custom initializer
-        // The actual FocusManager will be injected via EnvironmentObject
         _dataProvider = StateObject(wrappedValue: InsightsViewModel(dataProvider: InsightsDataProvider(focusManager: FocusManager())))
     }
-    
+
     var body: some View {
         VStack {
             GroupBox {
                 VStack(alignment: .leading, spacing: 8) {
                     InsightsHeaderView()
-                    
                     FocusTimeOverviewView()
-                    
                     InsightsGraphsContainerView()
                 }
                 .padding(8)
             }
-            
+
             HStack {
                 Text("Total Focus Sessions")
                     .font(.headline)
                 Spacer()
-                
                 Text("\(dataProvider.relevantSessions.count)")
                     .font(.headline)
             }
             .padding(.top, 8)
-            
+
             Spacer()
         }
         .padding()
@@ -125,13 +119,13 @@ struct InsightsHeaderView: View {
 
     var body: some View {
         HStack {
-            Text("Usage")
+            let title = dataProvider.selectedTimeframe == .day ? "Usage" : "Daily Average"
+            Text(title)
                 .font(.title3)
-            
             Spacer()
-            
+
             Menu {
-                Text ("Show Usage")
+                Text("Show Usage")
                 Button {
                     dataProvider.selectedTimeframe = .day
                     dataProvider.selectedDate = Date()
@@ -147,7 +141,7 @@ struct InsightsHeaderView: View {
                     dataProvider.selectedTimeframe = .week
                 } label: {
                     HStack {
-                        Text("Last Week")
+                        Text("This Week")
                         if dataProvider.selectedTimeframe == .week {
                             Image(systemName: "checkmark")
                         }
@@ -161,16 +155,15 @@ struct InsightsHeaderView: View {
             }
             .foregroundColor(.primary)
             .frame(maxWidth: 160)
-            
+
             DateNavigationView()
         }
     }
 }
 
-
 struct DateNavigationView: View {
     @EnvironmentObject var dataProvider: InsightsViewModel
-    
+
     var body: some View {
         HStack(spacing: 4) {
             Button(action: {
@@ -181,16 +174,14 @@ struct DateNavigationView: View {
                 }
             }) {
                 Image(systemName: "chevron.left")
-                    .cornerRadius(8).font(.body)
             }
-            
+
             Button(action: {
                 dataProvider.goToToday()
             }) {
-                Text("Today").font(.body)
-                    .cornerRadius(8)
+                Text("Today")
             }
-            
+
             Button(action: {
                 if dataProvider.selectedTimeframe == .day {
                     dataProvider.navigateDay(forward: true)
@@ -199,39 +190,33 @@ struct DateNavigationView: View {
                 }
             }) {
                 Image(systemName: "chevron.right")
-                    .cornerRadius(8).font(.body)
             }
-            .disabled(dataProvider.selectedTimeframe == .day && Calendar.current.isDateInToday(dataProvider.selectedDate))
+            .disabled(Calendar.current.isDateInToday(dataProvider.selectedDate))
         }
     }
 }
 
 struct FocusTimeOverviewView: View {
     @EnvironmentObject var dataProvider: InsightsViewModel
-    
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if dataProvider.selectedTimeframe == .day {
-                Text("\(Int(dataProvider.totalFocusTime / 60)) m")
-                    .font(.system(size: 32, weight: .medium))
+        HStack {
+            let time = dataProvider.selectedTimeframe == .day ? Int(dataProvider.totalFocusTime / 60) : dataProvider.weekdayData.reduce(0) { $0 + $1.totalMinutes } / 7
+            
+            Text("\(InsightsDataProvider.formatDuration(time))")
+                .font(.system(size: 32, weight: .medium))
+            
+            if dataProvider.selectedTimeframe == .week {
+                Spacer()
                 
-                HStack {
-                    Text("Total time in focus")
+                if let change = dataProvider.weekComparisonPercentage {
+                    let trendImage = change >= 0 ? "arrow.up" : "arrow.down"
+                    let trendText = change >= 0 ? "\(change) %" : "\(-change) %"
+                    Image(systemName: trendImage + ".circle.fill")
                         .foregroundColor(.secondary)
-                    
-                    Spacer()
-                    
-                    Text("\(dataProvider.relevantSessions.count) sessions")
+                        .fontWeight(.heavy)
+                    Text(trendText + " last week")
                         .foregroundColor(.secondary)
-                }
-            } else {
-                HStack(alignment: .firstTextBaseline) {
-                    Text("\(dataProvider.weekdayData.reduce(0) { $0 + $1.totalMinutes } / 7) m")
-                        .font(.system(size: 32, weight: .medium))
-                    Text("per day")
-                        .font(.title3)
-                        .foregroundColor(.secondary)
-                        .padding(.leading, 4)
                 }
             }
         }
