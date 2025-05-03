@@ -38,7 +38,7 @@ class InsightsDataProvider {
     func totalFocusTime(for date: Date) -> TimeInterval {
         return sessionsForDate(date).reduce(0) { $0 + $1.duration }
     }
-
+    
     func totalFocusTime(timeframe: Timeframe, selectedDate: Date) -> TimeInterval {
         switch timeframe {
         case .day:
@@ -54,6 +54,23 @@ class InsightsDataProvider {
         return focusManager.focusSessions.filter {
             $0.startTime >= weekStart && $0.startTime < weekEnd
         }.reduce(0) { $0 + $1.duration }
+    }
+    
+    func calculateTotalFocusTimeThisMonth() -> TimeInterval {
+        let calendar = Calendar.current
+        let now = Date()
+        
+        // Get the start of the current month
+        let components = calendar.dateComponents([.year, .month], from: now)
+        guard let startOfMonth = calendar.date(from: components) else {
+            return 0
+        }
+        
+        let sessions = focusManager.focusSessions.filter {
+            $0.startTime >= startOfMonth && $0.startTime <= now
+        }
+        
+        return sessions.reduce(0) { $0 + $1.duration }
     }
 
     func relevantSessions(timeframe: Timeframe, selectedDate: Date) -> [FocusSession] {

@@ -117,7 +117,6 @@ struct InsightsView: View {
     }
     
     var metrics: FocusMetrics {
-        // Calculate metrics based on filtered sessions
         let sessions = filteredSessions
         
         // Only consider sessions that lasted at least 30 seconds

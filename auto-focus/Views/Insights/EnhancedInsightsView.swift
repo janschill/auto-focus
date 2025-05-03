@@ -167,7 +167,7 @@ struct FocusTimeOverviewView: View {
         HStack {
             let time = dataProvider.selectedTimeframe == .day ? Int(dataProvider.totalFocusTime / 60) : dataProvider.weekdayData.reduce(0) { $0 + $1.totalMinutes } / 7
             
-            Text("\(InsightsDataProvider.formatDuration(time))")
+            Text(InsightsDataProvider.formatDuration(time))
                 .font(.system(size: 32, weight: .medium))
             
             if dataProvider.selectedTimeframe == .week {
@@ -291,7 +291,37 @@ struct EnhancedInsightsView: View {
     }
 
     var body: some View {
-        VStack {
+        VStack(spacing: 10) {
+            GroupBox() {
+                VStack() {
+                    Text("You've focussed for").font(.title2)
+                        .fontDesign(.default)
+                        .foregroundStyle(.secondary)
+                    let totalSeconds = Int(dataProvider.totalFocusTimeThisMonth)
+                    let totalMinutes = Int(totalSeconds / 60)
+                    
+                    Text("\(InsightsDataProvider.formatDuration(totalMinutes)) this month")
+                        .font(.title)
+                        .fontWeight(.bold)
+                    Text("Here you can find your curated focus insights. From daily to weekly detailed views, your most productive times and more.")
+                        .font(.callout)
+                        .fontDesign(.default)
+                        .fontWeight(.regular)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.horizontal, 40)
+                .padding(.vertical)
+                .frame(maxWidth: .infinity)
+            }
+
+            GroupBox {
+                VStack(alignment: .leading, spacing: 8) {
+                    ProductivityMetricsView(dataProvider: dataProvider)
+                }
+                .padding(8)
+            }
+            
             GroupBox {
                 VStack(alignment: .leading, spacing: 8) {
                     InsightsHeaderView(dataProvider: dataProvider)
@@ -306,13 +336,6 @@ struct EnhancedInsightsView: View {
                             .font(.body)
                     }
                     .padding(.top, 8)
-                }
-                .padding(8)
-            }
-
-            GroupBox {
-                VStack(alignment: .leading, spacing: 8) {
-                    ProductivityMetricsView(dataProvider: dataProvider)
                 }
                 .padding(8)
             }

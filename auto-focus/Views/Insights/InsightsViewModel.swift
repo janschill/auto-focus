@@ -41,6 +41,10 @@ class InsightsViewModel: ObservableObject {
     var totalFocusTime: TimeInterval {
         dataProvider.totalFocusTime(timeframe: selectedTimeframe, selectedDate: selectedDate)
     }
+    
+    var totalFocusTimeThisMonth: TimeInterval {
+        dataProvider.calculateTotalFocusTimeThisMonth()
+    }
 
     var relevantSessions: [FocusSession] {
         dataProvider.relevantSessions(timeframe: selectedTimeframe, selectedDate: selectedDate)
