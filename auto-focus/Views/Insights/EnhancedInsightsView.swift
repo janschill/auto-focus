@@ -77,42 +77,6 @@ struct HourlyBarChartView: View {
         }
     }
 }
-struct EnhancedInsightsView: View {
-    @EnvironmentObject var focusManager: FocusManager
-    @StateObject private var dataProvider: InsightsViewModel
-
-    init() {
-        _dataProvider = StateObject(wrappedValue: InsightsViewModel(dataProvider: InsightsDataProvider(focusManager: FocusManager())))
-    }
-
-    var body: some View {
-        VStack {
-            GroupBox {
-                VStack(alignment: .leading, spacing: 8) {
-                    InsightsHeaderView(dataProvider: dataProvider)
-                    FocusTimeOverviewView(dataProvider: dataProvider)
-                    InsightsGraphsContainerView(dataProvider: dataProvider)
-                }
-                .padding(8)
-            }
-
-            HStack {
-                Text("Total Focus Sessions")
-                    .font(.headline)
-                Spacer()
-                Text("\(dataProvider.relevantSessions.count)")
-                    .font(.headline)
-            }
-            .padding(.top, 8)
-
-            Spacer()
-        }
-        .padding()
-        .onAppear {
-            dataProvider.updateFocusManager(focusManager)
-        }
-    }
-}
 
 struct InsightsHeaderView: View {
     @ObservedObject var dataProvider: InsightsViewModel
@@ -219,6 +183,145 @@ struct FocusTimeOverviewView: View {
                         .foregroundColor(.secondary)
                 }
             }
+        }
+    }
+}
+
+struct ProductivityMetricsView: View {
+    @ObservedObject var dataProvider: InsightsViewModel
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 16) {
+                if let timeRange = dataProvider.productiveTimeRange {
+                    MetricCard(
+                        title: "Most Productive Time",
+                        value: dataProvider.formatHourRange(timeRange.startHour, timeRange.endHour)
+                    )
+                } else {
+                    MetricCard(
+                        title: "Most Productive Time",
+                        value: "Not enough data"
+                    )
+                }
+
+                if let weekday = dataProvider.productiveWeekday {
+                    let calendar = Calendar.current
+                    let weekdaySymbol = calendar.weekdaySymbols[weekday.weekday - 1]
+                    MetricCard(
+                        title: "Most Productive Day",
+                        value: weekdaySymbol
+                    )
+                } else {
+                    MetricCard(
+                        title: "Most Productive Day",
+                        value: "Not enough data"
+                    )
+                }
+            }
+            
+            GroupBox("Weekly Consistency") {
+                VStack(alignment: .leading, spacing: 12) {
+                    let maxValue = dataProvider.weekdayAverages.map { $0.average / 60 }.max() ?? 60
+
+                    let rearrangedData = dataProvider.rearrangeWeekdaysStartingMonday(dataProvider.weekdayAverages)
+
+                    let normalizedData = rearrangedData.map { day -> (day: String, value: Double, empty: Double) in
+                        let value = day.average / 60
+                        return (day: day.day, value: value / maxValue, empty: (maxValue - value) / maxValue)
+                    }
+                    ZStack(alignment: .top) {
+                        Chart {
+                            ForEach(normalizedData, id: \.day) { item in
+                                BarMark(
+                                    x: .value("Day", item.day),
+                                    y: .value("Value", item.value),
+                                    stacking: .normalized
+                                )
+                                .foregroundStyle(Color.blue.opacity(0.7))
+                                
+                                BarMark(
+                                    x: .value("Day", item.day),
+                                    y: .value("Empty", item.empty),
+                                    stacking: .normalized
+                                )
+                                .foregroundStyle(Color.gray.opacity(0.1))
+                            }
+                        }
+                        .chartYAxis {
+                            AxisMarks(values: [0, 0.25, 0.5, 0.75, 1.0]) { value in
+                                AxisGridLine()
+                                AxisTick()
+                            }
+                        }
+                        
+                        VStack {
+                            Spacer().frame(height: 8)
+                            HStack(alignment: .top, spacing: 0) {
+                                ForEach(rearrangedData.indices, id: \.self) { index in
+                                    let day = rearrangedData[index]
+                                    let minutes = Int(day.average / 60)
+                                    
+                                    VStack {
+                                        Text("\(InsightsDataProvider.formatDuration(minutes))")
+                                            .font(.caption2)
+                                            .foregroundColor(.primary)
+                                        Spacer()
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                }
+                            }
+                            Spacer()
+                        }
+                    }
+                    .frame(height: 120)
+                }
+                .padding(4)
+            }
+        }
+    }
+}
+
+struct EnhancedInsightsView: View {
+    @EnvironmentObject var focusManager: FocusManager
+    @StateObject private var dataProvider: InsightsViewModel
+
+    init() {
+        _dataProvider = StateObject(wrappedValue: InsightsViewModel(dataProvider: InsightsDataProvider(focusManager: FocusManager())))
+    }
+
+    var body: some View {
+        VStack {
+            GroupBox {
+                VStack(alignment: .leading, spacing: 8) {
+                    InsightsHeaderView(dataProvider: dataProvider)
+                    FocusTimeOverviewView(dataProvider: dataProvider)
+                    InsightsGraphsContainerView(dataProvider: dataProvider)
+                    
+                    HStack {
+                        Text("Number of sessions")
+                            .font(.body)
+                        Spacer()
+                        Text("\(dataProvider.relevantSessions.count)")
+                            .font(.body)
+                    }
+                    .padding(.top, 8)
+                }
+                .padding(8)
+            }
+
+            GroupBox {
+                VStack(alignment: .leading, spacing: 8) {
+                    ProductivityMetricsView(dataProvider: dataProvider)
+                }
+                .padding(8)
+            }
+
+            Spacer()
+        }
+        .padding()
+        .onAppear {
+            dataProvider.updateFocusManager(focusManager)
         }
     }
 }

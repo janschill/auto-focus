@@ -88,6 +88,32 @@ class InsightsViewModel: ObservableObject {
         selectedTimeframe = .day
         selectedDate = Date()
     }
+    
+    func rearrangeWeekdaysStartingMonday(_ weekdayData: [(day: String, average: TimeInterval)]) -> [(day: String, average: TimeInterval)] {
+        // American calendar: Sunday is at index 0, we need to move it to the end
+        var rearranged = weekdayData
+        if weekdayData.count == 7 {
+            let sunday = rearranged.removeFirst()
+            rearranged.append(sunday)
+        }
+        return rearranged
+    }
+    
+    var productiveTimeRange: (startHour: Int, endHour: Int, duration: TimeInterval)? {
+        return dataProvider.calculateProductiveTimeRange()
+    }
+    
+    var productiveWeekday: (weekday: Int, duration: TimeInterval)? {
+        return dataProvider.calculateProductiveWeekday()
+    }
+    
+    var weekdayAverages: [(day: String, average: TimeInterval)] {
+        return dataProvider.calculateWeekdayAverages()
+    }
+    
+    func formatHourRange(_ startHour: Int, _ endHour: Int) -> String {
+        return dataProvider.formatHourRange(startHour, endHour)
+    }
 }
 
 extension Calendar {
