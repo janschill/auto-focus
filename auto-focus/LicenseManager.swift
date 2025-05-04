@@ -1,10 +1,3 @@
-//
-//  LicenseManager.swift
-//  auto-focus
-//
-//  Created by Jan Schill on 16/04/2025.
-//
-
 import Foundation
 import CryptoKit
 
@@ -48,6 +41,8 @@ class LicenseManager: ObservableObject {
         self.isLicensed = true
         self.licenseOwner = "Debugger Boy"
         self.licenseEmail = "debugger-boy@janschill.de"
+        self.licenseKey = "aasdasdd23443tfgsdfgq234"
+        self.licenseExpiry = Date()
         return
         #endif
         

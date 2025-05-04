@@ -1,23 +1,55 @@
 import SwiftUI
 
-struct LicensedView : View {
+struct LicensedView: View {
     @ObservedObject var licenseManager: LicenseManager
+    @State private var showingCopyAlert = false
     
     var body: some View {
-        Form {
-            if licenseManager.isLicensed {
-                Section(header: Text("License Status").font(.headline)) {
+        VStack(spacing: 16) {
+            // Header section based on license status
+            GroupBox {
+                VStack(spacing: 8) {
                     HStack {
-                        Image(systemName: "checkmark.seal.fill")
-                            .foregroundColor(.green)
-                        Text("Premium License Active")
-                            .font(.headline)
+                        Image(systemName: licenseManager.licenseStatus == .valid ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
+                            .foregroundColor(licenseManager.licenseStatus == .valid ? .green : .orange)
+                            .font(.largeTitle)
+                        
+                        VStack(alignment: .leading) {
+                            Text(licenseManager.licenseStatus == .valid ? "Auto-Focus+ License Active" : "License Expired")
+                                .font(.headline)
+                                .fontWeight(.bold)
+                            
+                            if licenseManager.licenseStatus == .expired {
+                                Text("Your license has expired. Please renew to continue using premium features.")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        
+                        Spacer()
                     }
                     .padding(.vertical, 8)
                     
+                    if licenseManager.licenseStatus == .expired {
+                        Divider().padding(.vertical, 6)
+                        
+                        LicenseInputView(licenseManager: licenseManager)
+                    }
+                    
+                }
+                .padding()
+            }
+            
+            // License details section
+            GroupBox {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Details")
+                        .font(.headline)
+                        .padding(.bottom, 4)
+                    
                     VStack(alignment: .leading, spacing: 8) {
                         LicenseInfoRow(title: "Licensed to", value: licenseManager.licenseOwner)
-                        LicenseInfoRow(title: "Email", value: licenseManager.licenseEmail)
+                        LicenseInfoRow(title: "Email address", value: licenseManager.licenseEmail)
                         
                         if let expiryDate = licenseManager.licenseExpiry {
                             LicenseInfoRow(
@@ -25,20 +57,37 @@ struct LicensedView : View {
                                 value: expiryDateFormatted(expiryDate)
                             )
                         }
+                        
+                        if !licenseManager.licenseKey.isEmpty {
+                            LicenseInfoRowWithCopy(title: "License key", value: maskedLicenseKey(licenseManager.licenseKey)) {
+                                copyLicenseKey()
+                            }
+                        }
                     }
                     .padding(.vertical, 4)
                     
-                    Button("Deactivate License") {
-                        licenseManager.deactivateLicense()
+                    Divider().padding(.vertical, 8)
+                    
+                    HStack {
+                        Spacer()
+                        
+                        Button("Deactivate License") {
+                            licenseManager.deactivateLicense()
+                        }
+                        .foregroundColor(.red)
                     }
-                    .foregroundColor(.red)
-                    .padding(.top, 8)
                 }
-            } else {
-                
+                .padding()
             }
+            
+            Spacer()
         }
         .padding(16)
+        .alert("License Key Copied", isPresented: $showingCopyAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Your license key has been copied to the clipboard.")
+        }
     }
     
     private func expiryDateFormatted(_ date: Date) -> String {
@@ -46,6 +95,43 @@ struct LicensedView : View {
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
         return formatter.string(from: date)
+    }
+    
+    private func maskedLicenseKey(_ key: String) -> String {
+        guard key.count > 8 else { return key }
+        let prefix = String(key.prefix(4))
+        let suffix = String(key.suffix(4))
+        return "\(prefix)••••••••\(suffix)"
+    }
+    
+    private func copyLicenseKey() {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(licenseManager.licenseKey, forType: .string)
+        showingCopyAlert = true
+    }
+}
+
+struct LicenseInfoRowWithCopy: View {
+    let title: String
+    let value: String
+    let onCopy: () -> Void
+    
+    var body: some View {
+        HStack {
+            Text(title)
+                .foregroundColor(.secondary)
+                .frame(width: 100, alignment: .leading)
+            Text(value)
+                .fontWeight(.medium)
+            Spacer()
+            Button(action: onCopy) {
+                Image(systemName: "doc.on.doc")
+                    .foregroundColor(.blue)
+            }
+            .buttonStyle(.plain)
+            .help("Copy license key")
+        }
     }
 }
 
@@ -155,20 +241,7 @@ struct LicenseView: View {
     var body: some View {
         VStack(spacing: 10) {
             if licenseManager.isLicensed {
-                GroupBox() {
-                    VStack(spacing: 8) {
-                        Text("Auto Focus+")
-                            .font(.title)
-                            .fontWeight(.bold)
-                        Text("Debugger Boy")
-                            .font(.title2)
-                        Text("debugger@janschill.de")
-                            .font(.title2)
-                    }
-                    .padding(.horizontal, 40)
-                    .padding(.vertical)
-                    .frame(maxWidth: .infinity)
-                }
+                LicensedView(licenseManager: licenseManager)
             } else {
                 UnlicensedView(licenseManager: licenseManager)
             }
@@ -187,7 +260,7 @@ struct LicenseInfoRow: View {
         HStack {
             Text(title)
                 .foregroundColor(.secondary)
-                .frame(width: 80, alignment: .leading)
+                .frame(width: 100, alignment: .leading)
             Text(value)
                 .fontWeight(.medium)
         }
