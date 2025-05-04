@@ -367,7 +367,7 @@ struct InsightsView: View {
             } else {
                 GroupBox() {
                     VStack() {
-                        Text("You are currently on a free plan of Auto-Focus. To unlock more detailed insights, please upgrade to a premium plan.")
+                        Text("You are currently on a free plan of Auto-Focus. To unlock more detailed insights, please upgrade to Auto-Focus+.")
                             .font(.callout)
                             .fontDesign(.default)
                             .fontWeight(.regular)
