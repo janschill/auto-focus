@@ -174,6 +174,42 @@ struct LicenseInputView: View {
     }
 }
 
+struct LicenseBenefitsView: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            PremiumFeatureRow(
+                icon: "list.bullet",
+                title: "Unlimited Focus Apps",
+                description: "Add as many focus-triggering apps as you need"
+            )
+            
+            PremiumFeatureRow(
+                icon: "chart.bar.fill",
+                title: "Advanced Insights",
+                description: "Get detailed statistics about your focus habits"
+            )
+            
+            PremiumFeatureRow(
+                icon: "cloud",
+                title: "Data Synchronization",
+                description: "Keep your data synchronized across Macs"
+            )
+            
+            PremiumFeatureRow(
+                icon: "arrow.clockwise",
+                title: "Free Updates",
+                description: "Access to all future premium features"
+            )
+            
+            PremiumFeatureRow(
+                icon: "cup.and.heat.waves",
+                title: "Support Indie Developer",
+                description: "Buy us a cup of coffee"
+            )
+        }
+    }
+}
+
 struct UnlicensedView: View {
     @ObservedObject var licenseManager: LicenseManager
     
@@ -196,37 +232,8 @@ struct UnlicensedView: View {
                 
                 Divider().padding(16)
                 
-                VStack(alignment: .leading, spacing: 8) {
-                    PremiumFeatureRow(
-                        icon: "list.bullet",
-                        title: "Unlimited Focus Apps",
-                        description: "Add as many focus-triggering apps as you need"
-                    )
-                    
-                    PremiumFeatureRow(
-                        icon: "chart.bar.fill",
-                        title: "Advanced Insights",
-                        description: "Get detailed statistics about your focus habits"
-                    )
-                    
-                    PremiumFeatureRow(
-                        icon: "cloud",
-                        title: "Data Synchronization",
-                        description: "Keep your data synchronized across Macs"
-                    )
-                    
-                    PremiumFeatureRow(
-                        icon: "arrow.clockwise",
-                        title: "Free Updates",
-                        description: "Access to all future premium features"
-                    )
-                    
-                    PremiumFeatureRow(
-                        icon: "cup.and.heat.waves",
-                        title: "Support Indie Developer",
-                        description: "Buy us a cup of coffee"
-                    )
-                }
+                LicenseBenefitsView()
+                
             }
             .padding(.horizontal, 40)
             .padding(.vertical)

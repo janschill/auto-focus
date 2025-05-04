@@ -37,8 +37,8 @@ class LicenseManager: ObservableObject {
         #if DEBUG
         self.licenseStatus = .expired
 //        self.licenseStatus = .valid
-//        self.isLicensed = false
-        self.isLicensed = true
+        self.isLicensed = false
+//        self.isLicensed = true
         self.licenseOwner = "Debugger Boy"
         self.licenseEmail = "debugger-boy@janschill.de"
         self.licenseKey = "aasdasdd23443tfgsdfgq234"

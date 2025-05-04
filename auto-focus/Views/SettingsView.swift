@@ -11,25 +11,29 @@ struct SettingsView: View {
     @EnvironmentObject var focusManager: FocusManager
     @EnvironmentObject var licenseManager: LicenseManager
     @Environment(\.dismiss) var dismiss
+    @State private var selectedTab = 0
     
     var body: some View {
-        TabView {
-            ConfigurationView()
+        TabView(selection: $selectedTab) {
+            ConfigurationView(selectedTab: $selectedTab)
                 .tabItem {
                     Label("Configuration", systemImage: "gear")
                 }
+                .tag(0)
                 .environmentObject(licenseManager)
             
-            InsightsView()
+            InsightsView(selectedTab: $selectedTab)
                 .tabItem {
                     Label("Insights", systemImage: "chart.bar")
                 }
+                .tag(1)
                 .environmentObject(licenseManager)
             
             LicenseView()
                 .tabItem {
-                    Label("License", systemImage: "star.fill")
+                    Label("Auto-Focus+", systemImage: "star.fill")
                 }
+                .tag(2)
                 .environmentObject(licenseManager)
             
             if focusManager.canShowDebugOptions {
@@ -58,8 +62,4 @@ struct SettingsView: View {
 //            NSApp.deactivate()
 //        }
     }
-}
-
-#Preview {
-    SettingsView()
 }

@@ -59,7 +59,7 @@ class FocusManager: ObservableObject {
     @Published private(set) var isInBufferPeriod = false
     
     private var freeAppLimit: Int = 2
-    @Published var isPremiumUser: Bool = true
+    @Published var isPremiumUser: Bool = false
     
     private var focusLossTimer: Timer?
     private var remainingBufferTime: TimeInterval = 0

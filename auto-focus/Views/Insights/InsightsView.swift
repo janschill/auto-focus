@@ -307,9 +307,11 @@ struct InsightsView: View {
     @EnvironmentObject var focusManager: FocusManager
     @EnvironmentObject var licenseManager: LicenseManager
     @StateObject private var dataProvider: InsightsViewModel
+    @Binding var selectedTab: Int
 
-    init() {
+    init(selectedTab: Binding<Int>) {
         _dataProvider = StateObject(wrappedValue: InsightsViewModel(dataProvider: InsightsDataProvider(focusManager: FocusManager())))
+        _selectedTab = selectedTab
     }
 
     var body: some View {
@@ -372,31 +374,30 @@ struct InsightsView: View {
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                         
-                        Section {
-                            VStack(alignment: .leading, spacing: 8) {
-                                PremiumFeatureRow(
-                                    icon: "list.bullet",
-                                    title: "Unlimited Focus Apps",
-                                    description: "Add as many focus-triggering apps as you need"
-                                )
-                                
-                                PremiumFeatureRow(
-                                    icon: "chart.bar.fill",
-                                    title: "Advanced Insights",
-                                    description: "Get detailed statistics about your focus habits"
-                                )
-                                
-                                PremiumFeatureRow(
-                                    icon: "arrow.clockwise",
-                                    title: "Free Updates",
-                                    description: "Access to all future premium features"
-                                )
-                            }
-                        }
+                        LicenseBenefitsView()
                     }
                     .padding(.horizontal, 40)
                     .padding(.vertical)
                     .frame(maxWidth: .infinity)
+                    
+                    HStack {
+                        Image(systemName: "lock.fill")
+                            .foregroundColor(.secondary)
+                        Text("Upgrade to Auto-Focus+ for detailed insights")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        Spacer()
+                        
+                        Button("Upgrade") {
+                            selectedTab = 2
+                        }
+                        .controlSize(.small)
+                    }
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 8)
+                    .background(Color.secondary.opacity(0.1))
+                    .cornerRadius(6)
                 }
             }
             Spacer()
@@ -409,7 +410,7 @@ struct InsightsView: View {
 }
 
 #Preview {
-    InsightsView()
+    InsightsView(selectedTab: .constant(2))
         .environmentObject(FocusManager())
         .environmentObject(LicenseManager())
         .frame(width: 600, height: 900)

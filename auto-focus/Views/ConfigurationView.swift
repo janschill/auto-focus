@@ -23,6 +23,7 @@ struct AppRowView: View {
 
 struct AppsListView: View {
     @EnvironmentObject var focusManager: FocusManager
+    @Binding var selectedTab: Int
     
     var body: some View {
         List(selection: $focusManager.selectedAppId) {
@@ -36,14 +37,16 @@ struct AppsListView: View {
             HStack {
                 Image(systemName: "lock.fill")
                     .foregroundColor(.secondary)
-                Text("Upgrade to Premium for unlimited apps")
+                Text("Upgrade to Auto-Focus+ for unlimited apps")
                     .font(.caption)
                     .foregroundColor(.secondary)
+                
                 Spacer()
-                NavigationLink(destination: LicenseView()) {
-                    Text("Upgrade")
+                
+                Button("Upgrade") {
+                    selectedTab = 2
                 }
-                .font(.caption)
+                .controlSize(.small)
             }
             .padding(.vertical, 6)
             .padding(.horizontal, 8)
@@ -226,6 +229,7 @@ struct ThresholdsView : View {
 
 struct FocusApplicationsView: View {
     @EnvironmentObject var focusManager: FocusManager
+    @Binding var selectedTab: Int
     
     var body: some View {
         GroupBox(label: Text("Focus Applications").font(.headline)) {
@@ -236,7 +240,7 @@ struct FocusApplicationsView: View {
                     .fontWeight(.regular)
                     .foregroundColor(.secondary)
                 
-                AppsListView()
+                AppsListView(selectedTab: $selectedTab)
                 
                 HStack {
                     Button {
@@ -270,20 +274,21 @@ struct FocusApplicationsView: View {
 struct ConfigurationView: View {
     @EnvironmentObject var focusManager: FocusManager
     @EnvironmentObject var licenseManager: LicenseManager
+    @Binding var selectedTab: Int
     
     var body: some View {
         VStack(spacing: 10) {
             HeaderView()
             GeneralSettingsView()
             ThresholdsView()
-            FocusApplicationsView()
+            FocusApplicationsView(selectedTab: $selectedTab)
         }
         .padding()
     }
 }
 
 #Preview {
-    ConfigurationView()
+    ConfigurationView(selectedTab: .constant(0))
         .environmentObject(FocusManager())
         .environmentObject(LicenseManager())
         .frame(width: 600, height: 900)
