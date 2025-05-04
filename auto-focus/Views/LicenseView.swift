@@ -1,18 +1,11 @@
-//
-//  LicenseView.swift
-//  auto-focus
-//
-
 import SwiftUI
 
-struct LicenseView: View {
-    @EnvironmentObject var licenseManager: LicenseManager
-    @State private var licenseInput: String = ""
+struct LicensedView : View {
+    @ObservedObject var licenseManager: LicenseManager
     
     var body: some View {
         Form {
             if licenseManager.isLicensed {
-                // License is active - show details
                 Section(header: Text("License Status").font(.headline)) {
                     HStack {
                         Image(systemName: "checkmark.seal.fill")
@@ -42,75 +35,7 @@ struct LicenseView: View {
                     .padding(.top, 8)
                 }
             } else {
-                // License activation form
-                Section(header: Text("Activate Premium").font(.headline)) {
-                    Text("Unlock premium features including unlimited focus apps and detailed session insights.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .padding(.bottom, 8)
-                    
-                    VStack(spacing: 12) {
-                        TextField("Enter License Key", text: $licenseInput)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                        
-                        if let error = licenseManager.validationError {
-                            Text(error)
-                                .foregroundColor(.red)
-                                .font(.caption)
-                                .padding(.top, -4)
-                        }
-                        
-                        Button(action: {
-                            licenseManager.licenseKey = licenseInput
-                            licenseManager.activateLicense()
-                        }) {
-                            if licenseManager.isActivating {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle())
-                                    .scaleEffect(0.8)
-                                    .frame(height: 20)
-                            } else {
-                                Text("Activate License")
-                                    .frame(maxWidth: .infinity)
-                            }
-                        }
-                        .disabled(licenseInput.count < 8 || licenseManager.isActivating)
-                        .buttonStyle(.borderedProminent)
-                    }
-                    
-                    Divider()
-                        .padding(.vertical, 8)
-                    
-                    Button("Purchase a License") {
-                        if let url = URL(string: "https://yourcompany.lemonsqueezy.com/checkout/buy/your-product-id") {
-                            NSWorkspace.shared.open(url)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .font(.caption)
-                }
                 
-                Section {
-                    VStack(alignment: .leading, spacing: 8) {
-                        PremiumFeatureRow(
-                            icon: "list.bullet",
-                            title: "Unlimited Focus Apps",
-                            description: "Add as many focus-triggering apps as you need"
-                        )
-                        
-                        PremiumFeatureRow(
-                            icon: "chart.bar.fill",
-                            title: "Advanced Insights",
-                            description: "Get detailed statistics about your focus habits"
-                        )
-                        
-                        PremiumFeatureRow(
-                            icon: "arrow.clockwise",
-                            title: "Free Updates",
-                            description: "Access to all future premium features"
-                        )
-                    }
-                }
             }
         }
         .padding(16)
@@ -121,6 +46,136 @@ struct LicenseView: View {
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
         return formatter.string(from: date)
+    }
+}
+
+struct LicenseInputView: View {
+    @State private var licenseInput: String = ""
+    @ObservedObject var licenseManager: LicenseManager
+    
+    var body: some View {
+        VStack(spacing: 10) {
+            TextField("Enter License Key", text: $licenseInput)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+            
+            if let error = licenseManager.validationError {
+                Text(error)
+                    .foregroundColor(.red)
+                    .font(.caption)
+                    .padding(.top, -4)
+            }
+            
+            Button(action: {
+                licenseManager.licenseKey = licenseInput
+                licenseManager.activateLicense()
+            }) {
+                if licenseManager.isActivating {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle())
+                        .scaleEffect(0.8)
+                        .frame(height: 20)
+                } else {
+                    Text("Activate")
+                }
+            }
+            .disabled(licenseInput.count < 8 || licenseManager.isActivating)
+            .buttonStyle(.borderedProminent)
+            
+            Link("Don't have a license key? Purchase one.",
+                 destination: URL(string: "https://auto-focus.app/license")!)
+        }
+        .frame(maxWidth: 300)
+    }
+}
+
+struct UnlicensedView: View {
+    @ObservedObject var licenseManager: LicenseManager
+    
+    var body: some View {
+        GroupBox() {
+            VStack() {
+                Text("Join Auto-Focus+").font(.title)
+                    .fontDesign(.default)
+                    .fontWeight(.bold)
+                    .bold()
+                Text("Unlimited focus apps, advanced insights and more.")
+                    .font(.callout)
+                    .fontDesign(.default)
+                    .fontWeight(.regular)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.bottom, 16)
+                
+                LicenseInputView(licenseManager: licenseManager)
+                
+                Divider().padding(16)
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    PremiumFeatureRow(
+                        icon: "list.bullet",
+                        title: "Unlimited Focus Apps",
+                        description: "Add as many focus-triggering apps as you need"
+                    )
+                    
+                    PremiumFeatureRow(
+                        icon: "chart.bar.fill",
+                        title: "Advanced Insights",
+                        description: "Get detailed statistics about your focus habits"
+                    )
+                    
+                    PremiumFeatureRow(
+                        icon: "cloud",
+                        title: "Data Synchronization",
+                        description: "Keep your data synchronized across Macs"
+                    )
+                    
+                    PremiumFeatureRow(
+                        icon: "arrow.clockwise",
+                        title: "Free Updates",
+                        description: "Access to all future premium features"
+                    )
+                    
+                    PremiumFeatureRow(
+                        icon: "cup.and.heat.waves",
+                        title: "Support Indie Developer",
+                        description: "Buy us a cup of coffee"
+                    )
+                }
+            }
+            .padding(.horizontal, 40)
+            .padding(.vertical)
+            .frame(maxWidth: .infinity)
+        }
+    }
+}
+
+struct LicenseView: View {
+    @EnvironmentObject var licenseManager: LicenseManager
+    
+    var body: some View {
+        VStack(spacing: 10) {
+            if licenseManager.isLicensed {
+                GroupBox() {
+                    VStack(spacing: 8) {
+                        Text("Auto Focus+")
+                            .font(.title)
+                            .fontWeight(.bold)
+                        Text("Debugger Boy")
+                            .font(.title2)
+                        Text("debugger@janschill.de")
+                            .font(.title2)
+                    }
+                    .padding(.horizontal, 40)
+                    .padding(.vertical)
+                    .frame(maxWidth: .infinity)
+                }
+            } else {
+                UnlicensedView(licenseManager: licenseManager)
+            }
+            
+            Spacer()
+        }
+        .padding()
     }
 }
 
@@ -160,4 +215,10 @@ struct PremiumFeatureRow: View {
         }
         .padding(.vertical, 6)
     }
+}
+
+#Preview {
+    LicenseView()
+        .environmentObject(LicenseManager())
+        .frame(width: 600, height: 900)
 }

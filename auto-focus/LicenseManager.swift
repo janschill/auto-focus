@@ -27,7 +27,7 @@ class LicenseManager: ObservableObject {
     private let lemonSqueezyBaseURL = "https://api.lemonsqueezy.com/v1/licenses/validate"
     private let productId = "YOUR_PRODUCT_ID" // Replace with your LemonSqueezy product ID
     
-    enum LicenseStatus {
+    enum LicenseStatus: String {
         case inactive
         case valid
         case expired
@@ -38,9 +38,13 @@ class LicenseManager: ObservableObject {
         loadLicense()
     }
     
+
+    
     private func loadLicense() {
         #if DEBUG
-        self.licenseStatus = .valid
+        self.licenseStatus = .expired
+//        self.licenseStatus = .valid
+//        self.isLicensed = false
         self.isLicensed = true
         self.licenseOwner = "Debugger Boy"
         self.licenseEmail = "debugger-boy@janschill.de"
@@ -204,7 +208,6 @@ class LicenseManager: ObservableObject {
     }
 }
 
-// Helper struct to store license information
 struct License: Codable {
     let licenseKey: String
     let ownerName: String
@@ -212,7 +215,6 @@ struct License: Codable {
     let expiryDate: Date?
 }
 
-// Helper for generating unique machine identifier
 private struct SystemInfo {
     static var machineModel: String {
         var size: size_t = 0

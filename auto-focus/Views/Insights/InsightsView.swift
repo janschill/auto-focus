@@ -305,6 +305,7 @@ struct ProductivityMetricsView: View {
 
 struct InsightsView: View {
     @EnvironmentObject var focusManager: FocusManager
+    @EnvironmentObject var licenseManager: LicenseManager
     @StateObject private var dataProvider: InsightsViewModel
 
     init() {
@@ -336,31 +337,68 @@ struct InsightsView: View {
                 .frame(maxWidth: .infinity)
             }
 
-            GroupBox {
-                VStack(alignment: .leading, spacing: 8) {
-                    ProductivityMetricsView(dataProvider: dataProvider)
-                }
-                .padding(8)
-            }
-            
-            GroupBox {
-                VStack(alignment: .leading, spacing: 8) {
-                    InsightsHeaderView(dataProvider: dataProvider)
-                    FocusTimeOverviewView(dataProvider: dataProvider)
-                    InsightsGraphsContainerView(dataProvider: dataProvider)
-                    
-                    HStack {
-                        Text("Number of sessions")
-                            .font(.body)
-                        Spacer()
-                        Text("\(dataProvider.relevantSessions.count)")
-                            .font(.body)
+            if licenseManager.isLicensed {
+                GroupBox {
+                    VStack(alignment: .leading, spacing: 8) {
+                        ProductivityMetricsView(dataProvider: dataProvider)
                     }
-                    .padding(.top, 8)
+                    .padding(8)
                 }
-                .padding(8)
+                
+                GroupBox {
+                    VStack(alignment: .leading, spacing: 8) {
+                        InsightsHeaderView(dataProvider: dataProvider)
+                        FocusTimeOverviewView(dataProvider: dataProvider)
+                        InsightsGraphsContainerView(dataProvider: dataProvider)
+                        
+                        HStack {
+                            Text("Number of sessions")
+                                .font(.body)
+                            Spacer()
+                            Text("\(dataProvider.relevantSessions.count)")
+                                .font(.body)
+                        }
+                        .padding(.top, 8)
+                    }
+                    .padding(8)
+                }
+            } else {
+                GroupBox() {
+                    VStack() {
+                        Text("You are currently on a free plan of Auto-Focus. To unlock more detailed insights, please upgrade to a premium plan.")
+                            .font(.callout)
+                            .fontDesign(.default)
+                            .fontWeight(.regular)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                        
+                        Section {
+                            VStack(alignment: .leading, spacing: 8) {
+                                PremiumFeatureRow(
+                                    icon: "list.bullet",
+                                    title: "Unlimited Focus Apps",
+                                    description: "Add as many focus-triggering apps as you need"
+                                )
+                                
+                                PremiumFeatureRow(
+                                    icon: "chart.bar.fill",
+                                    title: "Advanced Insights",
+                                    description: "Get detailed statistics about your focus habits"
+                                )
+                                
+                                PremiumFeatureRow(
+                                    icon: "arrow.clockwise",
+                                    title: "Free Updates",
+                                    description: "Access to all future premium features"
+                                )
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 40)
+                    .padding(.vertical)
+                    .frame(maxWidth: .infinity)
+                }
             }
-
             Spacer()
         }
         .padding()
@@ -373,5 +411,6 @@ struct InsightsView: View {
 #Preview {
     InsightsView()
         .environmentObject(FocusManager())
+        .environmentObject(LicenseManager())
         .frame(width: 600, height: 900)
 }
