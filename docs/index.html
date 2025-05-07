@@ -16,11 +16,11 @@
         }
 
         .custom-blue {
-            background-color: rgb(38, 109, 174);
+            background-color: rgb(53, 121, 246);
         }
 
         .custom-blue-text {
-            color: rgb(38, 109, 174);
+            color: rgb(53, 121, 246);
         }
 
         .custom-blue-light {
@@ -29,6 +29,40 @@
 
         .custom-blue:hover {
             background-color: rgb(31, 88, 141);
+        }
+
+        .screenshot-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .screenshot-item {
+            border-radius: 0.5rem;
+            overflow: hidden;
+            /* box-shadow: 0.5px 1px 1px hsla(219, 14%, 39%, 0.7); */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .beta-badge {
+            display: inline-block;
+            background-color: rgb(90, 101, 203);
+            color: white;
+            font-weight: 600;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            margin-left: 0.5rem;
+            vertical-align: middle;
+        }
+
+        .feedback-banner {
+            background-color: rgba(38, 109, 174, 0.1);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            border: 1px solid rgba(38, 109, 174, 0.3);
         }
     </style>
 </head>
@@ -43,6 +77,32 @@
                 auto-focus detects focus and automatically turns off notifications.
                 No more disruptions when you're in the flow.
             </p>
+
+            <div class="mt-6">
+                <span class="beta-badge">BETA</span>
+                <span class="text-gray-600 text-sm">Free beta access until July 1, 2025</span>
+            </div>
+
+            <div class="text-center mt-8">
+                <a href="https://github.com/janschill/auto-focus/releases/latest/download/Auto-Focus.zip"
+                    class="inline-block custom-blue text-white px-6 py-4 rounded-lg text-lg font-semibold transition-colors">
+                    Download for macOS
+                </a>
+                <p class="mt-4 text-sm text-gray-500">
+                    Compatible with macOS Sonoma and later
+                </p>
+            </div>
+        </div>
+
+        <div class="screenshot-container mb-16">
+            <div class="screenshot-item">
+                <img src="images/auto-focus-configuration-view.png" alt="Auto-Focus configuration view" class="w-full">
+                <p class="text-center text-sm text-gray-600 m-2">Configuration options</p>
+            </div>
+            <div class="screenshot-item">
+                <img src="images/auto-focus-insights-view.png" alt="Auto-Focus insights view" class="w-full">
+                <p class="text-center text-sm text-gray-600 m-2">Focus insights and analytics</p>
+            </div>
         </div>
 
         <div class="grid md:grid-cols-2 gap-12 items-center mb-16">
@@ -65,14 +125,28 @@
                     </p>
                 </div>
             </div>
-            <div class="rounded-lg bg-gray-100 p-4">
-                <img src="images/auto-focus-menubar-window.jpeg" alt="Auto-Focus app screenshot"
-                    class="rounded-md shadow-lg w-full">
+            <div class="screenshot-item">
+                <img src="images/auto-focus-menubar-window-in-focus.png" alt="Auto-Focus app screenshot"
+                    class="">
             </div>
         </div>
 
-        <div class="text-center">
-            <a href="https://github.com/janschill/auto-focus/releases/latest/download/Auto-Focus.dmg"
+        <!-- Feedback Banner -->
+        <div class="feedback-banner text-center">
+            <h3 class="text-xl font-semibold mb-2">We Want Your Feedback!</h3>
+            <p class="mb-4">Help shape the future of Auto-Focus by sharing your experience during the beta period.</p>
+            <div class="flex flex-col sm:flex-row justify-center gap-4 mt-4">
+                <a href="mailto:help@auto-focus.app?subject=Feedback" class="inline-block custom-blue text-white px-4 py-2 rounded-lg font-semibold transition-colors">
+                    Send Feedback
+                </a>
+                <a href="mailto:help@auto-focus.app?subject=Signup" class="inline-block bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors">
+                    Sign Up for July Release
+                </a>
+            </div>
+        </div>
+
+        <div class="text-center mt-16">
+            <a href="https://github.com/janschill/auto-focus/releases/latest/download/Auto-Focus.zip"
                 class="inline-block custom-blue text-white px-8 py-6 rounded-lg text-lg font-semibold transition-colors">
                 Download for macOS
             </a>
@@ -117,23 +191,8 @@
         <div class="mt-20 max-w-3xl mx-auto">
             <h2 class="text-2xl font-semibold text-gray-900 mb-6 text-center">Getting Started</h2>
 
-            <div class="space-y-8">
                 <div class="bg-gray-50 rounded-lg p-6">
-                    <h3 class="font-semibold mb-2 text-lg">1. First Launch</h3>
-                    <p class="text-gray-600 mb-4">Since Auto-Focus is currently not notarized by Apple, you'll need to
-                        take one of these steps:</p>
-                    <div class="space-y-2">
-                        <p class="text-gray-600"><span class="font-medium">Option A:</span> Open System Settings →
-                            Privacy & Security, and click "Open Anyway" when prompted.</p>
-                        <p class="text-gray-600"><span class="font-medium">Option B:</span> Remove the quarantine
-                            attribute by running this command in Terminal:</p>
-                        <pre
-                            class="bg-gray-100 p-3 rounded text-sm font-mono">xattr -d com.apple.quarantine /Applications/auto-focus.app</pre>
-                    </div>
-                </div>
-
-                <div class="bg-gray-50 rounded-lg p-6">
-                    <h3 class="font-semibold mb-2 text-lg">2. Install the Shortcut</h3>
+                    <h3 class="font-semibold mb-2 text-lg">Install the Shortcut</h3>
                     <p class="text-gray-600">Auto-Focus requires a Shortcuts automation to toggle Do Not Disturb mode:
                     </p>
                     <ol class="list-decimal list-inside space-y-2 mt-2 text-gray-600">
@@ -151,28 +210,38 @@
 
             <div class="space-y-8">
                 <div class="bg-gray-50 rounded-lg p-6">
-                    <h3 class="font-semibold mb-4 text-lg">Beta Release</h3>
+                    <h3 class="font-semibold mb-4 text-lg">Beta Release Period</h3>
                     <p class="text-gray-600 mb-4">
-                        Auto-Focus is currently in beta, which means:
+                        Auto-Focus is currently in beta until <strong>July 1, 2025</strong>, which means:
                     </p>
                     <ul class="list-disc list-inside space-y-2 text-gray-600 mb-6">
                         <li>The core functionality works as intended on macOS Sonoma and later</li>
+                        <li>All features are <strong>completely free</strong> during the beta period</li>
                         <li>We're actively gathering user feedback to improve the experience</li>
                         <li>You might encounter occasional bugs or unexpected behavior</li>
-                        <li>All features are currently free during this initial launch phase</li>
+                    </ul>
+
+                    <h4 class="font-semibold mb-2 mt-6">After Beta (July 1, 2025)</h4>
+                    <p class="text-gray-600 mb-2">
+                        Once the beta period ends, Auto-Focus will transition to a freemium model:
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-600 mb-6">
+                        <li><strong>Free version:</strong> Limited to two focus apps, basic functionality</li>
+                        <li><strong>Auto-Focus+:</strong> Unlimited focus apps, advanced insights, and future premium features</li>
+                        <li>All beta users will be the first to know about the official release</li>
                     </ul>
                 </div>
 
                 <div class="bg-gray-50 rounded-lg p-6">
                     <h3 class="font-semibold mb-4 text-lg">Roadmap</h3>
                     <p class="text-gray-600 mb-4">
-                        We're working on several exciting features for future releases:
+                        We're working on several exciting features for the official release:
                     </p>
                     <ul class="list-disc list-inside space-y-2 text-gray-600 mb-6">
                         <li>Enhanced focus insights with more detailed analytics</li>
+                        <li>Cross-device synchronization</li>
                         <li>Additional customization options</li>
                         <li>Integration with other productivity tools</li>
-                        <li>Premium features that will help support continued development</li>
                     </ul>
                 </div>
 
@@ -192,7 +261,7 @@
                             <div>
                                 <p class="font-medium">Email Support</p>
                                 <p class="text-gray-600">Reach out with questions or feedback: <a
-                                        href="mailto:help@auto-focus.app"
+                                        href="mailto:help@auto-focus.app?subject=Support"
                                         class="custom-blue-text hover:underline">help@auto-focus.app</a></p>
                             </div>
                         </div>
@@ -206,7 +275,7 @@
                             </div>
                             <div>
                                 <p class="font-medium">Report Issues</p>
-                                <p class="text-gray-600">Found a bug? Let us know and we'll fix it in our next update.</p>
+                                <p class="text-gray-600">Found a bug? Let us know at <a href="mailto:help@auto-focus.app?subject=Bug" class="custom-blue-text hover:underline">help@auto-focus.app</a> and we'll fix it in our next update.</p>
                             </div>
                         </div>
 
@@ -218,9 +287,8 @@
                                 </svg>
                             </div>
                             <div>
-                                <p class="font-medium">Feature Requests</p>
-                                <p class="text-gray-600">Share your ideas for new features you'd like to see in future
-                                    updates.</p>
+                                <p class="font-medium">Stay Updated</p>
+                                <p class="text-gray-600">Get notified about the official release: <a href="mailto:help@auto-focus.app?subject=Signup" class="custom-blue-text hover:underline">Send an email and join the waiting list</a></p>
                             </div>
                         </div>
                     </div>
@@ -237,6 +305,7 @@
 
         <footer class="mt-20 text-center text-gray-500 text-sm">
             <p>You don't need more time, you need more focus.</p>
+            <p class="mt-2">© 2025 Auto-Focus. All rights reserved.</p>
         </footer>
     </div>
 </body>
