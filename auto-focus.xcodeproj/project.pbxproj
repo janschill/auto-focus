@@ -439,7 +439,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.5;
-				MARKETING_VERSION = 0.24;
+				MARKETING_VERSION = 0.30;
 				PRODUCT_BUNDLE_IDENTIFIER = "auto-focus.auto-focus";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -472,7 +472,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.5;
-				MARKETING_VERSION = 0.24;
+				MARKETING_VERSION = 0.30;
 				PRODUCT_BUNDLE_IDENTIFIER = "auto-focus.auto-focus";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

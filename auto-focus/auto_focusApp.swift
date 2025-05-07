@@ -10,12 +10,14 @@ import SwiftUI
 @main
 struct auto_focusApp: App {
     @StateObject private var focusManager = FocusManager()
+    @StateObject private var licenseManager = LicenseManager()
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
         Settings {
             SettingsView()
                 .environmentObject(focusManager)
+                .environmentObject(licenseManager)
         }
         
         MenuBarExtra {
