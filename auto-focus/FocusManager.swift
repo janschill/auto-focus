@@ -1,10 +1,3 @@
-//
-//  FocusManager.swift
-//  auto-focus
-//
-//  Created by Jan Schill on 25/01/2025.
-//
-
 import Foundation
 import AppKit
 
@@ -101,16 +94,21 @@ class FocusManager: ObservableObject {
     }
     
     var canAddMoreApps: Bool {
-        return isPremiumUser || focusApps.count < freeAppLimit
+        let licenseManager = LicenseManager()
+        return licenseManager.isLicensed || focusApps.count < freeAppLimit
     }
     
     var isPremiumRequired: Bool {
-        return !isPremiumUser && focusApps.count >= freeAppLimit
+        let licenseManager = LicenseManager()
+        return !licenseManager.isLicensed && focusApps.count >= freeAppLimit
     }
     
     init() {
         loadFocusApps()
         loadSessions()
+        // Neeeded to load UserDefault values
+        focusThreshold = UserDefaults.standard.double(forKey: "focusThreshold")
+        if focusThreshold == 0 { focusThreshold = 12 }
         focusLossBuffer = UserDefaults.standard.double(forKey: "focusLossBuffer")
         if focusLossBuffer == 0 { focusLossBuffer = 2 }
         isPaused = UserDefaults.standard.bool(forKey: "isPaused")

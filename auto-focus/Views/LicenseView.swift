@@ -15,12 +15,12 @@ struct LicensedView: View {
                             .font(.largeTitle)
                         
                         VStack(alignment: .leading) {
-                            Text(licenseManager.licenseStatus == .valid ? "Auto-Focus+ License Active" : "License Expired")
+                            Text(licenseManager.licenseStatus == .valid ? "Beta Acccess Valid" : "License Expired")
                                 .font(.headline)
                                 .fontWeight(.bold)
                             
                             if licenseManager.licenseStatus == .expired {
-                                Text("Your license has expired. Please renew to continue using premium features.")
+                                Text("Your license has expired. Please renew to continue using Auto-Focus+ features.")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                             }
@@ -40,7 +40,6 @@ struct LicensedView: View {
                 .padding()
             }
             
-            // License details section
             GroupBox {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Details")
@@ -68,14 +67,16 @@ struct LicensedView: View {
                     
                     Divider().padding(.vertical, 8)
                     
-                    HStack {
-                        Spacer()
-                        
-                        Button("Deactivate License") {
-                            licenseManager.deactivateLicense()
-                        }
-                        .foregroundColor(.red)
-                    }
+//                    HStack {
+//                        Spacer()
+//                        
+//                        Button("Deactivate License") {
+//                            licenseManager.deactivateLicense()
+//                        }
+//                        .foregroundColor(.red)
+//                    }
+                    
+                    LicenseBenefitsView()
                 }
                 .padding()
             }

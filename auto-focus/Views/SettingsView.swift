@@ -1,10 +1,3 @@
-//
-//  SettingsView.swift
-//  auto-focus
-//
-//  Created by Jan Schill on 25/01/2025.
-//
-
 import SwiftUI
 
 struct SettingsView: View {
@@ -31,7 +24,7 @@ struct SettingsView: View {
             
             LicenseView()
                 .tabItem {
-                    Label("Auto-Focus+", systemImage: "star.fill")
+                    Label("Beta Access", systemImage: "hourglass")
                 }
                 .tag(2)
                 .environmentObject(licenseManager)
@@ -43,23 +36,29 @@ struct SettingsView: View {
                     }
                     .tag(3)
                     .environmentObject(focusManager)
+                    .environmentObject(licenseManager)
             }
         }
         .frame(width: 600, height: 800)
-//        .onAppear {
-//            // When settings appear, show in dock and activate
-//            NSApp.setActivationPolicy(.regular)
-//            NSApp.activate(ignoringOtherApps: true)
-//            
-//            // Additional step to bring window to front
-//            DispatchQueue.main.async {
-//                NSApp.windows.first?.orderFrontRegardless()
-//            }
-//        }
-//        .onDisappear {
-//            // When settings disappear, hide from dock
-//            NSApp.setActivationPolicy(.accessory)
-//            NSApp.deactivate()
-//        }
+        .onAppear {
+            #if !DEBUG
+            // When settings appear, show in dock and activate
+            NSApp.setActivationPolicy(.regular)
+            NSApp.activate(ignoringOtherApps: true)
+            
+            // Additional step to bring window to front
+            DispatchQueue.main.async {
+                NSApp.windows.first?.orderFrontRegardless()
+            }
+            #endif
+        }
+        .onDisappear {
+            #if !DEBUG
+            // When settings disappear, hide from dock
+            NSApp.setActivationPolicy(.accessory)
+            NSApp.deactivate()
+            #endif
+        }
     }
 }
+    

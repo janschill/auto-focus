@@ -91,10 +91,10 @@ struct GeneralSettingsView: View {
                         .frame(width: 150, alignment: .leading)
                     Spacer()
                     if licenseManager.isLicensed {
-                        Image(systemName: "star.fill")
+                        Image(systemName: "hourglass")
                             .symbolRenderingMode(.multicolor)
-                        Text("Premium")
-                            .foregroundStyle(.yellow)
+                        Text("Beta")
+                            .foregroundStyle(.indigo)
                     } else {
                         Text("Free")
                     }

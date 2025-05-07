@@ -1,10 +1,3 @@
-//
-//  MenuBarView.swift
-//  auto-focus
-//
-//  Created by Jan Schill on 25/01/2025.
-//
-
 import SwiftUI
 
 struct MenuBarView: View {
@@ -22,7 +15,8 @@ struct MenuBarView: View {
             HStack {
                 Text("Auto-Focus")
                     .font(.system(size: 13, weight: .semibold))
-                Text(version)
+//                Text(version)
+                Text("BETA")
                 Spacer()
                 
                 if focusManager.isPaused {
@@ -83,10 +77,10 @@ struct MenuBarView: View {
                 }) {
                     HStack(spacing: 4) {
                         Image(systemName: focusManager.isPaused ? "play.fill" : "pause.fill")
-                        Text(focusManager.isPaused ? "Resume" : "Pause")
+                        Text(focusManager.isPaused ? "Start" : "Stop")
                     }
                 }
-                .help(focusManager.isPaused ? "Resume focus tracking" : "Pause focus tracking")
+                .help(focusManager.isPaused ? "Resume focus tracking" : "Stop focus tracking")
                 
                 Spacer()
                 

@@ -1,14 +1,19 @@
-//
-//  DebugMenuView.swift
-//  auto-focus
-//
-//  Created for development debugging purposes
-//
-
 import SwiftUI
+
+func setLicense() {
+    LicenseManager().licenseStatus = .valid
+    LicenseManager().licenseStatus = .valid
+    LicenseManager().isLicensed = true
+    LicenseManager().licenseOwner = "Debugger Boy"
+    LicenseManager().licenseEmail = "debugger-boy@janschill.de"
+    LicenseManager().licenseKey = "aasdasdd23443tfgsdfgq234"
+    LicenseManager().licenseExpiry = Date() + 365 * 24 * 60 * 60
+
+}
 
 struct DebugMenuView: View {
     @EnvironmentObject var focusManager: FocusManager
+    @EnvironmentObject var licenseManager: LicenseManager
     @State private var daysToGenerate: Int = 30
     @State private var sessionsPerDay: Int = 5
     @State private var avgSessionLength: Int = 25
@@ -30,6 +35,13 @@ struct DebugMenuView: View {
                     .font(.headline)
             }
             .padding(.bottom, 4)
+            
+            GroupBox("License") {
+                Button("Add license") {
+                    setLicense()
+                }
+                .buttonStyle(.borderedProminent)
+            }
             
             // Sample data configuration controls
             GroupBox("Sample Data Generator") {

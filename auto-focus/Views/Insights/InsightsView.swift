@@ -339,7 +339,7 @@ struct InsightsView: View {
                 .frame(maxWidth: .infinity)
             }
 
-            if licenseManager.isLicensed {
+            if licenseManager.hasValidLicense() {
                 GroupBox {
                     VStack(alignment: .leading, spacing: 8) {
                         ProductivityMetricsView(dataProvider: dataProvider)
