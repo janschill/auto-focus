@@ -88,35 +88,35 @@ struct InsightsHeaderView: View {
                 .font(.title3)
             Spacer()
 
-            Menu {
+            Menu(content: {
                 Text("Show Usage")
-                Button {
+                Button(action: {
                     dataProvider.selectedTimeframe = .day
                     dataProvider.selectedDate = Date()
-                } label: {
+                }, label: {
                     HStack {
                         Text("Today")
                         if dataProvider.selectedTimeframe == .day {
                             Image(systemName: "checkmark")
                         }
                     }
-                }
-                Button {
+                })
+                Button(action: {
                     dataProvider.selectedTimeframe = .week
-                } label: {
+                }, label: {
                     HStack {
                         Text("This Week")
                         if dataProvider.selectedTimeframe == .week {
                             Image(systemName: "checkmark")
                         }
                     }
-                }
-            } label: {
+                })
+            }, label: {
                 HStack(spacing: 4) {
                     Text(dataProvider.displayedDateString)
                 }
                 .padding(.horizontal, 8)
-            }
+            })
             .foregroundColor(.primary)
             .frame(maxWidth: 160)
 
@@ -136,15 +136,15 @@ struct DateNavigationView: View {
                 } else {
                     dataProvider.navigateWeek(forward: false)
                 }
-            }) {
+            }, label: {
                 Image(systemName: "chevron.left")
-            }
+            })
 
             Button(action: {
                 dataProvider.goToToday()
-            }) {
+            }, label: {
                 Text("Today")
-            }
+            })
 
             Button(action: {
                 if dataProvider.selectedTimeframe == .day {
@@ -152,9 +152,9 @@ struct DateNavigationView: View {
                 } else {
                     dataProvider.navigateWeek(forward: true)
                 }
-            }) {
+            }, label: {
                 Image(systemName: "chevron.right")
-            }
+            })
             .disabled(Calendar.current.isDateInToday(dataProvider.selectedDate))
         }
     }
@@ -408,6 +408,8 @@ struct InsightsView: View {
         }
     }
 }
+
+// MARK: - End of InsightsView
 
 #Preview {
     InsightsView(selectedTab: .constant(2))

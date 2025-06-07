@@ -69,7 +69,7 @@ struct LicensedView: View {
 
 //                    HStack {
 //                        Spacer()
-//                        
+//
 //                        Button("Deactivate License") {
 //                            licenseManager.deactivateLicense()
 //                        }
@@ -84,11 +84,11 @@ struct LicensedView: View {
             Spacer()
         }
         .padding(16)
-        .alert("License Key Copied", isPresented: $showingCopyAlert) {
+        .alert("License Key Copied", isPresented: $showingCopyAlert, actions: {
             Button("OK", role: .cancel) {}
-        } message: {
+        }, message: {
             Text("Your license key has been copied to the clipboard.")
-        }
+        })
     }
 
     private func expiryDateFormatted(_ date: Date) -> String {

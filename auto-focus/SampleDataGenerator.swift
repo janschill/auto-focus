@@ -17,8 +17,8 @@ class SampleDataGenerator {
     ///   - avgSessionLength: Average session length in minutes (actual lengths will vary randomly)
     /// - Returns: Array of FocusSession objects
     func generateSampleSessions(days: Int = 30,
-                               sessionsPerDay: Int = 5,
-                               avgSessionLength: TimeInterval = 25 * 60) -> [FocusSession] {
+                                sessionsPerDay: Int = 5,
+                                avgSessionLength: TimeInterval = 25 * 60) -> [FocusSession] {
 
         var sessions: [FocusSession] = []
         let calendar = Calendar.current

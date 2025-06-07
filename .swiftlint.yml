@@ -6,8 +6,6 @@ opt_in_rules:
   - empty_count
   - explicit_init
   - fatal_error_message
-  - force_unwrapping
-  - implicitly_unwrapped_optional
   - missing_docs
   - private_outlet
   - redundant_nil_coalescing
@@ -16,6 +14,9 @@ opt_in_rules:
   - trailing_closure
   - unused_declaration
 
+disabled_rules:
+  - large_tuple
+  - force_cast
 # Exclude generated, build, and deprecated code
 excluded:
   - builds
@@ -25,7 +26,7 @@ excluded:
 
 # Customize some rules
 line_length:
-  warning: 120
+  warning: 140
   error: 160
 identifier_name:
   min_length: 2
@@ -40,12 +41,6 @@ identifier_name:
 # Allow TODOs but warn
 todo:
   severity: warning
-
-# Allow force casts in tests
-force_cast:
-  severity: warning
-  excluded:
-    - auto-focusTests
 
 # Allow print in debug
 print:
