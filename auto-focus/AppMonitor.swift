@@ -3,10 +3,10 @@ import AppKit
 import SwiftUI
 
 protocol AppMonitorDelegate: AnyObject {
-    func appMonitor(_ monitor: AppMonitor, didDetectFocusApp isActive: Bool)
+    func appMonitor(_ monitor: any AppMonitoring, didDetectFocusApp isActive: Bool)
 }
 
-class AppMonitor: ObservableObject {
+class AppMonitor: ObservableObject, AppMonitoring {
     @Published var currentApp: String?
     @Published var isFocusAppActive = false
 

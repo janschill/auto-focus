@@ -16,11 +16,11 @@ struct AppInfo: Identifiable, Codable, Hashable {
 }
 
 class FocusManager: ObservableObject {
-    private let userDefaultsManager = UserDefaultsManager()
-    private let sessionManager: SessionManager
-    private let appMonitor: AppMonitor
-    private let bufferManager: BufferManager
-    private let focusModeController: FocusModeController
+    private let userDefaultsManager: any PersistenceManaging
+    private let sessionManager: any SessionManaging
+    private let appMonitor: any AppMonitoring
+    private let bufferManager: any BufferManaging
+    private let focusModeController: any FocusModeControlling
 
     @Published var timeSpent: TimeInterval = 0
     @Published var isFocusAppActive = false
@@ -91,11 +91,21 @@ class FocusManager: ObservableObject {
         return !licenseManager.isLicensed && focusApps.count >= freeAppLimit
     }
 
-    init() {
-        sessionManager = SessionManager(userDefaultsManager: userDefaultsManager)
-        appMonitor = AppMonitor(checkInterval: checkInterval)
-        bufferManager = BufferManager()
-        focusModeController = FocusModeController()
+    init(
+        userDefaultsManager: any PersistenceManaging = UserDefaultsManager(),
+        sessionManager: (any SessionManaging)? = nil,
+        appMonitor: (any AppMonitoring)? = nil,
+        bufferManager: (any BufferManaging)? = nil,
+        focusModeController: (any FocusModeControlling)? = nil
+    ) {
+        self.userDefaultsManager = userDefaultsManager
+        
+        // Create default implementations if not provided
+        let checkInterval = AppConfiguration.checkInterval
+        self.sessionManager = sessionManager ?? SessionManager(userDefaultsManager: userDefaultsManager as! UserDefaultsManager)
+        self.appMonitor = appMonitor ?? AppMonitor(checkInterval: checkInterval)
+        self.bufferManager = bufferManager ?? BufferManager()
+        self.focusModeController = focusModeController ?? FocusModeController()
 
         loadFocusApps()
         // Load UserDefault values using UserDefaultsManager
@@ -106,11 +116,11 @@ class FocusManager: ObservableObject {
         isPaused = userDefaultsManager.getBool(forKey: UserDefaultsManager.Keys.isPaused)
 
         // Set up delegates and start monitoring
-        appMonitor.delegate = self
-        bufferManager.delegate = self
-        focusModeController.delegate = self
-        appMonitor.updateFocusApps(focusApps)
-        appMonitor.startMonitoring()
+        self.appMonitor.delegate = self
+        self.bufferManager.delegate = self
+        self.focusModeController.delegate = self
+        self.appMonitor.updateFocusApps(focusApps)
+        self.appMonitor.startMonitoring()
     }
 
     func togglePause() {
@@ -238,12 +248,12 @@ class FocusManager: ObservableObject {
 
 // MARK: - FocusModeControllerDelegate
 extension FocusManager: FocusModeControllerDelegate {
-    func focusModeController(_ controller: FocusModeController, didChangeFocusMode enabled: Bool) {
+    func focusModeController(_ controller: any FocusModeControlling, didChangeFocusMode enabled: Bool) {
         // Update notifications state when focus mode changes
         self.isNotificationsEnabled = !enabled
     }
-
-    func focusModeController(_ controller: FocusModeController, didFailWithError error: FocusModeError) {
+    
+    func focusModeController(_ controller: any FocusModeControlling, didFailWithError error: FocusModeError) {
         switch error {
         case .shortcutNotFound:
             print("Focus mode error: Toggle Do Not Disturb shortcut not found")
@@ -257,15 +267,15 @@ extension FocusManager: FocusModeControllerDelegate {
 
 // MARK: - BufferManagerDelegate
 extension FocusManager: BufferManagerDelegate {
-    func bufferManagerDidStartBuffer(_ manager: BufferManager) {
+    func bufferManagerDidStartBuffer(_ manager: any BufferManaging) {
         // Buffer started - no action needed currently
     }
-
-    func bufferManagerDidEndBuffer(_ manager: BufferManager) {
+    
+    func bufferManagerDidEndBuffer(_ manager: any BufferManaging) {
         // Buffer was cancelled (user returned to focus app) - no action needed
     }
-
-    func bufferManagerDidTimeout(_ manager: BufferManager) {
+    
+    func bufferManagerDidTimeout(_ manager: any BufferManaging) {
         // Buffer timed out - end session and exit focus mode
         sessionManager.endSession()
         resetFocusState()
@@ -277,9 +287,9 @@ extension FocusManager: BufferManagerDelegate {
 
 // MARK: - AppMonitorDelegate
 extension FocusManager: AppMonitorDelegate {
-    func appMonitor(_ monitor: AppMonitor, didDetectFocusApp isActive: Bool) {
+    func appMonitor(_ monitor: any AppMonitoring, didDetectFocusApp isActive: Bool) {
         guard !isPaused else { return }
-
+        
         if isActive {
             handleFocusAppInFront()
         } else if isFocusAppActive {

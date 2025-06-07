@@ -1,6 +1,6 @@
 import SwiftUI
 
-class UserDefaultsManager {
+class UserDefaultsManager: PersistenceManaging {
     enum Keys {
         static let focusApps = "focusApps"
         static let focusSessions = "focusSessions"

@@ -9,7 +9,7 @@ import SwiftUI
 
 @main
 struct auto_focusApp: App {
-    @StateObject private var focusManager = FocusManager()
+    @StateObject private var focusManager = ServiceRegistry.shared.focusManager()
     @StateObject private var licenseManager = LicenseManager()
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 

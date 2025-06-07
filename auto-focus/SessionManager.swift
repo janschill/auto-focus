@@ -2,11 +2,11 @@ import Foundation
 import SwiftUI
 
 protocol SessionManagerDelegate: AnyObject {
-    func sessionManager(_ manager: SessionManager, didStartSession session: FocusSession)
-    func sessionManager(_ manager: SessionManager, didEndSession session: FocusSession)
+    func sessionManager(_ manager: any SessionManaging, didStartSession session: FocusSession)
+    func sessionManager(_ manager: any SessionManaging, didEndSession session: FocusSession)
 }
 
-class SessionManager: ObservableObject {
+class SessionManager: ObservableObject, SessionManaging {
     @Published var focusSessions: [FocusSession] = [] {
         didSet {
             saveSessions()

@@ -2,12 +2,12 @@ import Foundation
 import SwiftUI
 
 protocol BufferManagerDelegate: AnyObject {
-    func bufferManagerDidStartBuffer(_ manager: BufferManager)
-    func bufferManagerDidEndBuffer(_ manager: BufferManager)
-    func bufferManagerDidTimeout(_ manager: BufferManager)
+    func bufferManagerDidStartBuffer(_ manager: any BufferManaging)
+    func bufferManagerDidEndBuffer(_ manager: any BufferManaging)
+    func bufferManagerDidTimeout(_ manager: any BufferManaging)
 }
 
-class BufferManager: ObservableObject {
+class BufferManager: ObservableObject, BufferManaging {
     @Published private(set) var bufferTimeRemaining: TimeInterval = 0
     @Published private(set) var isInBufferPeriod = false
 
