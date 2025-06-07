@@ -59,7 +59,7 @@ class FocusManager: ObservableObject {
     var focusSessions: [FocusSession] {
         return sessionManager.focusSessions
     }
-    
+
     var todaysSessions: [FocusSession] {
         return sessionManager.todaysSessions
     }
@@ -309,13 +309,13 @@ extension FocusManager {
         sessionManager.addSampleSessions(sessions)
         #endif
     }
-    
+
     func clearAllSessions() {
         #if DEBUG
         sessionManager.clearAllSessions()
         #endif
     }
-    
+
     /// For debug UI - shows if we have sample data buttons available
     var canShowDebugOptions: Bool {
         #if DEBUG
