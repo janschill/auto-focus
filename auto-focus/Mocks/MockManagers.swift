@@ -99,7 +99,7 @@ class MockBufferManager: ObservableObject, BufferManaging {
 class MockFocusModeController: ObservableObject, FocusModeControlling {
     @Published private(set) var isFocusModeEnabled: Bool = false
     
-    weak var delegate: FocusModeControllerDelegate?
+    weak var delegate: FocusModeManagerDelegate?
     
     var shouldFailShortcutCheck = false
     var shouldFailFocusMode = false

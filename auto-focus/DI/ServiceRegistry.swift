@@ -65,8 +65,8 @@ class ServiceRegistry: DependencyContainer {
             BufferManager()
         }
         
-        register(FocusModeController.self) {
-            FocusModeController()
+        register(FocusModeManager.self) {
+            FocusModeManager()
         }
         
         register(FocusManager.self) {
@@ -75,7 +75,7 @@ class ServiceRegistry: DependencyContainer {
                 sessionManager: self.resolve(SessionManager.self),
                 appMonitor: self.resolve(AppMonitor.self),
                 bufferManager: self.resolve(BufferManager.self),
-                focusModeController: self.resolve(FocusModeController.self)
+                focusModeController: self.resolve(FocusModeManager.self)
             )
         }
     }
@@ -136,6 +136,6 @@ extension ServiceRegistry {
     }
     
     func focusModeController() -> any FocusModeControlling {
-        return resolve(FocusModeController.self)
+        return resolve(FocusModeManager.self)
     }
 }

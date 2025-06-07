@@ -39,7 +39,7 @@ protocol BufferManaging: AnyObject, ObservableObject {
 // MARK: - Focus Mode Control Protocol
 protocol FocusModeControlling: AnyObject, ObservableObject {
     var isFocusModeEnabled: Bool { get }
-    var delegate: FocusModeControllerDelegate? { get set }
+    var delegate: FocusModeManagerDelegate? { get set }
     
     func setFocusMode(enabled: Bool)
     func checkShortcutExists() -> Bool

@@ -2,7 +2,7 @@ import Foundation
 import AppKit
 import SwiftUI
 
-protocol FocusModeControllerDelegate: AnyObject {
+protocol FocusModeManagerDelegate: AnyObject {
     func focusModeController(_ controller: any FocusModeControlling, didChangeFocusMode enabled: Bool)
     func focusModeController(_ controller: any FocusModeControlling, didFailWithError error: FocusModeError)
 }
@@ -13,10 +13,10 @@ enum FocusModeError: Error {
     case shortcutsAppNotInstalled
 }
 
-class FocusModeController: ObservableObject, FocusModeControlling {
+class FocusModeManager: ObservableObject, FocusModeControlling {
     @Published private(set) var isFocusModeEnabled = false
 
-    weak var delegate: FocusModeControllerDelegate?
+    weak var delegate: FocusModeManagerDelegate?
 
     // MARK: - Focus Mode Control
 
