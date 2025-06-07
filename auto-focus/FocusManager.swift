@@ -20,6 +20,7 @@ class FocusManager: ObservableObject {
     private let sessionManager: SessionManager
     private let appMonitor: AppMonitor
     private let bufferManager: BufferManager
+    private let focusModeController: FocusModeController
 
     @Published var timeSpent: TimeInterval = 0
     @Published var isFocusAppActive = false
@@ -94,6 +95,7 @@ class FocusManager: ObservableObject {
         sessionManager = SessionManager(userDefaultsManager: userDefaultsManager)
         appMonitor = AppMonitor(checkInterval: checkInterval)
         bufferManager = BufferManager()
+        focusModeController = FocusModeController()
 
         loadFocusApps()
         // Load UserDefault values using UserDefaultsManager
@@ -106,6 +108,7 @@ class FocusManager: ObservableObject {
         // Set up delegates and start monitoring
         appMonitor.delegate = self
         bufferManager.delegate = self
+        focusModeController.delegate = self
         appMonitor.updateFocusApps(focusApps)
         appMonitor.startMonitoring()
     }
@@ -117,7 +120,7 @@ class FocusManager: ObservableObject {
                 sessionManager.endSession()
                 resetFocusState()
                 if !isNotificationsEnabled {
-                    setFocusMode(enabled: false)
+                    focusModeController.setFocusMode(enabled: false)
                 }
             }
         }
@@ -160,7 +163,7 @@ class FocusManager: ObservableObject {
         if shouldEnterFocusMode {
             print("activating focus mode")
             isInFocusMode = true
-            setFocusMode(enabled: true)
+            focusModeController.setFocusMode(enabled: true)
         }
     }
 
@@ -183,7 +186,7 @@ class FocusManager: ObservableObject {
         } else {
             resetFocusState()
             if !isNotificationsEnabled {
-                setFocusMode(enabled: false)
+                focusModeController.setFocusMode(enabled: false)
             }
         }
     }
@@ -196,45 +199,8 @@ class FocusManager: ObservableObject {
         timeTrackingTimer = nil
     }
 
-
-    private func setFocusMode(enabled: Bool) {
-        let toggleScript = """
-        tell application "System Events"
-            tell application "Shortcuts Events"
-                run shortcut "\(AppConfiguration.shortcutName)" without activating
-            end tell
-        end tell
-        """
-
-        var error: NSDictionary?
-        if let scriptObject = NSAppleScript(source: toggleScript) {
-            scriptObject.executeAndReturnError(&error)
-            if error == nil {
-                self.isNotificationsEnabled = !enabled
-            } else {
-                print("AppleScript error: \(String(describing: error))")
-            }
-        }
-    }
-
     func checkShortcutExists() -> Bool {
-        let shortcutsApp = NSWorkspace.shared.urlForApplication(withBundleIdentifier: AppConfiguration.shortcutsAppBundleIdentifier)
-        guard shortcutsApp != nil else { return false }
-
-        // Use Shortcuts API to check if shortcut exists
-        let script = """
-        tell application "Shortcuts"
-            exists shortcut "\(AppConfiguration.shortcutName)"
-        end tell
-        """
-
-        if let scriptObject = NSAppleScript(source: script) {
-            var error: NSDictionary?
-            if let result = Optional(scriptObject.executeAndReturnError(&error)) {
-                return result.booleanValue
-            }
-        }
-        return false
+        return focusModeController.checkShortcutExists()
     }
 
     func selectFocusApplication() {
@@ -270,6 +236,25 @@ class FocusManager: ObservableObject {
     }
 }
 
+// MARK: - FocusModeControllerDelegate
+extension FocusManager: FocusModeControllerDelegate {
+    func focusModeController(_ controller: FocusModeController, didChangeFocusMode enabled: Bool) {
+        // Update notifications state when focus mode changes
+        self.isNotificationsEnabled = !enabled
+    }
+
+    func focusModeController(_ controller: FocusModeController, didFailWithError error: FocusModeError) {
+        switch error {
+        case .shortcutNotFound:
+            print("Focus mode error: Toggle Do Not Disturb shortcut not found")
+        case .appleScriptError(let message):
+            print("Focus mode AppleScript error: \(message)")
+        case .shortcutsAppNotInstalled:
+            print("Focus mode error: Shortcuts app not installed")
+        }
+    }
+}
+
 // MARK: - BufferManagerDelegate
 extension FocusManager: BufferManagerDelegate {
     func bufferManagerDidStartBuffer(_ manager: BufferManager) {
@@ -285,7 +270,7 @@ extension FocusManager: BufferManagerDelegate {
         sessionManager.endSession()
         resetFocusState()
         if !isNotificationsEnabled {
-            setFocusMode(enabled: false)
+            focusModeController.setFocusMode(enabled: false)
         }
     }
 }
