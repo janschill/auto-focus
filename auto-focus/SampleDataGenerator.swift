@@ -94,39 +94,4 @@ class SampleDataGenerator {
         }
     }
     
-    /// Clears all sample data
-    func clearSampleData() {
-        UserDefaults.standard.removeObject(forKey: "focusSessions")
-    }
-    
-    /// Adds sample data to the user defaults
-    /// - Parameter focusManager: The app's FocusManager instance
-    func addSampleData(to focusManager: FocusManager) {
-        let sampleSessions = generateSampleSessions()
-        focusManager.addSampleSessions(sampleSessions)
-    }
-}
-
-// Extension to FocusManager to handle sample data
-extension FocusManager {
-    func addSampleSessions(_ sessions: [FocusSession]) {
-        #if DEBUG
-        self.focusSessions.append(contentsOf: sessions)
-        #endif
-    }
-    
-    func clearAllSessions() {
-        #if DEBUG
-        self.focusSessions.removeAll()
-        #endif
-    }
-    
-    /// For debug UI - shows if we have sample data buttons available
-    var canShowDebugOptions: Bool {
-        #if DEBUG
-        return true
-        #else
-        return false
-        #endif
-    }
 }

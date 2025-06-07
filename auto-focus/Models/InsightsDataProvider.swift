@@ -223,7 +223,4 @@ class InsightsDataProvider {
         return formatter.string(from: date)
     }
 
-    static func formatDuration(_ minutes: Int) -> String {
-        return minutes >= 60 ? "\(minutes / 60)h \(minutes % 60)m" : "\(minutes)m"
-    }
 }

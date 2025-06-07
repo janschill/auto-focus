@@ -28,7 +28,7 @@ struct auto_focusApp: App {
                 if focusManager.isPaused {
                     Image(systemName: "pause.circle")
                 } else if focusManager.isFocusAppActive {
-                    Text(timeString(from: focusManager.timeSpent))
+                    Text(TimeFormatter.duration(focusManager.timeSpent))
                         .font(.system(size: 10, weight: .medium))
                 }
                 if focusManager.isInFocusMode {
@@ -37,17 +37,11 @@ struct auto_focusApp: App {
                     Image(systemName: "brain.head.profile")
                 }
                 if focusManager.isInBufferPeriod {
-                    Text(timeString(from: focusManager.bufferTimeRemaining))
+                    Text(TimeFormatter.duration(focusManager.bufferTimeRemaining))
                         .font(.system(size: 10, weight: .medium))
                 }
             }
         }
         .menuBarExtraStyle(.window)
-    }
-    
-    private func timeString(from timeInterval: TimeInterval) -> String {
-        let minutes = Int(timeInterval) / 60
-        let seconds = Int(timeInterval.truncatingRemainder(dividingBy: 60))
-        return String(format: "%02d:%02d", minutes, seconds)
     }
 }

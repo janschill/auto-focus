@@ -5,121 +5,100 @@ struct AppInfo: Identifiable, Codable, Hashable {
     var id: String
     var name: String
     var bundleIdentifier: String
-    
+
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }
-    
+
     static func == (lhs: AppInfo, rhs: AppInfo) -> Bool {
         return lhs.id == rhs.id
     }
 }
 
 class FocusManager: ObservableObject {
+    private let userDefaultsManager = UserDefaultsManager()
+    private let sessionManager: SessionManager
+
     @Published var timeSpent: TimeInterval = 0
     @Published var isFocusAppActive = false
     @Published var isNotificationsEnabled: Bool = true
     @Published var isPaused: Bool = false {
         didSet {
-            UserDefaults.standard.set(isPaused, forKey: "isPaused")
+            userDefaultsManager.setBool(isPaused, forKey: UserDefaultsManager.Keys.isPaused)
         }
     }
     @Published var focusApps: [AppInfo] = [] {
         didSet {
-            if let encoded = try? JSONEncoder().encode(focusApps) {
-                UserDefaults.standard.set(encoded, forKey: "focusApps")
-            }
+            userDefaultsManager.save(focusApps, forKey: UserDefaultsManager.Keys.focusApps)
         }
     }
     @Published var focusThreshold: TimeInterval = 12 {
         didSet {
-            UserDefaults.standard.set(focusThreshold, forKey: "focusThreshold")
+            userDefaultsManager.setDouble(focusThreshold, forKey: UserDefaultsManager.Keys.focusThreshold)
         }
     }
     @Published var focusLossBuffer: TimeInterval = 2 {
         didSet {
-            UserDefaults.standard.set(focusLossBuffer, forKey: "focusLossBuffer")
+            userDefaultsManager.setDouble(focusLossBuffer, forKey: UserDefaultsManager.Keys.focusLossBuffer)
         }
     }
     @Published var selectedAppId: String? = nil
-    @Published var focusSessions: [FocusSession] = [] {
-        didSet {
-            saveSessions()
-        }
-    }
     @Published var isInFocusMode = false
     @Published private(set) var bufferTimeRemaining: TimeInterval = 0
     @Published private(set) var isInBufferPeriod = false
-    
-    private var freeAppLimit: Int = 2
+
+    private var freeAppLimit: Int = AppConfiguration.freeAppLimit
     @Published var isPremiumUser: Bool = false
-    
+
     private var focusLossTimer: Timer?
     private var remainingBufferTime: TimeInterval = 0
     private var timer: Timer?
-    private let checkInterval: TimeInterval = 1.0
+    private let checkInterval: TimeInterval = AppConfiguration.checkInterval
+
+    // MARK: - Session Access
+    var focusSessions: [FocusSession] {
+        return sessionManager.focusSessions
+    }
     
-    private var currentSessionStartTime: Date?
     var todaysSessions: [FocusSession] {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        
-        return focusSessions.filter { session in
-            calendar.startOfDay(for: session.startTime) == today
-        }
+        return sessionManager.todaysSessions
     }
-    
+
     var weekSessions: [FocusSession] {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        guard let oneWeekAgo = calendar.date(byAdding: .day, value: -7, to: today) else {
-            return []
-        }
-        
-        return focusSessions.filter { session in
-            session.startTime >= oneWeekAgo
-        }
+        return sessionManager.weekSessions
     }
-    
+
     var monthSessions: [FocusSession] {
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        guard let oneMonthAgo = calendar.date(byAdding: .month, value: -1, to: today) else {
-            return []
-        }
-        
-        return focusSessions.filter { session in
-            session.startTime >= oneMonthAgo
-        }
+        return sessionManager.monthSessions
     }
-    
+
     var canAddMoreApps: Bool {
         let licenseManager = LicenseManager()
         return licenseManager.isLicensed || focusApps.count < freeAppLimit
     }
-    
+
     var isPremiumRequired: Bool {
         let licenseManager = LicenseManager()
         return !licenseManager.isLicensed && focusApps.count >= freeAppLimit
     }
-    
+
     init() {
+        sessionManager = SessionManager(userDefaultsManager: userDefaultsManager)
         loadFocusApps()
-        loadSessions()
-        // Neeeded to load UserDefault values
-        focusThreshold = UserDefaults.standard.double(forKey: "focusThreshold")
-        if focusThreshold == 0 { focusThreshold = 12 }
-        focusLossBuffer = UserDefaults.standard.double(forKey: "focusLossBuffer")
-        if focusLossBuffer == 0 { focusLossBuffer = 2 }
-        isPaused = UserDefaults.standard.bool(forKey: "isPaused")
+        // Load UserDefault values using UserDefaultsManager
+        focusThreshold = userDefaultsManager.getDouble(forKey: UserDefaultsManager.Keys.focusThreshold)
+        if focusThreshold == 0 { focusThreshold = AppConfiguration.defaultFocusThreshold }
+        focusLossBuffer = userDefaultsManager.getDouble(forKey: UserDefaultsManager.Keys.focusLossBuffer)
+        if focusLossBuffer == 0 { focusLossBuffer = AppConfiguration.defaultBufferTime }
+        isPaused = userDefaultsManager.getBool(forKey: UserDefaultsManager.Keys.isPaused)
         startMonitoring()
     }
-    
+
     func togglePause() {
         isPaused = !isPaused
         if isPaused {
             if isFocusAppActive {
-                saveFocusSession()
+                sessionManager.endSession()
                 resetFocusState()
                 if !isNotificationsEnabled {
                     setFocusMode(enabled: false)
@@ -127,73 +106,57 @@ class FocusManager: ObservableObject {
             }
         }
     }
-    
-    private func saveSessions() {
-        if let encoded = try? JSONEncoder().encode(focusSessions) {
-            UserDefaults.standard.set(encoded, forKey: "focusSessions")
-        }
-    }
-    
-    private func loadSessions() {
-        if let data = UserDefaults.standard.data(forKey: "focusSessions"),
-           let decoded = try? JSONDecoder().decode([FocusSession].self, from: data) {
-            focusSessions = decoded
-        }
-    }
-    
+
     func removeSelectedApp() {
         if let selectedId = selectedAppId {
             focusApps.removeAll { $0.id == selectedId }
             selectedAppId = nil
         }
     }
-    
+
     private func loadFocusApps() {
-        if let data = UserDefaults.standard.data(forKey: "focusApps"),
-           let apps = try? JSONDecoder().decode([AppInfo].self, from: data) {
-            focusApps = apps
-        }
+        focusApps = userDefaultsManager.load([AppInfo].self, forKey: UserDefaultsManager.Keys.focusApps) ?? []
     }
-    
+
     private func startMonitoring() {
         timer = Timer.scheduledTimer(withTimeInterval: checkInterval, repeats: true) { [weak self] _ in
             self?.checkActiveApp()
         }
     }
-    
+
     private func checkActiveApp() {
         if isPaused {
             return
         }
-        
+
         guard let workspace = NSWorkspace.shared.frontmostApplication else { return }
         let currentApp = workspace.bundleIdentifier
         let isFocusAppInFront = focusApps.contains { $0.bundleIdentifier == currentApp }
-        
+
         if isFocusAppInFront {
             handleFocusAppInFront()
         } else if isFocusAppActive {
             handleNonFocusAppInFront()
         }
     }
-    
+
     private func handleFocusAppInFront() {
         focusLossTimer?.invalidate()
         focusLossTimer = nil
-        
+
         if !isFocusAppActive {
             startFocusSession()
         } else {
             updateFocusSession()
         }
     }
-    
+
     private func startFocusSession() {
         isFocusAppActive = true
         timeSpent = 0
-        currentSessionStartTime = Date()
+        sessionManager.startSession()
     }
-    
+
     private func updateFocusSession() {
         timeSpent += checkInterval
         if shouldEnterFocusMode {
@@ -202,22 +165,17 @@ class FocusManager: ObservableObject {
             setFocusMode(enabled: true)
         }
     }
-    
+
     private var shouldEnterFocusMode: Bool {
-        var multiplier: Double = 60
-        #if DEBUG
-            multiplier = 1
-        #endif
-        
-        return isNotificationsEnabled && timeSpent >= (focusThreshold * multiplier) && !isInFocusMode
+        return isNotificationsEnabled && timeSpent >= (focusThreshold * AppConfiguration.timeMultiplier) && !isInFocusMode
     }
-    
+
     private func handleNonFocusAppInFront() {
-        
+
         if focusLossTimer != nil {
             return
         }
-        
+
         if isInFocusMode {
             startBufferTimer()
         } else {
@@ -227,26 +185,26 @@ class FocusManager: ObservableObject {
                 setFocusMode(enabled: false)
             }
         }
-        
+
     }
-    
+
     private func startBufferTimer() {
         isInBufferPeriod = true
         remainingBufferTime = focusLossBuffer
         bufferTimeRemaining = remainingBufferTime
         focusLossTimer?.invalidate()
-        
-        focusLossTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] timer in
+
+        focusLossTimer = Timer.scheduledTimer(withTimeInterval: AppConfiguration.bufferTimerInterval, repeats: true) { [weak self] timer in
             guard let self = self else {
                 timer.invalidate()
                 return
             }
-            
+
             self.remainingBufferTime -= 1
             self.bufferTimeRemaining = self.remainingBufferTime
-            
+
             if self.remainingBufferTime <= 0 {
-                self.saveFocusSession()
+                self.sessionManager.endSession()
                 self.resetFocusState()
                 if !self.isNotificationsEnabled {
                     self.setFocusMode(enabled: false)
@@ -256,39 +214,30 @@ class FocusManager: ObservableObject {
                 self.isInBufferPeriod = false
             }
         }
-        
+
         RunLoop.current.add(focusLossTimer!, forMode: .common)
     }
-    
-    private func saveFocusSession() {
-        guard let startTime = currentSessionStartTime else { return }
-        let session = FocusSession(startTime: startTime, endTime: Date())
-        focusSessions.append(session)
-        
-         print("appending session: \(session)")
-    }
-    
+
     private func resetFocusState() {
         isFocusAppActive = false
         timeSpent = 0
         isInFocusMode = false
-        currentSessionStartTime = nil
         focusLossTimer?.invalidate()
         focusLossTimer = nil
         isInBufferPeriod = false
         bufferTimeRemaining = 0
     }
-    
-    
+
+
     private func setFocusMode(enabled: Bool) {
         let toggleScript = """
         tell application "System Events"
             tell application "Shortcuts Events"
-                run shortcut "Toggle Do Not Disturb" without activating
+                run shortcut "\(AppConfiguration.shortcutName)" without activating
             end tell
         end tell
         """
-        
+
         var error: NSDictionary?
         if let scriptObject = NSAppleScript(source: toggleScript) {
             scriptObject.executeAndReturnError(&error)
@@ -299,18 +248,18 @@ class FocusManager: ObservableObject {
             }
         }
     }
-    
+
     func checkShortcutExists() -> Bool {
-        let shortcutsApp = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.shortcuts")
+        let shortcutsApp = NSWorkspace.shared.urlForApplication(withBundleIdentifier: AppConfiguration.shortcutsAppBundleIdentifier)
         guard shortcutsApp != nil else { return false }
-        
+
         // Use Shortcuts API to check if shortcut exists
         let script = """
         tell application "Shortcuts"
-            exists shortcut "Toggle Do Not Disturb"
+            exists shortcut "\(AppConfiguration.shortcutName)"
         end tell
         """
-        
+
         if let scriptObject = NSAppleScript(source: script) {
             var error: NSDictionary?
             if let result = Optional(scriptObject.executeAndReturnError(&error)) {
@@ -319,25 +268,25 @@ class FocusManager: ObservableObject {
         }
         return false
     }
-    
+
     func selectFocusApplication() {
         if !canAddMoreApps {
             return
         }
-        
+
         let openPanel = NSOpenPanel()
         openPanel.canChooseFiles = true
         openPanel.canChooseDirectories = false
         openPanel.allowsMultipleSelection = false
-        openPanel.directoryURL = URL(fileURLWithPath: "/Applications")
-        
+        openPanel.directoryURL = URL(fileURLWithPath: AppConfiguration.applicationsDirectory)
+
         openPanel.begin { result in
             if result == .OK {
                 guard let url = openPanel.url else { return }
                 let bundle = Bundle(url: url)
                 guard let bundleIdentifier = bundle?.bundleIdentifier,
                       let appName = bundle?.infoDictionary?["CFBundleName"] as? String else { return }
-                
+
                 DispatchQueue.main.async {
                     if !self.focusApps.contains(where: { $0.bundleIdentifier == bundleIdentifier }) {
                         let newApp = AppInfo(
@@ -350,5 +299,29 @@ class FocusManager: ObservableObject {
                 }
             }
         }
+    }
+}
+
+// MARK: - Debug Extensions
+extension FocusManager {
+    func addSampleSessions(_ sessions: [FocusSession]) {
+        #if DEBUG
+        sessionManager.addSampleSessions(sessions)
+        #endif
+    }
+    
+    func clearAllSessions() {
+        #if DEBUG
+        sessionManager.clearAllSessions()
+        #endif
+    }
+    
+    /// For debug UI - shows if we have sample data buttons available
+    var canShowDebugOptions: Bool {
+        #if DEBUG
+        return true
+        #else
+        return false
+        #endif
     }
 }

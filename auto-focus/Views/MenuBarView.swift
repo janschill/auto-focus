@@ -34,7 +34,7 @@ struct MenuBarView: View {
                 if focusManager.timeSpent > 0 {
                     StatusRow(
                         title: "Time in focus",
-                        value: timeString(from: focusManager.timeSpent)
+                        value: TimeFormatter.duration(focusManager.timeSpent)
                     )
                 }
                 
@@ -46,7 +46,7 @@ struct MenuBarView: View {
                 if let lastSession = focusManager.todaysSessions.last {
                     StatusRow(
                         title: "Last session duration",
-                        value: formatDuration(lastSession.duration)
+                        value: TimeFormatter.duration(lastSession.duration)
                     )
                 }
             }
@@ -92,17 +92,6 @@ struct MenuBarView: View {
         }
         .padding(12)
         .frame(width: 280)
-    }
-    
-    private func timeString(from timeInterval: TimeInterval) -> String {
-        let minutes = Int(timeInterval) / 60
-        let seconds = Int(timeInterval) % 60
-        return String(format: "%02d:%02d", minutes, seconds)
-    }
-    
-    private func formatDuration(_ duration: TimeInterval) -> String {
-        let minutes = Int(duration) / 60
-        return "\(minutes)m"
     }
     
     private func openSettings() {
