@@ -1,5 +1,5 @@
-import Foundation
 import CryptoKit
+import Foundation
 
 class LicenseManager: ObservableObject {
     @Published var isLicensed: Bool = true
@@ -16,14 +16,14 @@ class LicenseManager: ObservableObject {
     @Published var licenseExpiry: Date?
     @Published var isActivating: Bool = false
     @Published var validationError: String?
-    
+
     enum LicenseStatus: String {
         case inactive
         case valid
         case expired
         case invalid
     }
-    
+
     init() {
         #if DEBUG
         self.licenseStatus = .valid
@@ -44,25 +44,25 @@ class LicenseManager: ObservableObject {
         loadLicense()
         #endif
     }
-    
+
     private var betaExpiryDate: Date {
         // July 1, 2025
         let components = DateComponents(year: 2025, month: 7, day: 1)
         return Calendar.current.date(from: components) ?? Date.distantFuture
     }
-    
+
     private var isInBetaPeriod: Bool {
         return Date() < betaExpiryDate
     }
-    
+
     private func loadLicense() {
     }
-    
+
     func hasValidLicense() -> Bool {
         return true
 //        return isLicensed && licenseStatus == .valid
     }
-    
+
     private func parseExpiryDate(from licenseData: [String: Any]) -> Date? {
         // Handle expiry date based on LemonSqueezy response format
         // This is just a placeholder - adjust based on actual API response
@@ -72,13 +72,13 @@ class LicenseManager: ObservableObject {
         }
         return nil
     }
-    
+
     func activateLicense() {}
-    
+
     func deactivateLicense() {}
-    
+
     private func validateLicense() {}
-    
+
     private func generateInstanceIdentifier() {}
 }
 

@@ -1,8 +1,8 @@
 // ConfigurationViewModelTests.swift
 // Unit tests for ConfigurationViewModel
 
-import XCTest
 @testable import auto_focus
+import XCTest
 
 #if DEBUG
 

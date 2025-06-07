@@ -1,8 +1,8 @@
 // FocusManagerTests.swift
 // Unit tests for FocusManager core logic
 
-import XCTest
 @testable import auto_focus
+import XCTest
 
 #if DEBUG
 

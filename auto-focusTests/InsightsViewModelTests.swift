@@ -1,8 +1,8 @@
 // InsightsViewModelTests.swift
 // Unit tests for InsightsViewModel
 
-import XCTest
 @testable import auto_focus
+import XCTest
 
 #if DEBUG
 

@@ -5,8 +5,8 @@
 //  Created by Jan Schill on 25/01/2025.
 //
 
-import Testing
 @testable import auto_focus
+import Testing
 
 struct auto_focusTests {
 

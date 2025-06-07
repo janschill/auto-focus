@@ -5,7 +5,7 @@ struct SettingsView: View {
     @EnvironmentObject var licenseManager: LicenseManager
     @Environment(\.dismiss) var dismiss
     @State private var selectedTab = 0
-    
+
     var body: some View {
         TabView(selection: $selectedTab) {
             ConfigurationView(selectedTab: $selectedTab)
@@ -14,21 +14,21 @@ struct SettingsView: View {
                 }
                 .tag(0)
                 .environmentObject(licenseManager)
-            
+
             InsightsView(selectedTab: $selectedTab)
                 .tabItem {
                     Label("Insights", systemImage: "chart.bar")
                 }
                 .tag(1)
                 .environmentObject(licenseManager)
-            
+
             LicenseView()
                 .tabItem {
                     Label("Beta Access", systemImage: "hourglass")
                 }
                 .tag(2)
                 .environmentObject(licenseManager)
-            
+
             if focusManager.canShowDebugOptions {
                 DebugMenuView()
                     .tabItem {
@@ -45,7 +45,7 @@ struct SettingsView: View {
             // When settings appear, show in dock and activate
             NSApp.setActivationPolicy(.regular)
             NSApp.activate(ignoringOtherApps: true)
-            
+
             // Additional step to bring window to front
             DispatchQueue.main.async {
                 NSApp.windows.first?.orderFrontRegardless()
@@ -61,4 +61,4 @@ struct SettingsView: View {
         }
     }
 }
-    
+

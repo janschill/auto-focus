@@ -1,5 +1,5 @@
-import SwiftUI
 import LaunchAtLogin
+import SwiftUI
 
 struct AppRowView: View {
     let app: AppInfo
@@ -58,8 +58,8 @@ struct AppsListView: View {
 
 private struct HeaderView: View {
     var body: some View {
-        GroupBox() {
-            VStack() {
+        GroupBox {
+            VStack {
                 Text("General").font(.title)
                     .fontDesign(.default)
                     .fontWeight(.bold)
@@ -84,8 +84,8 @@ struct GeneralSettingsView: View {
     @EnvironmentObject var focusManager: FocusManager
 
     var body: some View {
-        GroupBox() {
-            VStack() {
+        GroupBox {
+            VStack {
                 HStack {
                     Text("License type")
                         .frame(width: 150, alignment: .leading)
@@ -154,18 +154,18 @@ struct GeneralSettingsView: View {
             .padding(.vertical)
         }
         .frame(maxWidth: .infinity)
-        .onAppear() {
+        .onAppear {
             shortcutInstalled = focusManager.checkShortcutExists()
         }
     }
 }
 
-struct ThresholdsView : View {
+struct ThresholdsView: View {
     @EnvironmentObject var focusManager: FocusManager
 
     var body: some View {
         GroupBox(label: Text("Thresholds").font(.headline)) {
-            VStack() {
+            VStack {
                 HStack {
                     Text("Focus Activation")
                         .frame(width: 250, alignment: .leading)

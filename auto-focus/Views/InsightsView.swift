@@ -1,5 +1,5 @@
-import SwiftUI
 import Charts
+import SwiftUI
 
 struct InsightsGraphsContainerView: View {
     @ObservedObject var dataProvider: InsightsViewModel
@@ -270,7 +270,7 @@ struct ProductivityMetricsView: View {
                             }
                         }
                         .chartYAxis {
-                            AxisMarks(values: [0, 0.25, 0.5, 0.75, 1.0]) { value in
+                            AxisMarks(values: [0, 0.25, 0.5, 0.75, 1.0]) { _ in
                                 AxisGridLine()
                                 AxisTick()
                             }
@@ -316,8 +316,8 @@ struct InsightsView: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            GroupBox() {
-                VStack() {
+            GroupBox {
+                VStack {
                     Text("You've focussed for").font(.title2)
                         .fontDesign(.default)
                         .foregroundStyle(.secondary)
@@ -365,8 +365,8 @@ struct InsightsView: View {
                     .padding(8)
                 }
             } else {
-                GroupBox() {
-                    VStack() {
+                GroupBox {
+                    VStack {
                         Text("You are currently on a free plan of Auto-Focus. To unlock more detailed insights, please upgrade to Auto-Focus+.")
                             .font(.callout)
                             .fontDesign(.default)

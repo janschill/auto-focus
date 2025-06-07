@@ -1,5 +1,5 @@
-import Foundation
 import AppKit
+import Foundation
 
 struct AppInfo: Identifiable, Codable, Hashable {
     var id: String
@@ -48,7 +48,7 @@ class FocusManager: ObservableObject {
             userDefaultsManager.setDouble(focusLossBuffer, forKey: UserDefaultsManager.Keys.focusLossBuffer)
         }
     }
-    @Published var selectedAppId: String? = nil
+    @Published var selectedAppId: String?
     @Published var isInFocusMode = false
 
     private var freeAppLimit: Int = AppConfiguration.freeAppLimit

@@ -1,8 +1,8 @@
 // MenuBarViewModelTests.swift
 // Unit tests for MenuBarViewModel
 
-import XCTest
 @testable import auto_focus
+import XCTest
 
 #if DEBUG
 

@@ -7,7 +7,7 @@ protocol SessionManaging: AnyObject, ObservableObject {
     var weekSessions: [FocusSession] { get }
     var monthSessions: [FocusSession] { get }
     var isSessionActive: Bool { get }
-    
+
     func startSession()
     func endSession()
     func cancelCurrentSession()
@@ -20,7 +20,7 @@ protocol AppMonitoring: AnyObject, ObservableObject {
     var currentApp: String? { get }
     var isFocusAppActive: Bool { get }
     var delegate: AppMonitorDelegate? { get set }
-    
+
     func startMonitoring()
     func stopMonitoring()
     func updateFocusApps(_ apps: [AppInfo])
@@ -31,7 +31,7 @@ protocol BufferManaging: AnyObject, ObservableObject {
     var bufferTimeRemaining: TimeInterval { get }
     var isInBufferPeriod: Bool { get }
     var delegate: BufferManagerDelegate? { get set }
-    
+
     func startBuffer(duration: TimeInterval)
     func cancelBuffer()
 }
@@ -40,7 +40,7 @@ protocol BufferManaging: AnyObject, ObservableObject {
 protocol FocusModeControlling: AnyObject, ObservableObject {
     var isFocusModeEnabled: Bool { get }
     var delegate: FocusModeManagerDelegate? { get set }
-    
+
     func setFocusMode(enabled: Bool)
     func checkShortcutExists() -> Bool
 }
