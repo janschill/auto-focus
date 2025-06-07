@@ -18,6 +18,7 @@ struct AppInfo: Identifiable, Codable, Hashable {
 class FocusManager: ObservableObject {
     private let userDefaultsManager = UserDefaultsManager()
     private let sessionManager: SessionManager
+    private let appMonitor: AppMonitor
 
     @Published var timeSpent: TimeInterval = 0
     @Published var isFocusAppActive = false
@@ -30,6 +31,7 @@ class FocusManager: ObservableObject {
     @Published var focusApps: [AppInfo] = [] {
         didSet {
             userDefaultsManager.save(focusApps, forKey: UserDefaultsManager.Keys.focusApps)
+            appMonitor.updateFocusApps(focusApps)
         }
     }
     @Published var focusThreshold: TimeInterval = 12 {
@@ -51,8 +53,8 @@ class FocusManager: ObservableObject {
     @Published var isPremiumUser: Bool = false
 
     private var focusLossTimer: Timer?
+    private var timeTrackingTimer: Timer?
     private var remainingBufferTime: TimeInterval = 0
-    private var timer: Timer?
     private let checkInterval: TimeInterval = AppConfiguration.checkInterval
 
     // MARK: - Session Access
@@ -84,6 +86,8 @@ class FocusManager: ObservableObject {
 
     init() {
         sessionManager = SessionManager(userDefaultsManager: userDefaultsManager)
+        appMonitor = AppMonitor(checkInterval: checkInterval)
+
         loadFocusApps()
         // Load UserDefault values using UserDefaultsManager
         focusThreshold = userDefaultsManager.getDouble(forKey: UserDefaultsManager.Keys.focusThreshold)
@@ -91,7 +95,11 @@ class FocusManager: ObservableObject {
         focusLossBuffer = userDefaultsManager.getDouble(forKey: UserDefaultsManager.Keys.focusLossBuffer)
         if focusLossBuffer == 0 { focusLossBuffer = AppConfiguration.defaultBufferTime }
         isPaused = userDefaultsManager.getBool(forKey: UserDefaultsManager.Keys.isPaused)
-        startMonitoring()
+
+        // Set up app monitor delegate and start monitoring
+        appMonitor.delegate = self
+        appMonitor.updateFocusApps(focusApps)
+        appMonitor.startMonitoring()
     }
 
     func togglePause() {
@@ -118,28 +126,6 @@ class FocusManager: ObservableObject {
         focusApps = userDefaultsManager.load([AppInfo].self, forKey: UserDefaultsManager.Keys.focusApps) ?? []
     }
 
-    private func startMonitoring() {
-        timer = Timer.scheduledTimer(withTimeInterval: checkInterval, repeats: true) { [weak self] _ in
-            self?.checkActiveApp()
-        }
-    }
-
-    private func checkActiveApp() {
-        if isPaused {
-            return
-        }
-
-        guard let workspace = NSWorkspace.shared.frontmostApplication else { return }
-        let currentApp = workspace.bundleIdentifier
-        let isFocusAppInFront = focusApps.contains { $0.bundleIdentifier == currentApp }
-
-        if isFocusAppInFront {
-            handleFocusAppInFront()
-        } else if isFocusAppActive {
-            handleNonFocusAppInFront()
-        }
-    }
-
     private func handleFocusAppInFront() {
         focusLossTimer?.invalidate()
         focusLossTimer = nil
@@ -155,6 +141,7 @@ class FocusManager: ObservableObject {
         isFocusAppActive = true
         timeSpent = 0
         sessionManager.startSession()
+        startTimeTracking()
     }
 
     private func updateFocusSession() {
@@ -163,6 +150,12 @@ class FocusManager: ObservableObject {
             print("activating focus mode")
             isInFocusMode = true
             setFocusMode(enabled: true)
+        }
+    }
+
+    private func startTimeTracking() {
+        timeTrackingTimer = Timer.scheduledTimer(withTimeInterval: checkInterval, repeats: true) { [weak self] _ in
+            self?.updateFocusSession()
         }
     }
 
@@ -224,6 +217,8 @@ class FocusManager: ObservableObject {
         isInFocusMode = false
         focusLossTimer?.invalidate()
         focusLossTimer = nil
+        timeTrackingTimer?.invalidate()
+        timeTrackingTimer = nil
         isInBufferPeriod = false
         bufferTimeRemaining = 0
     }
@@ -298,6 +293,19 @@ class FocusManager: ObservableObject {
                     }
                 }
             }
+        }
+    }
+}
+
+// MARK: - AppMonitorDelegate
+extension FocusManager: AppMonitorDelegate {
+    func appMonitor(_ monitor: AppMonitor, didDetectFocusApp isActive: Bool) {
+        guard !isPaused else { return }
+
+        if isActive {
+            handleFocusAppInFront()
+        } else if isFocusAppActive {
+            handleNonFocusAppInFront()
         }
     }
 }
