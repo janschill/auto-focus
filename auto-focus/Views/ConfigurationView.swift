@@ -3,7 +3,7 @@ import LaunchAtLogin
 
 struct AppRowView: View {
     let app: AppInfo
-    
+
     var body: some View {
         HStack {
             if let appUrl = NSWorkspace.shared.urlForApplication(withBundleIdentifier: app.bundleIdentifier),
@@ -24,7 +24,7 @@ struct AppRowView: View {
 struct AppsListView: View {
     @EnvironmentObject var focusManager: FocusManager
     @Binding var selectedTab: Int
-    
+
     var body: some View {
         List(selection: $focusManager.selectedAppId) {
             ForEach(focusManager.focusApps) { app in
@@ -32,7 +32,7 @@ struct AppsListView: View {
             }
         }
         .listStyle(.bordered)
-        
+
         if focusManager.isPremiumRequired {
             HStack {
                 Image(systemName: "lock.fill")
@@ -40,9 +40,9 @@ struct AppsListView: View {
                 Text("Upgrade to Auto-Focus+ for unlimited apps")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                
+
                 Spacer()
-                
+
                 Button("Upgrade") {
                     selectedTab = 2
                 }
@@ -82,7 +82,7 @@ struct GeneralSettingsView: View {
     @State private var shortcutInstalled: Bool = false
     @EnvironmentObject var licenseManager: LicenseManager
     @EnvironmentObject var focusManager: FocusManager
-    
+
     var body: some View {
         GroupBox() {
             VStack() {
@@ -98,11 +98,11 @@ struct GeneralSettingsView: View {
                     } else {
                         Text("Free")
                     }
-                    
+
                 }
-                
+
                 Divider().padding(.vertical, 5).contrast(0.5)
-                
+
                 HStack {
                     Text("Launch at Login")
                         .frame(width: 150, alignment: .leading)
@@ -117,15 +117,15 @@ struct GeneralSettingsView: View {
                     .scaleEffect(0.8)
                     .padding(.trailing, 5)
                 }
-                
+
                 Divider().padding(.vertical, 5).contrast(0.5)
-            
+
                 HStack {
                     Text("Shortcut Installation")
                         .frame(width: 150, alignment: .leading)
-                    
+
                     Spacer()
-                    
+
                     if shortcutInstalled {
                         Text("✓ Installed")
                             .foregroundColor(.green)
@@ -133,20 +133,20 @@ struct GeneralSettingsView: View {
                         Text("⚠️ Not installed")
                             .foregroundColor(.red)
                     }
-                    
+
                     Button("Add Shortcut") {
                         installShortcut()
                     }
                     .disabled(shortcutInstalled)
                 }
-                
+
                 HStack {
                     Text("Auto-Focus will install a custom Shortcut that will be used to toggle the Do Not Disturb focus mode. This Shortcut is necessary to block notifications.")
                         .font(.callout)
                         .fontDesign(.default)
                         .fontWeight(.regular)
                         .foregroundColor(.secondary)
-                    
+
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -162,16 +162,16 @@ struct GeneralSettingsView: View {
 
 struct ThresholdsView : View {
     @EnvironmentObject var focusManager: FocusManager
-    
+
     var body: some View {
         GroupBox(label: Text("Thresholds").font(.headline)) {
             VStack() {
                 HStack {
                     Text("Focus Activation")
                         .frame(width: 250, alignment: .leading)
-                    
+
                     Spacer()
-                    
+
                     Slider(
                         value: $focusManager.focusThreshold,
                         in: 1...12,
@@ -181,24 +181,24 @@ struct ThresholdsView : View {
                         .frame(width: 40)
 
                 }
-                
+
                 HStack {
                     Text("This is the time it takes to start a focus session. When the time is reached notifications are disabled.")
                         .font(.callout)
                         .fontDesign(.default)
                         .fontWeight(.regular)
                         .foregroundColor(.secondary)
-                    
+
                 }.frame(maxWidth: .infinity, alignment: .leading)
-                
+
                 Divider().padding(.vertical, 5).contrast(0.5)
-                
+
                 HStack {
                     Text("Focus Loss Buffer")
                         .frame(width: 250, alignment: .leading)
-                    
+
                     Spacer()
-                    
+
                     Slider(
                         value: $focusManager.focusLossBuffer,
                         in: 0...30,
@@ -208,14 +208,14 @@ struct ThresholdsView : View {
                         .frame(width: 40)
 
                 }
-                
+
                 HStack {
                     Text("Give yourself a buffer time to not lose your focussed session immediately after you leave your focus apps.")
                         .font(.callout)
                         .fontDesign(.default)
                         .fontWeight(.regular)
                         .foregroundColor(.secondary)
-                    
+
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -223,14 +223,14 @@ struct ThresholdsView : View {
             .padding(.vertical)
         }
         .frame(maxWidth: .infinity)
-        
+
     }
 }
 
 struct FocusApplicationsView: View {
     @EnvironmentObject var focusManager: FocusManager
     @Binding var selectedTab: Int
-    
+
     var body: some View {
         GroupBox(label: Text("Focus Applications").font(.headline)) {
             VStack(alignment: .leading) {
@@ -239,9 +239,9 @@ struct FocusApplicationsView: View {
                     .fontDesign(.default)
                     .fontWeight(.regular)
                     .foregroundColor(.secondary)
-                
+
                 AppsListView(selectedTab: $selectedTab)
-                
+
                 HStack {
                     Button {
                         DispatchQueue.main.async {
@@ -251,7 +251,7 @@ struct FocusApplicationsView: View {
                         Image(systemName: "plus")
                     }
                     .disabled(!focusManager.canAddMoreApps)
-                    
+
                     Button {
                         DispatchQueue.main.async {
                             focusManager.removeSelectedApp()
@@ -260,7 +260,7 @@ struct FocusApplicationsView: View {
                         Image(systemName: "minus")
                     }
                     .disabled(focusManager.selectedAppId == nil)
-                    
+
                     Spacer()
                 }
             }
@@ -275,7 +275,13 @@ struct ConfigurationView: View {
     @EnvironmentObject var focusManager: FocusManager
     @EnvironmentObject var licenseManager: LicenseManager
     @Binding var selectedTab: Int
-    
+    @StateObject private var viewModel: ConfigurationViewModel
+
+    init(selectedTab: Binding<Int>) {
+        _selectedTab = selectedTab
+        _viewModel = StateObject(wrappedValue: ConfigurationViewModel())
+    }
+
     var body: some View {
         VStack(spacing: 10) {
             HeaderView()
@@ -284,12 +290,14 @@ struct ConfigurationView: View {
             FocusApplicationsView(selectedTab: $selectedTab)
         }
         .padding()
+        .onAppear {
+            viewModel.updateShortcutInstalled()
+        }
     }
 }
 
 #Preview {
     ConfigurationView(selectedTab: .constant(0))
-        .environmentObject(FocusManager())
         .environmentObject(LicenseManager())
         .frame(width: 600, height: 900)
 }
@@ -299,6 +307,6 @@ private func installShortcut() {
         print("Could not prepare shortcut for installation")
         return
     }
-    
+
     NSWorkspace.shared.open(shortcutUrl)
 }

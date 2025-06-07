@@ -16,6 +16,8 @@ struct AppInfo: Identifiable, Codable, Hashable {
 }
 
 class FocusManager: ObservableObject {
+    static let shared = FocusManager()
+
     private let userDefaultsManager: any PersistenceManaging
     private let sessionManager: any SessionManaging
     private let appMonitor: any AppMonitoring
@@ -99,7 +101,7 @@ class FocusManager: ObservableObject {
         focusModeController: (any FocusModeControlling)? = nil
     ) {
         self.userDefaultsManager = userDefaultsManager
-        
+
         // Create default implementations if not provided
         let checkInterval = AppConfiguration.checkInterval
         self.sessionManager = sessionManager ?? SessionManager(userDefaultsManager: userDefaultsManager as! UserDefaultsManager)
@@ -252,7 +254,7 @@ extension FocusManager: FocusModeControllerDelegate {
         // Update notifications state when focus mode changes
         self.isNotificationsEnabled = !enabled
     }
-    
+
     func focusModeController(_ controller: any FocusModeControlling, didFailWithError error: FocusModeError) {
         switch error {
         case .shortcutNotFound:
@@ -270,11 +272,11 @@ extension FocusManager: BufferManagerDelegate {
     func bufferManagerDidStartBuffer(_ manager: any BufferManaging) {
         // Buffer started - no action needed currently
     }
-    
+
     func bufferManagerDidEndBuffer(_ manager: any BufferManaging) {
         // Buffer was cancelled (user returned to focus app) - no action needed
     }
-    
+
     func bufferManagerDidTimeout(_ manager: any BufferManaging) {
         // Buffer timed out - end session and exit focus mode
         sessionManager.endSession()
@@ -289,7 +291,7 @@ extension FocusManager: BufferManagerDelegate {
 extension FocusManager: AppMonitorDelegate {
     func appMonitor(_ monitor: any AppMonitoring, didDetectFocusApp isActive: Bool) {
         guard !isPaused else { return }
-        
+
         if isActive {
             handleFocusAppInFront()
         } else if isFocusAppActive {

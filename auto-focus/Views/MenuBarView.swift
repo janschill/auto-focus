@@ -2,6 +2,12 @@ import SwiftUI
 
 struct MenuBarView: View {
     @EnvironmentObject var focusManager: FocusManager
+    @StateObject private var viewModel: MenuBarViewModel
+
+    init() {
+        _viewModel = StateObject(wrappedValue: MenuBarViewModel(focusManager: FocusManager.shared))
+    }
+
     var version: String {
     #if DEBUG
             return "DEBUG"
@@ -9,7 +15,7 @@ struct MenuBarView: View {
             return Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
     #endif
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -18,41 +24,41 @@ struct MenuBarView: View {
 //                Text(version)
                 Text("BETA")
                 Spacer()
-                
-                if focusManager.isPaused {
+
+                if viewModel.isPaused {
                     Text("Paused")
                         .foregroundStyle(.orange)
                 } else {
-                    Text("\(focusManager.isInFocusMode ? "In Focus" : "Out of Focus")")
+                    Text("\(viewModel.isInFocusMode ? "In Focus" : "Out of Focus")")
                         .foregroundStyle(.secondary)
                 }
             }
-            
+
             Divider()
-            
+
             VStack(alignment: .leading, spacing: 8) {
-                if focusManager.timeSpent > 0 {
+                if viewModel.timeSpent > 0 {
                     StatusRow(
                         title: "Time in focus",
-                        value: TimeFormatter.duration(focusManager.timeSpent)
+                        value: TimeFormatter.duration(viewModel.timeSpent)
                     )
                 }
-                
+
                 StatusRow(
                     title: "Sessions today",
-                    value: "\(focusManager.todaysSessions.count)"
+                    value: "\(viewModel.todaysSessions.count)"
                 )
-                
-                if let lastSession = focusManager.todaysSessions.last {
+
+                if let lastSession = viewModel.todaysSessions.last {
                     StatusRow(
                         title: "Last session duration",
                         value: TimeFormatter.duration(lastSession.duration)
                     )
                 }
             }
-            
+
             Divider()
-            
+
             HStack {
                 if #available(macOS 14.0, *) {
                     SettingsLink {
@@ -69,21 +75,21 @@ struct MenuBarView: View {
                         openSettings()
                     }
                 }
-                
+
                 Spacer()
-                
+
                 Button(action: {
-                    focusManager.togglePause()
+                    viewModel.togglePause()
                 }) {
                     HStack(spacing: 4) {
-                        Image(systemName: focusManager.isPaused ? "play.fill" : "pause.fill")
-                        Text(focusManager.isPaused ? "Start" : "Stop")
+                        Image(systemName: viewModel.isPaused ? "play.fill" : "pause.fill")
+                        Text(viewModel.isPaused ? "Start" : "Stop")
                     }
                 }
-                .help(focusManager.isPaused ? "Resume focus tracking" : "Stop focus tracking")
-                
+                .help(viewModel.isPaused ? "Resume focus tracking" : "Stop focus tracking")
+
                 Spacer()
-                
+
                 Button("Quit") {
                     NSApplication.shared.terminate(nil)
                 }
@@ -93,11 +99,11 @@ struct MenuBarView: View {
         .padding(12)
         .frame(width: 280)
     }
-    
+
     private func openSettings() {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
-        
+
         DispatchQueue.main.async {
             NSApp.windows.first?.orderFrontRegardless()
         }
@@ -107,7 +113,7 @@ struct MenuBarView: View {
 struct StatusRow: View {
     let title: String
     let value: String
-    
+
     var body: some View {
         HStack {
             Text(title)

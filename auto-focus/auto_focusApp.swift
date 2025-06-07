@@ -9,7 +9,7 @@ import SwiftUI
 
 @main
 struct auto_focusApp: App {
-    @StateObject private var focusManager = ServiceRegistry.shared.focusManager()
+    @StateObject private var focusManager = FocusManager.shared
     @StateObject private var licenseManager = LicenseManager()
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
@@ -19,7 +19,7 @@ struct auto_focusApp: App {
                 .environmentObject(focusManager)
                 .environmentObject(licenseManager)
         }
-        
+
         MenuBarExtra {
             MenuBarView()
                 .environmentObject(focusManager)
