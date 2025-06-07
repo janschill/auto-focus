@@ -19,6 +19,7 @@ class FocusManager: ObservableObject {
     private let userDefaultsManager = UserDefaultsManager()
     private let sessionManager: SessionManager
     private let appMonitor: AppMonitor
+    private let bufferManager: BufferManager
 
     @Published var timeSpent: TimeInterval = 0
     @Published var isFocusAppActive = false
@@ -46,16 +47,21 @@ class FocusManager: ObservableObject {
     }
     @Published var selectedAppId: String? = nil
     @Published var isInFocusMode = false
-    @Published private(set) var bufferTimeRemaining: TimeInterval = 0
-    @Published private(set) var isInBufferPeriod = false
 
     private var freeAppLimit: Int = AppConfiguration.freeAppLimit
     @Published var isPremiumUser: Bool = false
 
-    private var focusLossTimer: Timer?
     private var timeTrackingTimer: Timer?
-    private var remainingBufferTime: TimeInterval = 0
     private let checkInterval: TimeInterval = AppConfiguration.checkInterval
+
+    // MARK: - Buffer Access
+    var bufferTimeRemaining: TimeInterval {
+        return bufferManager.bufferTimeRemaining
+    }
+
+    var isInBufferPeriod: Bool {
+        return bufferManager.isInBufferPeriod
+    }
 
     // MARK: - Session Access
     var focusSessions: [FocusSession] {
@@ -87,6 +93,7 @@ class FocusManager: ObservableObject {
     init() {
         sessionManager = SessionManager(userDefaultsManager: userDefaultsManager)
         appMonitor = AppMonitor(checkInterval: checkInterval)
+        bufferManager = BufferManager()
 
         loadFocusApps()
         // Load UserDefault values using UserDefaultsManager
@@ -96,8 +103,9 @@ class FocusManager: ObservableObject {
         if focusLossBuffer == 0 { focusLossBuffer = AppConfiguration.defaultBufferTime }
         isPaused = userDefaultsManager.getBool(forKey: UserDefaultsManager.Keys.isPaused)
 
-        // Set up app monitor delegate and start monitoring
+        // Set up delegates and start monitoring
         appMonitor.delegate = self
+        bufferManager.delegate = self
         appMonitor.updateFocusApps(focusApps)
         appMonitor.startMonitoring()
     }
@@ -127,12 +135,15 @@ class FocusManager: ObservableObject {
     }
 
     private func handleFocusAppInFront() {
-        focusLossTimer?.invalidate()
-        focusLossTimer = nil
+        bufferManager.cancelBuffer()
 
         if !isFocusAppActive {
             startFocusSession()
         } else {
+            // Resume time tracking if we were in a buffer period
+            if timeTrackingTimer == nil && isFocusAppActive {
+                startTimeTracking()
+            }
             updateFocusSession()
         }
     }
@@ -164,63 +175,25 @@ class FocusManager: ObservableObject {
     }
 
     private func handleNonFocusAppInFront() {
-
-        if focusLossTimer != nil {
-            return
-        }
-
         if isInFocusMode {
-            startBufferTimer()
+            // Pause time tracking when entering buffer period
+            timeTrackingTimer?.invalidate()
+            timeTrackingTimer = nil
+            bufferManager.startBuffer(duration: focusLossBuffer)
         } else {
             resetFocusState()
-
             if !isNotificationsEnabled {
                 setFocusMode(enabled: false)
             }
         }
-
-    }
-
-    private func startBufferTimer() {
-        isInBufferPeriod = true
-        remainingBufferTime = focusLossBuffer
-        bufferTimeRemaining = remainingBufferTime
-        focusLossTimer?.invalidate()
-
-        focusLossTimer = Timer.scheduledTimer(withTimeInterval: AppConfiguration.bufferTimerInterval, repeats: true) { [weak self] timer in
-            guard let self = self else {
-                timer.invalidate()
-                return
-            }
-
-            self.remainingBufferTime -= 1
-            self.bufferTimeRemaining = self.remainingBufferTime
-
-            if self.remainingBufferTime <= 0 {
-                self.sessionManager.endSession()
-                self.resetFocusState()
-                if !self.isNotificationsEnabled {
-                    self.setFocusMode(enabled: false)
-                }
-                timer.invalidate()
-                self.focusLossTimer = nil
-                self.isInBufferPeriod = false
-            }
-        }
-
-        RunLoop.current.add(focusLossTimer!, forMode: .common)
     }
 
     private func resetFocusState() {
         isFocusAppActive = false
         timeSpent = 0
         isInFocusMode = false
-        focusLossTimer?.invalidate()
-        focusLossTimer = nil
         timeTrackingTimer?.invalidate()
         timeTrackingTimer = nil
-        isInBufferPeriod = false
-        bufferTimeRemaining = 0
     }
 
 
@@ -293,6 +266,26 @@ class FocusManager: ObservableObject {
                     }
                 }
             }
+        }
+    }
+}
+
+// MARK: - BufferManagerDelegate
+extension FocusManager: BufferManagerDelegate {
+    func bufferManagerDidStartBuffer(_ manager: BufferManager) {
+        // Buffer started - no action needed currently
+    }
+
+    func bufferManagerDidEndBuffer(_ manager: BufferManager) {
+        // Buffer was cancelled (user returned to focus app) - no action needed
+    }
+
+    func bufferManagerDidTimeout(_ manager: BufferManager) {
+        // Buffer timed out - end session and exit focus mode
+        sessionManager.endSession()
+        resetFocusState()
+        if !isNotificationsEnabled {
+            setFocusMode(enabled: false)
         }
     }
 }
