@@ -107,7 +107,7 @@ class FocusManager: ObservableObject {
         self.sessionManager = sessionManager ?? SessionManager(userDefaultsManager: userDefaultsManager as! UserDefaultsManager)
         self.appMonitor = appMonitor ?? AppMonitor(checkInterval: checkInterval)
         self.bufferManager = bufferManager ?? BufferManager()
-        self.focusModeController = focusModeController ?? FocusModeController()
+        self.focusModeController = focusModeController ?? FocusModeManager()
 
         loadFocusApps()
         // Load UserDefault values using UserDefaultsManager
@@ -248,8 +248,8 @@ class FocusManager: ObservableObject {
     }
 }
 
-// MARK: - FocusModeControllerDelegate
-extension FocusManager: FocusModeControllerDelegate {
+// MARK: - FocusModeManagerDelegate
+extension FocusManager: FocusModeManagerDelegate {
     func focusModeController(_ controller: any FocusModeControlling, didChangeFocusMode enabled: Bool) {
         // Update notifications state when focus mode changes
         self.isNotificationsEnabled = !enabled
