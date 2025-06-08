@@ -27,7 +27,7 @@ jobs:
 
       - name: Run Unit Tests
         run: |
-          xcodebuild test -scheme auto-focus -destination 'platform=macOS' -enableCodeCoverage YES
+          xcodebuild test -scheme auto-focus -destination 'platform=macOS' -enableCodeCoverage YES CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
 
   check-version:
     if: github.ref == 'refs/heads/main'
