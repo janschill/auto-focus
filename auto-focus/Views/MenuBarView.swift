@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MenuBarView: View {
     @EnvironmentObject var focusManager: FocusManager
+
     var version: String {
     #if DEBUG
             return "DEBUG"
@@ -9,7 +10,7 @@ struct MenuBarView: View {
             return Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
     #endif
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -18,7 +19,7 @@ struct MenuBarView: View {
 //                Text(version)
                 Text("BETA")
                 Spacer()
-                
+
                 if focusManager.isPaused {
                     Text("Paused")
                         .foregroundStyle(.orange)
@@ -27,38 +28,38 @@ struct MenuBarView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            
+
             Divider()
-            
+
             VStack(alignment: .leading, spacing: 8) {
                 if focusManager.timeSpent > 0 {
                     StatusRow(
                         title: "Time in focus",
-                        value: timeString(from: focusManager.timeSpent)
+                        value: TimeFormatter.duration(focusManager.timeSpent)
                     )
                 }
-                
+
                 StatusRow(
                     title: "Sessions today",
                     value: "\(focusManager.todaysSessions.count)"
                 )
-                
+
                 if let lastSession = focusManager.todaysSessions.last {
                     StatusRow(
                         title: "Last session duration",
-                        value: formatDuration(lastSession.duration)
+                        value: TimeFormatter.duration(lastSession.duration)
                     )
                 }
             }
-            
+
             Divider()
-            
+
             HStack {
                 if #available(macOS 14.0, *) {
-                    SettingsLink {
+                    SettingsLink(label: {
                         Text("Settings...")
                             .foregroundStyle(.primary)
-                    }
+                    })
                     .onTapGesture {
                         openSettings()
                     }
@@ -69,9 +70,9 @@ struct MenuBarView: View {
                         openSettings()
                     }
                 }
-                
+
                 Spacer()
-                
+
                 Button(action: {
                     focusManager.togglePause()
                 }) {
@@ -81,9 +82,9 @@ struct MenuBarView: View {
                     }
                 }
                 .help(focusManager.isPaused ? "Resume focus tracking" : "Stop focus tracking")
-                
+
                 Spacer()
-                
+
                 Button("Quit") {
                     NSApplication.shared.terminate(nil)
                 }
@@ -93,22 +94,11 @@ struct MenuBarView: View {
         .padding(12)
         .frame(width: 280)
     }
-    
-    private func timeString(from timeInterval: TimeInterval) -> String {
-        let minutes = Int(timeInterval) / 60
-        let seconds = Int(timeInterval) % 60
-        return String(format: "%02d:%02d", minutes, seconds)
-    }
-    
-    private func formatDuration(_ duration: TimeInterval) -> String {
-        let minutes = Int(duration) / 60
-        return "\(minutes)m"
-    }
-    
+
     private func openSettings() {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
-        
+
         DispatchQueue.main.async {
             NSApp.windows.first?.orderFrontRegardless()
         }
@@ -118,7 +108,7 @@ struct MenuBarView: View {
 struct StatusRow: View {
     let title: String
     let value: String
-    
+
     var body: some View {
         HStack {
             Text(title)

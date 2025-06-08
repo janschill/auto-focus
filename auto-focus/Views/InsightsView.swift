@@ -1,14 +1,14 @@
-import SwiftUI
 import Charts
+import SwiftUI
 
 struct InsightsGraphsContainerView: View {
     @ObservedObject var dataProvider: InsightsViewModel
-    
+
     var body: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: 12) {
                 WeeklyBarChartView(dataProvider: dataProvider)
-                
+
                 if dataProvider.selectedTimeframe == .day {
                     HourlyBarChartView(dataProvider: dataProvider)
                 }
@@ -19,7 +19,7 @@ struct InsightsGraphsContainerView: View {
 
 struct WeeklyBarChartView: View {
     @ObservedObject var dataProvider: InsightsViewModel
-    
+
     var body: some View {
         VStack(alignment: .leading) {
             Chart {
@@ -30,7 +30,7 @@ struct WeeklyBarChartView: View {
                     )
                     .foregroundStyle(dayData.isSelected ? Color.blue : Color.blue.opacity(0.3))
                 }
-                
+
                 RuleMark(y: .value("Average", dataProvider.averageDailyMinutes))
                     .foregroundStyle(Color.green)
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
@@ -48,7 +48,7 @@ struct WeeklyBarChartView: View {
 
 struct HourlyBarChartView: View {
     @ObservedObject var dataProvider: InsightsViewModel
-    
+
     var body: some View {
         VStack(alignment: .leading) {
             Chart {
@@ -88,35 +88,35 @@ struct InsightsHeaderView: View {
                 .font(.title3)
             Spacer()
 
-            Menu {
+            Menu(content: {
                 Text("Show Usage")
-                Button {
+                Button(action: {
                     dataProvider.selectedTimeframe = .day
                     dataProvider.selectedDate = Date()
-                } label: {
+                }, label: {
                     HStack {
                         Text("Today")
                         if dataProvider.selectedTimeframe == .day {
                             Image(systemName: "checkmark")
                         }
                     }
-                }
-                Button {
+                })
+                Button(action: {
                     dataProvider.selectedTimeframe = .week
-                } label: {
+                }, label: {
                     HStack {
                         Text("This Week")
                         if dataProvider.selectedTimeframe == .week {
                             Image(systemName: "checkmark")
                         }
                     }
-                }
-            } label: {
+                })
+            }, label: {
                 HStack(spacing: 4) {
                     Text(dataProvider.displayedDateString)
                 }
                 .padding(.horizontal, 8)
-            }
+            })
             .foregroundColor(.primary)
             .frame(maxWidth: 160)
 
@@ -136,15 +136,15 @@ struct DateNavigationView: View {
                 } else {
                     dataProvider.navigateWeek(forward: false)
                 }
-            }) {
+            }, label: {
                 Image(systemName: "chevron.left")
-            }
+            })
 
             Button(action: {
                 dataProvider.goToToday()
-            }) {
+            }, label: {
                 Text("Today")
-            }
+            })
 
             Button(action: {
                 if dataProvider.selectedTimeframe == .day {
@@ -152,9 +152,9 @@ struct DateNavigationView: View {
                 } else {
                     dataProvider.navigateWeek(forward: true)
                 }
-            }) {
+            }, label: {
                 Image(systemName: "chevron.right")
-            }
+            })
             .disabled(Calendar.current.isDateInToday(dataProvider.selectedDate))
         }
     }
@@ -166,13 +166,13 @@ struct FocusTimeOverviewView: View {
     var body: some View {
         HStack {
             let time = dataProvider.selectedTimeframe == .day ? Int(dataProvider.totalFocusTime / 60) : dataProvider.weekdayData.reduce(0) { $0 + $1.totalMinutes } / 7
-            
-            Text(InsightsDataProvider.formatDuration(time))
+
+            Text(TimeFormatter.duration(time))
                 .font(.system(size: 32, weight: .medium))
-            
+
             if dataProvider.selectedTimeframe == .week {
                 Spacer()
-                
+
                 if let change = dataProvider.weekComparisonPercentage {
                     let trendImage = change >= 0 ? "arrow.up" : "arrow.down"
                     let trendText = change >= 0 ? "\(change) %" : "\(-change) %"
@@ -190,7 +190,7 @@ struct FocusTimeOverviewView: View {
 struct MetricCard: View {
     let title: String
     let value: String
-    
+
     var body: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: 8) {
@@ -210,7 +210,7 @@ struct MetricCard: View {
 
 struct ProductivityMetricsView: View {
     @ObservedObject var dataProvider: InsightsViewModel
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 16) {
@@ -240,7 +240,7 @@ struct ProductivityMetricsView: View {
                     )
                 }
             }
-            
+
             GroupBox("Weekly Consistency") {
                 VStack(alignment: .leading, spacing: 12) {
                     let maxValue = dataProvider.weekdayAverages.map { $0.average / 60 }.max() ?? 60
@@ -260,7 +260,7 @@ struct ProductivityMetricsView: View {
                                     stacking: .normalized
                                 )
                                 .foregroundStyle(Color.blue.opacity(0.7))
-                                
+
                                 BarMark(
                                     x: .value("Day", item.day),
                                     y: .value("Empty", item.empty),
@@ -270,21 +270,21 @@ struct ProductivityMetricsView: View {
                             }
                         }
                         .chartYAxis {
-                            AxisMarks(values: [0, 0.25, 0.5, 0.75, 1.0]) { value in
+                            AxisMarks(values: [0, 0.25, 0.5, 0.75, 1.0]) { _ in
                                 AxisGridLine()
                                 AxisTick()
                             }
                         }
-                        
+
                         VStack {
                             Spacer().frame(height: 8)
                             HStack(alignment: .top, spacing: 0) {
                                 ForEach(rearrangedData.indices, id: \.self) { index in
                                     let day = rearrangedData[index]
                                     let minutes = Int(day.average / 60)
-                                    
+
                                     VStack {
-                                        Text("\(InsightsDataProvider.formatDuration(minutes))")
+                                        Text("\(TimeFormatter.duration(minutes))")
                                             .font(.caption2)
                                             .foregroundColor(.primary)
                                         Spacer()
@@ -310,21 +310,21 @@ struct InsightsView: View {
     @Binding var selectedTab: Int
 
     init(selectedTab: Binding<Int>) {
-        _dataProvider = StateObject(wrappedValue: InsightsViewModel(dataProvider: InsightsDataProvider(focusManager: FocusManager())))
+        _dataProvider = StateObject(wrappedValue: InsightsViewModel(dataProvider: InsightsDataProvider(focusManager: FocusManager.shared)))
         _selectedTab = selectedTab
     }
 
     var body: some View {
         VStack(spacing: 10) {
-            GroupBox() {
-                VStack() {
+            GroupBox {
+                VStack {
                     Text("You've focussed for").font(.title2)
                         .fontDesign(.default)
                         .foregroundStyle(.secondary)
                     let totalSeconds = Int(dataProvider.totalFocusTimeThisMonth)
                     let totalMinutes = Int(totalSeconds / 60)
-                    
-                    Text("\(InsightsDataProvider.formatDuration(totalMinutes)) this month")
+
+                    Text("\(TimeFormatter.duration(totalMinutes)) this month")
                         .font(.title)
                         .fontWeight(.bold)
                     Text("Here you can find your curated focus insights. From daily to weekly detailed views, your most productive times and more.")
@@ -346,13 +346,13 @@ struct InsightsView: View {
                     }
                     .padding(8)
                 }
-                
+
                 GroupBox {
                     VStack(alignment: .leading, spacing: 8) {
                         InsightsHeaderView(dataProvider: dataProvider)
                         FocusTimeOverviewView(dataProvider: dataProvider)
                         InsightsGraphsContainerView(dataProvider: dataProvider)
-                        
+
                         HStack {
                             Text("Number of sessions")
                                 .font(.body)
@@ -365,30 +365,30 @@ struct InsightsView: View {
                     .padding(8)
                 }
             } else {
-                GroupBox() {
-                    VStack() {
+                GroupBox {
+                    VStack {
                         Text("You are currently on a free plan of Auto-Focus. To unlock more detailed insights, please upgrade to Auto-Focus+.")
                             .font(.callout)
                             .fontDesign(.default)
                             .fontWeight(.regular)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
-                        
+
                         LicenseBenefitsView()
                     }
                     .padding(.horizontal, 40)
                     .padding(.vertical)
                     .frame(maxWidth: .infinity)
-                    
+
                     HStack {
                         Image(systemName: "lock.fill")
                             .foregroundColor(.secondary)
                         Text("Upgrade to Auto-Focus+ for detailed insights")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        
+
                         Spacer()
-                        
+
                         Button("Upgrade") {
                             selectedTab = 2
                         }
@@ -409,9 +409,10 @@ struct InsightsView: View {
     }
 }
 
+// MARK: - End of InsightsView
+
 #Preview {
     InsightsView(selectedTab: .constant(2))
-        .environmentObject(FocusManager())
         .environmentObject(LicenseManager())
         .frame(width: 600, height: 900)
 }

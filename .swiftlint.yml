@@ -1,0 +1,56 @@
+# SwiftLint configuration for Auto-Focus
+# See https://realm.github.io/SwiftLint/configuration/ for all options
+
+# Enable recommended rules
+opt_in_rules:
+  - empty_count
+  - explicit_init
+  - fatal_error_message
+  - missing_docs
+  - private_outlet
+  - redundant_nil_coalescing
+  - sorted_imports
+  - switch_case_on_newline
+  - unused_declaration
+
+disabled_rules:
+  - large_tuple
+  - force_cast
+  - line_length
+  - file_length
+  - multiple_closures_with_trailing_closure
+  - type_body_length
+# Exclude generated, build, and deprecated code
+excluded:
+  - builds
+  - deprecated
+  - auto-focus.xcodeproj
+  - auto-focusUITests
+
+# Customize some rules
+# line_length:
+#   warning: 160
+#   error: 180
+identifier_name:
+  min_length: 2
+  excluded:
+    - i
+    - x
+    - y
+    - id
+    - db
+    - ui
+
+# Allow TODOs but warn
+todo:
+  severity: warning
+
+# Allow print in debug
+print:
+  severity: warning
+
+# Required header for all files
+required_headers:
+  - "//  Auto-Focus"
+
+# Enable all default rules

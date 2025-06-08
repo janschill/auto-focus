@@ -1,25 +1,24 @@
-//
-//  auto_focusApp.swift
-//  auto-focus
-//
-//  Created by Jan Schill on 25/01/2025.
-//
-
 import SwiftUI
 
 @main
-struct auto_focusApp: App {
-    @StateObject private var focusManager = FocusManager()
+struct AutoFocusApp: App {
+    @StateObject private var focusManager = FocusManager.shared
     @StateObject private var licenseManager = LicenseManager()
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
         Settings {
-            SettingsView()
-                .environmentObject(focusManager)
-                .environmentObject(licenseManager)
+            if focusManager.hasCompletedOnboarding {
+                SettingsView()
+                    .environmentObject(focusManager)
+                    .environmentObject(licenseManager)
+            } else {
+                OnboardingView()
+                    .environmentObject(focusManager)
+                    .environmentObject(licenseManager)
+            }
         }
-        
+
         MenuBarExtra {
             MenuBarView()
                 .environmentObject(focusManager)
@@ -28,7 +27,7 @@ struct auto_focusApp: App {
                 if focusManager.isPaused {
                     Image(systemName: "pause.circle")
                 } else if focusManager.isFocusAppActive {
-                    Text(timeString(from: focusManager.timeSpent))
+                    Text(TimeFormatter.duration(focusManager.timeSpent))
                         .font(.system(size: 10, weight: .medium))
                 }
                 if focusManager.isInFocusMode {
@@ -37,17 +36,11 @@ struct auto_focusApp: App {
                     Image(systemName: "brain.head.profile")
                 }
                 if focusManager.isInBufferPeriod {
-                    Text(timeString(from: focusManager.bufferTimeRemaining))
+                    Text(TimeFormatter.duration(focusManager.bufferTimeRemaining))
                         .font(.system(size: 10, weight: .medium))
                 }
             }
         }
         .menuBarExtraStyle(.window)
-    }
-    
-    private func timeString(from timeInterval: TimeInterval) -> String {
-        let minutes = Int(timeInterval) / 60
-        let seconds = Int(timeInterval.truncatingRemainder(dividingBy: 60))
-        return String(format: "%02d:%02d", minutes, seconds)
     }
 }

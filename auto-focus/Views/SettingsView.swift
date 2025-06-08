@@ -5,7 +5,7 @@ struct SettingsView: View {
     @EnvironmentObject var licenseManager: LicenseManager
     @Environment(\.dismiss) var dismiss
     @State private var selectedTab = 0
-    
+
     var body: some View {
         TabView(selection: $selectedTab) {
             ConfigurationView(selectedTab: $selectedTab)
@@ -14,27 +14,35 @@ struct SettingsView: View {
                 }
                 .tag(0)
                 .environmentObject(licenseManager)
-            
+
             InsightsView(selectedTab: $selectedTab)
                 .tabItem {
                     Label("Insights", systemImage: "chart.bar")
                 }
                 .tag(1)
                 .environmentObject(licenseManager)
-            
-            LicenseView()
+
+            DataView(selectedTab: $selectedTab)
                 .tabItem {
-                    Label("Beta Access", systemImage: "hourglass")
+                    Label("Data", systemImage: "externaldrive")
                 }
                 .tag(2)
+                .environmentObject(focusManager)
                 .environmentObject(licenseManager)
-            
+
+            LicenseView()
+                .tabItem {
+                    Label("Auto-Focus+", systemImage: "star.circle.fill")
+                }
+                .tag(3)
+                .environmentObject(licenseManager)
+
             if focusManager.canShowDebugOptions {
                 DebugMenuView()
                     .tabItem {
                         Label("Debug", systemImage: "ladybug")
                     }
-                    .tag(3)
+                    .tag(4)
                     .environmentObject(focusManager)
                     .environmentObject(licenseManager)
             }
@@ -45,7 +53,7 @@ struct SettingsView: View {
             // When settings appear, show in dock and activate
             NSApp.setActivationPolicy(.regular)
             NSApp.activate(ignoringOtherApps: true)
-            
+
             // Additional step to bring window to front
             DispatchQueue.main.async {
                 NSApp.windows.first?.orderFrontRegardless()
@@ -61,4 +69,3 @@ struct SettingsView: View {
         }
     }
 }
-    
