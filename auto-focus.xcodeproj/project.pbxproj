@@ -56,11 +56,6 @@
 			path = "auto-focusTests";
 			sourceTree = "<group>";
 		};
-		4BA2A8E42D452D6B00F62E0A /* auto-focusUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "auto-focusUITests";
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -96,7 +91,6 @@
 				4B6156132D4AC4A400937136 /* README.md */,
 				4BA2A8C82D452D6A00F62E0A /* auto-focus */,
 				4BA2A8DA2D452D6B00F62E0A /* auto-focusTests */,
-				4BA2A8E42D452D6B00F62E0A /* auto-focusUITests */,
 				4BA2A8C72D452D6A00F62E0A /* Products */,
 				4B6156102D4AC43900937136 /* .github */,
 			);
@@ -392,7 +386,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.5;
-				MARKETING_VERSION = 0.30;
+				MARKETING_VERSION = 1.00;
 				PRODUCT_BUNDLE_IDENTIFIER = "auto-focus.auto-focus";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -426,7 +420,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.5;
-				MARKETING_VERSION = 0.30;
+				MARKETING_VERSION = 1.00;
 				PRODUCT_BUNDLE_IDENTIFIER = "auto-focus.auto-focus";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
