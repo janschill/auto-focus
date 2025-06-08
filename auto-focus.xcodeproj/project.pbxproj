@@ -19,20 +19,12 @@
 			remoteGlobalIDString = 4BA2A8C52D452D6A00F62E0A;
 			remoteInfo = "auto-focus";
 		};
-		4BA2A8E22D452D6B00F62E0A /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 4BA2A8BE2D452D6A00F62E0A /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 4BA2A8C52D452D6A00F62E0A;
-			remoteInfo = "auto-focus";
-		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		4B6156132D4AC4A400937136 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		4BA2A8C62D452D6A00F62E0A /* auto-focus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "auto-focus.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		4BA2A8D72D452D6B00F62E0A /* auto-focusTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "auto-focusTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		4BA2A8E12D452D6B00F62E0A /* auto-focusUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "auto-focusUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -87,13 +79,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		4BA2A8DE2D452D6B00F62E0A /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -122,7 +107,6 @@
 			children = (
 				4BA2A8C62D452D6A00F62E0A /* auto-focus.app */,
 				4BA2A8D72D452D6B00F62E0A /* auto-focusTests.xctest */,
-				4BA2A8E12D452D6B00F62E0A /* auto-focusUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -176,29 +160,6 @@
 			productReference = 4BA2A8D72D452D6B00F62E0A /* auto-focusTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		4BA2A8E02D452D6B00F62E0A /* auto-focusUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 4BA2A8F12D452D6B00F62E0A /* Build configuration list for PBXNativeTarget "auto-focusUITests" */;
-			buildPhases = (
-				4BA2A8DD2D452D6B00F62E0A /* Sources */,
-				4BA2A8DE2D452D6B00F62E0A /* Frameworks */,
-				4BA2A8DF2D452D6B00F62E0A /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				4BA2A8E32D452D6B00F62E0A /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				4BA2A8E42D452D6B00F62E0A /* auto-focusUITests */,
-			);
-			name = "auto-focusUITests";
-			packageProductDependencies = (
-			);
-			productName = "auto-focusUITests";
-			productReference = 4BA2A8E12D452D6B00F62E0A /* auto-focusUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -213,10 +174,6 @@
 						CreatedOnToolsVersion = 16.2;
 					};
 					4BA2A8D62D452D6B00F62E0A = {
-						CreatedOnToolsVersion = 16.2;
-						TestTargetID = 4BA2A8C52D452D6A00F62E0A;
-					};
-					4BA2A8E02D452D6B00F62E0A = {
 						CreatedOnToolsVersion = 16.2;
 						TestTargetID = 4BA2A8C52D452D6A00F62E0A;
 					};
@@ -241,7 +198,6 @@
 			targets = (
 				4BA2A8C52D452D6A00F62E0A /* auto-focus */,
 				4BA2A8D62D452D6B00F62E0A /* auto-focusTests */,
-				4BA2A8E02D452D6B00F62E0A /* auto-focusUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -256,13 +212,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		4BA2A8D52D452D6B00F62E0A /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		4BA2A8DF2D452D6B00F62E0A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -286,13 +235,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		4BA2A8DD2D452D6B00F62E0A /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -300,11 +242,6 @@
 			isa = PBXTargetDependency;
 			target = 4BA2A8C52D452D6A00F62E0A /* auto-focus */;
 			targetProxy = 4BA2A8D82D452D6B00F62E0A /* PBXContainerItemProxy */;
-		};
-		4BA2A8E32D452D6B00F62E0A /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 4BA2A8C52D452D6A00F62E0A /* auto-focus */;
-			targetProxy = 4BA2A8E22D452D6B00F62E0A /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -535,38 +472,6 @@
 			};
 			name = Release;
 		};
-		4BA2A8F22D452D6B00F62E0A /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "auto-focus.auto-focusUITests";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
-				TEST_TARGET_NAME = "auto-focus";
-			};
-			name = Debug;
-		};
-		4BA2A8F32D452D6B00F62E0A /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEAD_CODE_STRIPPING = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "auto-focus.auto-focusUITests";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_VERSION = 5.0;
-				TEST_TARGET_NAME = "auto-focus";
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -593,15 +498,6 @@
 			buildConfigurations = (
 				4BA2A8EF2D452D6B00F62E0A /* Debug */,
 				4BA2A8F02D452D6B00F62E0A /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		4BA2A8F12D452D6B00F62E0A /* Build configuration list for PBXNativeTarget "auto-focusUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				4BA2A8F22D452D6B00F62E0A /* Debug */,
-				4BA2A8F32D452D6B00F62E0A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
