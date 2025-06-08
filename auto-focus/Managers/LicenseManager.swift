@@ -40,31 +40,46 @@ class LicenseManager: ObservableObject {
 
         var displayName: String {
             switch self {
-            case .inactive: return "Inactive"
-            case .valid: return "Active"
-            case .expired: return "Expired"
-            case .invalid: return "Invalid"
-            case .networkError: return "Network Error"
+            case .inactive:
+                return "Inactive"
+            case .valid:
+                return "Active"
+            case .expired:
+                return "Expired"
+            case .invalid:
+                return "Invalid"
+            case .networkError:
+                return "Network Error"
             }
         }
 
         var icon: String {
             switch self {
-            case .inactive: return "minus.circle"
-            case .valid: return "checkmark.seal.fill"
-            case .expired: return "clock.badge.exclamationmark"
-            case .invalid: return "exclamationmark.triangle.fill"
-            case .networkError: return "wifi.exclamationmark"
+            case .inactive:
+                return "minus.circle"
+            case .valid:
+                return "checkmark.seal.fill"
+            case .expired:
+                return "clock.badge.exclamationmark"
+            case .invalid:
+                return "exclamationmark.triangle.fill"
+            case .networkError:
+                return "wifi.exclamationmark"
             }
         }
 
         var color: Color {
             switch self {
-            case .inactive: return .secondary
-            case .valid: return .green
-            case .expired: return .orange
-            case .invalid: return .red
-            case .networkError: return .yellow
+            case .inactive:
+                return .secondary
+            case .valid:
+                return .green
+            case .expired:
+                return .orange
+            case .invalid:
+                return .red
+            case .networkError:
+                return .yellow
             }
         }
     }

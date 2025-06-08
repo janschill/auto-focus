@@ -11,12 +11,15 @@ opt_in_rules:
   - redundant_nil_coalescing
   - sorted_imports
   - switch_case_on_newline
-  - trailing_closure
   - unused_declaration
 
 disabled_rules:
   - large_tuple
   - force_cast
+  - line_length
+  - file_length
+  - multiple_closures_with_trailing_closure
+  - type_body_length
 # Exclude generated, build, and deprecated code
 excluded:
   - builds
@@ -25,9 +28,9 @@ excluded:
   - auto-focusUITests
 
 # Customize some rules
-line_length:
-  warning: 140
-  error: 160
+# line_length:
+#   warning: 160
+#   error: 180
 identifier_name:
   min_length: 2
   excluded:

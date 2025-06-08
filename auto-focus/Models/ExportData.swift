@@ -88,7 +88,7 @@ struct DateRange: Codable {
 // MARK: - File Operations
 
 enum ExportFormat: String, CaseIterable {
-    case json = "json"
+    case json
 
     var fileExtension: String {
         return rawValue
