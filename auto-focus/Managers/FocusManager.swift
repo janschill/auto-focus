@@ -237,28 +237,28 @@ class FocusManager: ObservableObject {
     func checkShortcutExists() -> Bool {
         return focusModeController.checkShortcutExists()
     }
-    
+
     func refreshShortcutStatus() {
         shortcutRefreshTrigger.toggle()
     }
-    
+
     func completeOnboarding() {
         hasCompletedOnboarding = true
         userDefaultsManager.setBool(true, forKey: UserDefaultsManager.Keys.hasCompletedOnboarding)
     }
-    
+
     func resetOnboarding() {
         hasCompletedOnboarding = false
         userDefaultsManager.setBool(false, forKey: UserDefaultsManager.Keys.hasCompletedOnboarding)
     }
-    
+
     // MARK: - Data Export/Import
-    
+
     func exportData(options: ExportOptions = .default) -> AutoFocusExportData {
         let sessions = options.includeSessions ? filterSessions(by: options.dateRange) : []
         let apps = options.includeFocusApps ? focusApps : []
         let settings = options.includeSettings ? createUserSettings() : UserSettings(focusThreshold: 0, focusLossBuffer: 0, hasCompletedOnboarding: false)
-        
+
         return AutoFocusExportData(
             metadata: ExportMetadata(),
             sessions: sessions,
@@ -266,25 +266,25 @@ class FocusManager: ObservableObject {
             settings: settings
         )
     }
-    
+
     func exportDataToFile(options: ExportOptions = .default) {
         let licenseManager = LicenseManager()
         guard licenseManager.isLicensed else {
             print("Export feature requires premium subscription")
             return
         }
-        
+
         let exportData = exportData(options: options)
-        
+
         do {
             let jsonData = try JSONEncoder().encode(exportData)
-            
+
             let savePanel = NSSavePanel()
             savePanel.title = "Export Auto-Focus Data"
             savePanel.nameFieldStringValue = "auto-focus-export-\(DateFormatter.filenameSafe.string(from: Date()))"
             savePanel.allowedContentTypes = [.json]
             savePanel.canCreateDirectories = true
-            
+
             savePanel.begin { result in
                 if result == .OK, let url = savePanel.url {
                     do {
@@ -299,20 +299,20 @@ class FocusManager: ObservableObject {
             print("Export encoding failed: \(error)")
         }
     }
-    
+
     func importDataFromFile(completion: @escaping (ImportResult) -> Void) {
         let licenseManager = LicenseManager()
         guard licenseManager.isLicensed else {
             completion(.failure(.readError))
             return
         }
-        
+
         let openPanel = NSOpenPanel()
         openPanel.title = "Import Auto-Focus Data"
         openPanel.allowedContentTypes = [.json]
         openPanel.allowsMultipleSelection = false
         openPanel.canChooseDirectories = false
-        
+
         openPanel.begin { result in
             if result == .OK, let url = openPanel.url {
                 self.importData(from: url) { importResult in
@@ -323,25 +323,25 @@ class FocusManager: ObservableObject {
             }
         }
     }
-    
+
     func importData(from url: URL, completion: @escaping (ImportResult) -> Void) {
         do {
             let data = try Data(contentsOf: url)
             let exportData = try JSONDecoder().decode(AutoFocusExportData.self, from: data)
-            
+
             // Validate version compatibility
             guard isVersionSupported(exportData.metadata.version) else {
                 completion(.failure(.unsupportedVersion))
                 return
             }
-            
+
             var summary = ImportSummary(
                 sessionsImported: 0,
                 focusAppsImported: 0,
                 settingsImported: false,
                 duplicatesSkipped: 0
             )
-            
+
             // Import sessions
             let (imported, skipped) = importSessions(exportData.sessions)
             summary = ImportSummary(
@@ -350,7 +350,7 @@ class FocusManager: ObservableObject {
                 settingsImported: summary.settingsImported,
                 duplicatesSkipped: skipped
             )
-            
+
             // Import focus apps
             let appsImported = importFocusApps(exportData.focusApps)
             summary = ImportSummary(
@@ -359,7 +359,7 @@ class FocusManager: ObservableObject {
                 settingsImported: summary.settingsImported,
                 duplicatesSkipped: summary.duplicatesSkipped
             )
-            
+
             // Import settings
             let settingsImported = importSettings(exportData.settings)
             summary = ImportSummary(
@@ -368,9 +368,9 @@ class FocusManager: ObservableObject {
                 settingsImported: settingsImported,
                 duplicatesSkipped: summary.duplicatesSkipped
             )
-            
+
             completion(.success(summary))
-            
+
         } catch DecodingError.dataCorrupted(_) {
             completion(.failure(.corruptedData))
         } catch DecodingError.typeMismatch(_, _) {
@@ -379,17 +379,17 @@ class FocusManager: ObservableObject {
             completion(.failure(.readError))
         }
     }
-    
+
     // MARK: - Private Import Helpers
-    
+
     private func filterSessions(by dateRange: DateRange?) -> [FocusSession] {
         guard let range = dateRange else { return focusSessions }
-        
+
         return focusSessions.filter { session in
             session.startTime >= range.startDate && session.endTime <= range.endDate
         }
     }
-    
+
     private func createUserSettings() -> UserSettings {
         return UserSettings(
             focusThreshold: focusThreshold,
@@ -397,23 +397,23 @@ class FocusManager: ObservableObject {
             hasCompletedOnboarding: hasCompletedOnboarding
         )
     }
-    
+
     private func isVersionSupported(_ version: String) -> Bool {
         // For now, support version 1.0 only
         return version == "1.0"
     }
-    
+
     private func importSessions(_ sessions: [FocusSession]) -> (imported: Int, skipped: Int) {
         var imported = 0
         var skipped = 0
-        
+
         for session in sessions {
             // Check for duplicates based on start time and duration
             let isDuplicate = focusSessions.contains { existing in
                 abs(existing.startTime.timeIntervalSince(session.startTime)) < 1.0 &&
                 abs(existing.duration - session.duration) < 1.0
             }
-            
+
             if !isDuplicate {
                 sessionManager.addSampleSessions([session])
                 imported += 1
@@ -421,40 +421,40 @@ class FocusManager: ObservableObject {
                 skipped += 1
             }
         }
-        
+
         return (imported, skipped)
     }
-    
+
     private func importFocusApps(_ apps: [AppInfo]) -> Int {
         var imported = 0
-        
+
         for app in apps {
             // Check for duplicates based on bundle identifier
             let isDuplicate = focusApps.contains { existing in
                 existing.bundleIdentifier == app.bundleIdentifier
             }
-            
+
             if !isDuplicate {
                 focusApps.append(app)
                 imported += 1
             }
         }
-        
+
         return imported
     }
-    
+
     private func importSettings(_ settings: UserSettings) -> Bool {
         // Only import non-zero values to avoid overwriting with defaults
         if settings.focusThreshold > 0 {
             focusThreshold = settings.focusThreshold
         }
-        
+
         if settings.focusLossBuffer > 0 {
             focusLossBuffer = settings.focusLossBuffer
         }
-        
+
         // Note: We don't import hasCompletedOnboarding to avoid resetting user's onboarding state
-        
+
         return true
     }
 

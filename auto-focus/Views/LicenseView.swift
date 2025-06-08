@@ -33,7 +33,7 @@ struct LicensedView: View {
                     // Show license input for expired, invalid, or beta users
                     if licenseManager.licenseStatus == .expired || licenseManager.licenseStatus == .invalid || isBetaLicense {
                         Divider().padding(.vertical, 6)
-                        
+
                         if isBetaLicense {
                             BetaUpgradeView(licenseManager: licenseManager)
                         } else {
@@ -76,7 +76,7 @@ struct LicensedView: View {
                     if licenseManager.licenseStatus == .valid && !isBetaLicense {
                         HStack {
                             Spacer()
-                            
+
                             Button("Deactivate License") {
                                 showingDeactivateAlert = true
                             }
@@ -89,7 +89,7 @@ struct LicensedView: View {
                             Text("Upgrade to Full License")
                                 .font(.headline)
                                 .fontWeight(.semibold)
-                            
+
                             Text("While you enjoy beta access, you can upgrade to a full Auto-Focus+ license for continued access after August 31, 2025.")
                                 .font(.body)
                                 .foregroundColor(.secondary)
@@ -138,7 +138,7 @@ struct LicensedView: View {
     private var isBetaLicense: Bool {
         return licenseManager.licenseOwner == "Beta User"
     }
-    
+
     private var statusTitle: String {
         switch licenseManager.licenseStatus {
         case .valid:
@@ -153,7 +153,7 @@ struct LicensedView: View {
             return "Connection Error"
         }
     }
-    
+
     private var statusDescription: String {
         switch licenseManager.licenseStatus {
         case .valid:
@@ -172,13 +172,13 @@ struct LicensedView: View {
             return "Unable to verify license due to network issues. Premium features remain available."
         }
     }
-    
+
     private func lastValidationFormatted(_ date: Date) -> String {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .full
         return formatter.localizedString(for: date, relativeTo: Date())
     }
-    
+
     private func copyLicenseKey() {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
@@ -376,7 +376,7 @@ struct PremiumFeatureRow: View {
 struct BetaUpgradeView: View {
     @ObservedObject var licenseManager: LicenseManager
     @State private var showingLicenseInput = false
-    
+
     var body: some View {
         VStack(spacing: 16) {
             HStack {
@@ -384,15 +384,15 @@ struct BetaUpgradeView: View {
                     Text("🎉 You're in Beta!")
                         .font(.headline)
                         .fontWeight(.semibold)
-                    
+
                     Text("Enjoying Auto-Focus+? Get a license for continued access after August 31, 2025.")
                         .font(.body)
                         .foregroundColor(.secondary)
                 }
-                
+
                 Spacer()
             }
-            
+
             HStack(spacing: 12) {
                 Link(destination: URL(string: "https://auto-focus.app/plus")!) {
                     HStack {
@@ -407,17 +407,17 @@ struct BetaUpgradeView: View {
                     .cornerRadius(6)
                 }
                 .buttonStyle(.plain)
-                
+
                 Button("Enter License Key") {
                     showingLicenseInput.toggle()
                 }
                 .buttonStyle(.bordered)
             }
-            
+
             if showingLicenseInput {
                 Divider()
                     .padding(.vertical, 4)
-                
+
                 LicenseInputView(licenseManager: licenseManager)
             }
         }

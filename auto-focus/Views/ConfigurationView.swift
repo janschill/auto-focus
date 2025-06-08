@@ -159,11 +159,11 @@ struct GeneralSettingsView: View {
             focusManager.refreshShortcutStatus()
         }
     }
-    
+
     private var isBetaLicense: Bool {
         return licenseManager.licenseOwner == "Beta User"
     }
-    
+
     private var licenseStatusIcon: String {
         if isBetaLicense {
             return "hourglass"
@@ -171,7 +171,7 @@ struct GeneralSettingsView: View {
             return "star.circle.fill"
         }
     }
-    
+
     private var licenseStatusText: String {
         if isBetaLicense {
             return "Beta"
@@ -179,7 +179,7 @@ struct GeneralSettingsView: View {
             return "Auto-Focus+"
         }
     }
-    
+
     private var licenseStatusColor: Color {
         if isBetaLicense {
             return .indigo
@@ -316,7 +316,6 @@ struct ConfigurationView: View {
         .padding()
     }
 }
-
 
 #Preview {
     ConfigurationView(selectedTab: .constant(0))

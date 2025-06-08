@@ -4,13 +4,13 @@ struct DataView: View {
     @EnvironmentObject var focusManager: FocusManager
     @EnvironmentObject var licenseManager: LicenseManager
     @Binding var selectedTab: Int
-    
+
     var body: some View {
         VStack(spacing: 10) {
             DataHeaderView()
             DataOverviewView()
             DataExportImportView(selectedTab: $selectedTab)
-            
+
             Spacer()
         }
         .padding()
@@ -41,19 +41,19 @@ struct DataHeaderView: View {
 
 struct DataOverviewView: View {
     @EnvironmentObject var focusManager: FocusManager
-    
+
     private var dataMetrics: DataMetrics {
         DataMetrics(
             totalSessions: focusManager.focusSessions.count,
             totalFocusTime: focusManager.focusSessions.reduce(0) { $0 + $1.duration },
             totalFocusApps: focusManager.focusApps.count,
-            oldestSession: focusManager.focusSessions.min(by: { $0.startTime < $1.startTime }),
-            newestSession: focusManager.focusSessions.max(by: { $0.startTime < $1.startTime }),
+            oldestSession: focusManager.focusSessions.min { $0.startTime < $1.startTime },
+            newestSession: focusManager.focusSessions.max { $0.startTime < $1.startTime },
             thisWeekSessions: focusManager.weekSessions.count,
             thisMonthSessions: focusManager.monthSessions.count
         )
     }
-    
+
     var body: some View {
         GroupBox(label: Text("Data Overview").font(.headline)) {
             VStack(spacing: 16) {
@@ -69,14 +69,14 @@ struct DataOverviewView: View {
                         icon: "clock.fill",
                         color: .blue
                     )
-                    
+
                     DataStatCard(
                         title: "Total Focus Time",
                         value: TimeFormatter.duration(Int(dataMetrics.totalFocusTime / 60)),
                         icon: "brain.head.profile.fill",
                         color: .purple
                     )
-                    
+
                     DataStatCard(
                         title: "Focus Apps",
                         value: "\(dataMetrics.totalFocusApps)",
@@ -84,9 +84,9 @@ struct DataOverviewView: View {
                         color: .green
                     )
                 }
-                
+
                 Divider()
-                
+
                 // Date range and recent activity
                 VStack(spacing: 8) {
                     HStack {
@@ -95,7 +95,7 @@ struct DataOverviewView: View {
                                 .font(.caption)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.secondary)
-                            
+
                             if let oldest = dataMetrics.oldestSession,
                                let newest = dataMetrics.newestSession {
                                 Text("\(oldest.startTime, formatter: DateFormatter.mediumDate) - \(newest.startTime, formatter: DateFormatter.mediumDate)")
@@ -106,15 +106,15 @@ struct DataOverviewView: View {
                                     .foregroundColor(.secondary)
                             }
                         }
-                        
+
                         Spacer()
-                        
+
                         VStack(alignment: .trailing, spacing: 4) {
                             Text("Recent Activity")
                                 .font(.caption)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.secondary)
-                            
+
                             HStack(spacing: 12) {
                                 VStack {
                                     Text("\(dataMetrics.thisWeekSessions)")
@@ -124,7 +124,7 @@ struct DataOverviewView: View {
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
-                                
+
                                 VStack {
                                     Text("\(dataMetrics.thisMonthSessions)")
                                         .font(.body)
@@ -150,17 +150,17 @@ struct DataStatCard: View {
     let value: String
     let icon: String
     let color: Color
-    
+
     var body: some View {
         VStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.title2)
                 .foregroundColor(color)
-            
+
             Text(value)
                 .font(.title3)
                 .fontWeight(.bold)
-            
+
             Text(title)
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -183,12 +183,12 @@ struct DataExportImportView: View {
     @State private var showingImportAlert = false
     @State private var importResult: ImportResult?
     @State private var showingExportPreview = false
-    
+
     private var exportPreview: ExportPreview {
         let options = exportOptions
         let sessions = options.includeSessions ? filterSessions(by: options.dateRange) : []
         let apps = options.includeFocusApps ? focusManager.focusApps : []
-        
+
         return ExportPreview(
             sessionCount: sessions.count,
             focusAppsCount: apps.count,
@@ -198,7 +198,7 @@ struct DataExportImportView: View {
             estimatedFileSize: estimateFileSize(sessions: sessions, apps: apps, includeSettings: options.includeSettings)
         )
     }
-    
+
     var body: some View {
         GroupBox(label: Text("Export & Import").font(.headline)) {
             VStack(spacing: 16) {
@@ -207,28 +207,28 @@ struct DataExportImportView: View {
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                
+
                 if !licenseManager.isLicensed {
                     PremiumRequiredView(selectedTab: $selectedTab)
                 } else {
                     VStack(spacing: 16) {
                         // Export preview card
                         ExportPreviewCard(preview: exportPreview, options: $exportOptions)
-                        
+
                         // Action buttons
                         HStack(spacing: 16) {
                             Button("Customize Export") {
                                 showingExportOptions = true
                             }
                             .buttonStyle(.bordered)
-                            
+
                             Button("Export Data") {
                                 focusManager.exportDataToFile(options: exportOptions)
                             }
                             .buttonStyle(.borderedProminent)
-                            
+
                             Spacer()
-                            
+
                             Button("Import Data") {
                                 focusManager.importDataFromFile { result in
                                     importResult = result
@@ -269,40 +269,40 @@ struct DataExportImportView: View {
             }
         }
     }
-    
+
     // Helper methods
     private func filterSessions(by dateRange: DateRange?) -> [FocusSession] {
         guard let range = dateRange else { return focusManager.focusSessions }
-        
+
         return focusManager.focusSessions.filter { session in
             session.startTime >= range.startDate && session.endTime <= range.endDate
         }
     }
-    
+
     private func getDateRange(for sessions: [FocusSession]) -> String {
         guard !sessions.isEmpty else { return "No sessions" }
-        
+
         let sortedSessions = sessions.sorted { $0.startTime < $1.startTime }
         guard let first = sortedSessions.first, let last = sortedSessions.last else {
             return "No sessions"
         }
-        
+
         if Calendar.current.isDate(first.startTime, inSameDayAs: last.startTime) {
             return DateFormatter.mediumDate.string(from: first.startTime)
         } else {
             return "\(DateFormatter.shortDate.string(from: first.startTime)) - \(DateFormatter.shortDate.string(from: last.startTime))"
         }
     }
-    
+
     private func estimateFileSize(sessions: [FocusSession], apps: [AppInfo], includeSettings: Bool) -> String {
         // Rough estimation: each session ~150 bytes, each app ~100 bytes, settings ~50 bytes
         let sessionSize = sessions.count * 150
         let appSize = apps.count * 100
         let settingsSize = includeSettings ? 50 : 0
         let metadataSize = 200
-        
+
         let totalBytes = sessionSize + appSize + settingsSize + metadataSize
-        
+
         if totalBytes < 1024 {
             return "\(totalBytes) bytes"
         } else if totalBytes < 1024 * 1024 {
@@ -315,7 +315,7 @@ struct DataExportImportView: View {
 
 struct PremiumRequiredView: View {
     @Binding var selectedTab: Int
-    
+
     var body: some View {
         HStack {
             Image(systemName: "lock.fill")
@@ -323,9 +323,9 @@ struct PremiumRequiredView: View {
             Text("Export and import require Auto-Focus+ subscription")
                 .font(.caption)
                 .foregroundColor(.secondary)
-            
+
             Spacer()
-            
+
             Button("Upgrade") {
                 selectedTab = 3
             }
@@ -341,7 +341,7 @@ struct PremiumRequiredView: View {
 struct ExportPreviewCard: View {
     let preview: ExportPreview
     @Binding var options: ExportOptions
-    
+
     var body: some View {
         VStack(spacing: 12) {
             HStack {
@@ -353,7 +353,7 @@ struct ExportPreviewCard: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-            
+
             LazyVGrid(columns: [
                 GridItem(.flexible()),
                 GridItem(.flexible()),
@@ -365,14 +365,14 @@ struct ExportPreviewCard: View {
                     enabled: options.includeSessions,
                     icon: "clock"
                 )
-                
+
                 ExportMetricItem(
                     title: "Focus Apps",
                     value: "\(preview.focusAppsCount)",
                     enabled: options.includeFocusApps,
                     icon: "app"
                 )
-                
+
                 ExportMetricItem(
                     title: "Settings",
                     value: preview.includesSettings ? "✓" : "✗",
@@ -380,7 +380,7 @@ struct ExportPreviewCard: View {
                     icon: "gear"
                 )
             }
-            
+
             if preview.sessionCount > 0 {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
@@ -391,9 +391,9 @@ struct ExportPreviewCard: View {
                             .font(.body)
                             .fontWeight(.medium)
                     }
-                    
+
                     Spacer()
-                    
+
                     VStack(alignment: .trailing, spacing: 2) {
                         Text("Date Range")
                             .font(.caption)
@@ -416,18 +416,18 @@ struct ExportMetricItem: View {
     let value: String
     let enabled: Bool
     let icon: String
-    
+
     var body: some View {
         VStack(spacing: 4) {
             Image(systemName: icon)
                 .foregroundColor(enabled ? .accentColor : .secondary)
                 .font(.caption)
-            
+
             Text(value)
                 .font(.body)
                 .fontWeight(.medium)
                 .foregroundColor(enabled ? .primary : .secondary)
-            
+
             Text(title)
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -468,7 +468,7 @@ extension DateFormatter {
         formatter.dateStyle = .medium
         return formatter
     }()
-    
+
     static let shortDate: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateStyle = .short
@@ -485,7 +485,7 @@ struct ExportOptionsView: View {
     @State private var startDate = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
     @State private var endDate = Date()
     @State private var useDateRange = false
-    
+
     var body: some View {
         VStack(spacing: 20) {
             HStack {
@@ -496,22 +496,22 @@ struct ExportOptionsView: View {
                 Button("Cancel", action: onCancel)
             }
             .padding(.bottom, 10)
-            
+
             VStack(alignment: .leading, spacing: 16) {
                 Text("What to export:")
                     .font(.headline)
-                
+
                 VStack(alignment: .leading, spacing: 8) {
                     Toggle("Focus sessions", isOn: $options.includeSessions)
                     Toggle("Focus apps configuration", isOn: $options.includeFocusApps)
                     Toggle("Settings and preferences", isOn: $options.includeSettings)
                 }
-                
+
                 Divider()
-                
+
                 VStack(alignment: .leading, spacing: 12) {
                     Toggle("Export specific date range", isOn: $useDateRange)
-                    
+
                     if useDateRange {
                         HStack {
                             VStack(alignment: .leading) {
@@ -520,7 +520,7 @@ struct ExportOptionsView: View {
                                 DatePicker("", selection: $startDate, displayedComponents: .date)
                                     .labelsHidden()
                             }
-                            
+
                             VStack(alignment: .leading) {
                                 Text("To:")
                                     .font(.caption)
@@ -532,12 +532,12 @@ struct ExportOptionsView: View {
                     }
                 }
             }
-            
+
             Spacer()
-            
+
             HStack {
                 Spacer()
-                Button("Export", action: {
+                Button("Export") {
                     if useDateRange {
                         options = ExportOptions(
                             includeSessions: options.includeSessions,
@@ -547,7 +547,7 @@ struct ExportOptionsView: View {
                         )
                     }
                     onExport()
-                })
+                }
                 .buttonStyle(.borderedProminent)
                 .disabled(!options.includeSessions && !options.includeSettings && !options.includeFocusApps)
             }

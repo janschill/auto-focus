@@ -13,7 +13,7 @@ struct ExportMetadata: Codable {
     let version: String
     let exportDate: Date
     let appVersion: String
-    
+
     init() {
         self.version = "1.0"
         self.exportDate = Date()
@@ -25,12 +25,6 @@ struct UserSettings: Codable {
     let focusThreshold: TimeInterval
     let focusLossBuffer: TimeInterval
     let hasCompletedOnboarding: Bool
-    
-    init(focusThreshold: TimeInterval, focusLossBuffer: TimeInterval, hasCompletedOnboarding: Bool) {
-        self.focusThreshold = focusThreshold
-        self.focusLossBuffer = focusLossBuffer
-        self.hasCompletedOnboarding = hasCompletedOnboarding
-    }
 }
 
 // MARK: - Import Result
@@ -53,7 +47,7 @@ enum ImportError: LocalizedError, Equatable {
     case corruptedData
     case readError
     case noDataFound
-    
+
     var errorDescription: String? {
         switch self {
         case .invalidFileFormat:
@@ -77,7 +71,7 @@ struct ExportOptions {
     var includeSettings: Bool
     var includeFocusApps: Bool
     var dateRange: DateRange?
-    
+
     static let `default` = ExportOptions(
         includeSessions: true,
         includeSettings: true,
@@ -95,18 +89,18 @@ struct DateRange: Codable {
 
 enum ExportFormat: String, CaseIterable {
     case json = "json"
-    
+
     var fileExtension: String {
         return rawValue
     }
-    
+
     var displayName: String {
         switch self {
         case .json:
             return "JSON"
         }
     }
-    
+
     var mimeType: String {
         switch self {
         case .json:
