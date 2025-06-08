@@ -1,14 +1,13 @@
-// MenuBarViewModelTests.swift
-// Unit tests for MenuBarViewModel
+// FocusManagerStateTests.swift
+// Unit tests for FocusManager state management after refactor
 
 @testable import auto_focus
 import XCTest
 
 #if DEBUG
 
-final class MenuBarViewModelTests: XCTestCase {
+final class FocusManagerStateTests: XCTestCase {
     var focusManager: FocusManager!
-    var viewModel: MenuBarViewModel!
     var mockPersistence: MockPersistenceManager!
     var mockSessionManager: MockSessionManager!
     var mockAppMonitor: MockAppMonitor!
@@ -29,12 +28,27 @@ final class MenuBarViewModelTests: XCTestCase {
             bufferManager: mockBufferManager,
             focusModeController: mockFocusModeManager
         )
-        viewModel = MenuBarViewModel(focusManager: focusManager)
     }
 
-    func testPauseSync() {
-        viewModel.togglePause()
-        XCTAssertEqual(viewModel.isPaused, focusManager.isPaused)
+    func testPauseToggle() {
+        let initialPauseState = focusManager.isPaused
+        focusManager.togglePause()
+        XCTAssertEqual(focusManager.isPaused, !initialPauseState)
+    }
+
+    func testShortcutStatusComputed() {
+        // Test computed property returns correct value
+        mockFocusModeManager.shouldFailShortcutCheck = false
+        XCTAssertTrue(focusManager.isShortcutInstalled)
+
+        mockFocusModeManager.shouldFailShortcutCheck = true
+        focusManager.refreshShortcutStatus()
+        XCTAssertFalse(focusManager.isShortcutInstalled)
+    }
+
+    func testFocusThresholdPersistence() {
+        focusManager.focusThreshold = 15
+        XCTAssertEqual(mockPersistence.getDouble(forKey: UserDefaultsManager.Keys.focusThreshold), 15)
     }
 }
 

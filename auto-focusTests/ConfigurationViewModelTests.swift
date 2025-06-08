@@ -32,13 +32,24 @@ final class ConfigurationViewModelTests: XCTestCase {
         viewModel = ConfigurationViewModel(focusManager: focusManager)
     }
 
-    func testThresholdSync() {
-        focusManager.focusThreshold = 10
-        viewModel.setFocusThreshold(15)
-        XCTAssertEqual(focusManager.focusThreshold, 15)
-        focusManager.focusLossBuffer = 5
-        viewModel.setFocusLossBuffer(7)
-        XCTAssertEqual(focusManager.focusLossBuffer, 7)
+    func testShortcutStatusInitialization() {
+        // Test that ConfigurationViewModel properly initializes shortcut status
+        XCTAssertNotNil(viewModel.shortcutInstalled)
+
+        // Test that refreshing shortcut status calls the focus manager
+        mockFocusModeManager.shouldFailShortcutCheck = false
+        viewModel.updateShortcutInstalled()
+
+        // Verify the shortcut status is properly retrieved
+        XCTAssertTrue(viewModel.shortcutInstalled)
+    }
+
+    func testShortcutStatusWithFailure() {
+        // Test behavior when shortcut check fails
+        mockFocusModeManager.shouldFailShortcutCheck = true
+        viewModel.updateShortcutInstalled()
+
+        XCTAssertFalse(viewModel.shortcutInstalled)
     }
 }
 
