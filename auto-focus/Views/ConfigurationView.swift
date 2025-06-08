@@ -23,6 +23,7 @@ struct AppRowView: View {
 
 struct AppsListView: View {
     @EnvironmentObject var focusManager: FocusManager
+    @EnvironmentObject var licenseManager: LicenseManager
     @Binding var selectedTab: Int
 
     var body: some View {
@@ -33,7 +34,7 @@ struct AppsListView: View {
         }
         .listStyle(.bordered)
 
-        if focusManager.isPremiumRequired {
+        if !licenseManager.isLicensed {
             HStack {
                 Image(systemName: "lock.fill")
                     .foregroundColor(.secondary)
@@ -257,6 +258,7 @@ struct ThresholdsView: View {
 
 struct FocusApplicationsView: View {
     @EnvironmentObject var focusManager: FocusManager
+    @EnvironmentObject var licenseManager: LicenseManager
     @Binding var selectedTab: Int
 
     var body: some View {
@@ -278,7 +280,7 @@ struct FocusApplicationsView: View {
                     } label: {
                         Image(systemName: "plus")
                     }
-                    .disabled(!focusManager.canAddMoreApps)
+                    .disabled(!licenseManager.isLicensed)
 
                     Button {
                         DispatchQueue.main.async {
