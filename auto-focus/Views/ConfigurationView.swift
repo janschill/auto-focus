@@ -44,7 +44,7 @@ struct AppsListView: View {
                 Spacer()
 
                 Button("Upgrade") {
-                    selectedTab = 2
+                    selectedTab = 3
                 }
                 .controlSize(.small)
             }
@@ -286,6 +286,7 @@ struct ConfigurationView: View {
         .padding()
     }
 }
+
 
 #Preview {
     ConfigurationView(selectedTab: .constant(0))

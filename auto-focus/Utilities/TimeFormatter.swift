@@ -1,4 +1,5 @@
 import SwiftUI
+import Foundation
 
 struct TimeFormatter {
     static func duration(_ timeInterval: TimeInterval) -> String {
@@ -15,4 +16,12 @@ struct TimeFormatter {
         let minutes = Int(timeInterval) / 60
         return "\(minutes)m"
     }
+}
+
+extension DateFormatter {
+    static let filenameSafe: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd-HHmm"
+        return formatter
+    }()
 }

@@ -22,11 +22,19 @@ struct SettingsView: View {
                 .tag(1)
                 .environmentObject(licenseManager)
 
+            DataView(selectedTab: $selectedTab)
+                .tabItem {
+                    Label("Data", systemImage: "externaldrive")
+                }
+                .tag(2)
+                .environmentObject(focusManager)
+                .environmentObject(licenseManager)
+
             LicenseView()
                 .tabItem {
                     Label("Beta Access", systemImage: "hourglass")
                 }
-                .tag(2)
+                .tag(3)
                 .environmentObject(licenseManager)
 
             if focusManager.canShowDebugOptions {
@@ -34,7 +42,7 @@ struct SettingsView: View {
                     .tabItem {
                         Label("Debug", systemImage: "ladybug")
                     }
-                    .tag(3)
+                    .tag(4)
                     .environmentObject(focusManager)
                     .environmentObject(licenseManager)
             }
