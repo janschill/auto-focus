@@ -50,6 +50,7 @@ class FocusManager: ObservableObject {
     }
     @Published var selectedAppId: String?
     @Published var isInFocusMode = false
+    @Published var shortcutRefreshTrigger: Bool = false
 
     private var freeAppLimit: Int = AppConfiguration.freeAppLimit
     @Published var isPremiumUser: Bool = false
@@ -77,6 +78,12 @@ class FocusManager: ObservableObject {
 
     var weekSessions: [FocusSession] {
         return sessionManager.weekSessions
+    }
+
+    // MARK: - Shortcut Status
+    var isShortcutInstalled: Bool {
+        _ = shortcutRefreshTrigger // Trigger dependency tracking
+        return focusModeController.checkShortcutExists()
     }
 
     var monthSessions: [FocusSession] {
@@ -217,6 +224,10 @@ class FocusManager: ObservableObject {
 
     func checkShortcutExists() -> Bool {
         return focusModeController.checkShortcutExists()
+    }
+    
+    func refreshShortcutStatus() {
+        shortcutRefreshTrigger.toggle()
     }
 
     func selectFocusApplication() {

@@ -38,7 +38,6 @@ class MockSessionManager: ObservableObject, SessionManaging {
 // MARK: - Mock App Monitor
 class MockAppMonitor: ObservableObject, AppMonitoring {
     @Published var currentApp: String?
-    @Published var isFocusAppActive: Bool = false
 
     weak var delegate: AppMonitorDelegate?
 
@@ -62,12 +61,10 @@ class MockAppMonitor: ObservableObject, AppMonitoring {
     
     // Test helper methods
     func simulateFocusAppActive() {
-        isFocusAppActive = true
         delegate?.appMonitor(self, didDetectFocusApp: true)
     }
 
     func simulateFocusAppInactive() {
-        isFocusAppActive = false
         delegate?.appMonitor(self, didDetectFocusApp: false)
     }
 }

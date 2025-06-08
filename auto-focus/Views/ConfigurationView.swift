@@ -79,7 +79,6 @@ private struct HeaderView: View {
 }
 
 struct GeneralSettingsView: View {
-    @State private var shortcutInstalled: Bool = false
     @EnvironmentObject var licenseManager: LicenseManager
     @EnvironmentObject var focusManager: FocusManager
 
@@ -126,7 +125,7 @@ struct GeneralSettingsView: View {
 
                     Spacer()
 
-                    if shortcutInstalled {
+                    if focusManager.isShortcutInstalled {
                         Text("✓ Installed")
                             .foregroundColor(.green)
                     } else {
@@ -136,8 +135,9 @@ struct GeneralSettingsView: View {
 
                     Button("Add Shortcut") {
                         installShortcut()
+                        focusManager.refreshShortcutStatus()
                     }
-                    .disabled(shortcutInstalled)
+                    .disabled(focusManager.isShortcutInstalled)
                 }
 
                 HStack {
@@ -155,7 +155,7 @@ struct GeneralSettingsView: View {
         }
         .frame(maxWidth: .infinity)
         .onAppear {
-            shortcutInstalled = focusManager.checkShortcutExists()
+            focusManager.refreshShortcutStatus()
         }
     }
 }
@@ -275,12 +275,6 @@ struct ConfigurationView: View {
     @EnvironmentObject var focusManager: FocusManager
     @EnvironmentObject var licenseManager: LicenseManager
     @Binding var selectedTab: Int
-    @StateObject private var viewModel: ConfigurationViewModel
-
-    init(selectedTab: Binding<Int>) {
-        _selectedTab = selectedTab
-        _viewModel = StateObject(wrappedValue: ConfigurationViewModel())
-    }
 
     var body: some View {
         VStack(spacing: 10) {
@@ -290,9 +284,6 @@ struct ConfigurationView: View {
             FocusApplicationsView(selectedTab: $selectedTab)
         }
         .padding()
-        .onAppear {
-            viewModel.updateShortcutInstalled()
-        }
     }
 }
 
