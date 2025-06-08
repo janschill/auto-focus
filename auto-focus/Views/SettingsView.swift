@@ -32,7 +32,7 @@ struct SettingsView: View {
 
             LicenseView()
                 .tabItem {
-                    Label("Beta Access", systemImage: "hourglass")
+                    Label("Auto-Focus+", systemImage: "star.circle.fill")
                 }
                 .tag(3)
                 .environmentObject(licenseManager)

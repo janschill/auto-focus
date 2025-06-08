@@ -90,10 +90,10 @@ struct GeneralSettingsView: View {
                         .frame(width: 150, alignment: .leading)
                     Spacer()
                     if licenseManager.isLicensed {
-                        Image(systemName: "hourglass")
+                        Image(systemName: licenseStatusIcon)
                             .symbolRenderingMode(.multicolor)
-                        Text("Beta")
-                            .foregroundStyle(.indigo)
+                        Text(licenseStatusText)
+                            .foregroundStyle(licenseStatusColor)
                     } else {
                         Text("Free")
                     }
@@ -156,6 +156,34 @@ struct GeneralSettingsView: View {
         .frame(maxWidth: .infinity)
         .onAppear {
             focusManager.refreshShortcutStatus()
+        }
+    }
+    
+    private var isBetaLicense: Bool {
+        return licenseManager.licenseOwner == "Beta User"
+    }
+    
+    private var licenseStatusIcon: String {
+        if isBetaLicense {
+            return "hourglass"
+        } else {
+            return "star.circle.fill"
+        }
+    }
+    
+    private var licenseStatusText: String {
+        if isBetaLicense {
+            return "Beta"
+        } else {
+            return "Auto-Focus+"
+        }
+    }
+    
+    private var licenseStatusColor: Color {
+        if isBetaLicense {
+            return .indigo
+        } else {
+            return .green
         }
     }
 }

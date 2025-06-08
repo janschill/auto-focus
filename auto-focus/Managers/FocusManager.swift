@@ -93,12 +93,22 @@ class FocusManager: ObservableObject {
 
     var canAddMoreApps: Bool {
         let licenseManager = LicenseManager()
-        return licenseManager.isLicensed || focusApps.count < freeAppLimit
+        if licenseManager.isLicensed {
+            // Licensed users: check their specific limit (-1 means unlimited)
+            return licenseManager.maxAppsAllowed == -1 || focusApps.count < licenseManager.maxAppsAllowed
+        } else {
+            // Free users: use free app limit
+            return focusApps.count < freeAppLimit
+        }
     }
 
     var isPremiumRequired: Bool {
         let licenseManager = LicenseManager()
-        return !licenseManager.isLicensed && focusApps.count >= freeAppLimit
+        if licenseManager.isLicensed {
+            return false // Licensed users don't need premium
+        } else {
+            return focusApps.count >= freeAppLimit
+        }
     }
 
     init(

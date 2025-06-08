@@ -5,7 +5,8 @@ enum OnboardingStep: Int, CaseIterable {
     case howItWorks = 1
     case installShortcut = 2
     case addFocusApps = 3
-    case complete = 4
+    case license = 4
+    case complete = 5
     
     var title: String {
         switch self {
@@ -17,6 +18,8 @@ enum OnboardingStep: Int, CaseIterable {
             return "Install Shortcut"
         case .addFocusApps:
             return "Add Focus Apps"
+        case .license:
+            return "Get Auto-Focus+"
         case .complete:
             return "You're All Set!"
         }
@@ -25,6 +28,7 @@ enum OnboardingStep: Int, CaseIterable {
 
 struct OnboardingView: View {
     @EnvironmentObject var focusManager: FocusManager
+    @EnvironmentObject var licenseManager: LicenseManager
     @State private var currentStep: OnboardingStep = .welcome
     @State private var hasInstalledShortcut: Bool = false
     @State private var hasAddedApps: Bool = false
@@ -73,6 +77,8 @@ struct OnboardingView: View {
             InstallShortcutStepView(hasInstalled: $hasInstalledShortcut)
         case .addFocusApps:
             AddFocusAppsStepView(hasAddedApps: $hasAddedApps)
+        case .license:
+            LicenseOnboardingStepView()
         case .complete:
             CompleteStepView()
         }
@@ -509,6 +515,175 @@ struct NavigationButtonsView: View {
     }
 }
 
+struct LicenseOnboardingStepView: View {
+    @EnvironmentObject var licenseManager: LicenseManager
+    
+    var body: some View {
+        VStack(spacing: 24) {
+            Image(systemName: "star.circle.fill")
+                .font(.system(size: 60))
+                .foregroundColor(.accentColor)
+            
+            VStack(spacing: 16) {
+                Text("Get Auto-Focus+")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                
+                Text("Unlock unlimited focus apps, data export, and advanced insights. Currently in open beta - all features are free until August 31, 2025.")
+                    .font(.title3)
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.secondary)
+            }
+            
+            VStack(spacing: 20) {
+                VStack(spacing: 12) {
+                    Text("Premium Features")
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                    
+                    VStack(spacing: 10) {
+                        OnboardingPremiumFeature(icon: "list.bullet", title: "Unlimited Focus Apps", description: "Add as many focus-triggering apps as you need")
+                        OnboardingPremiumFeature(icon: "externaldrive", title: "Data Export & Import", description: "Backup and transfer your focus data")
+                        OnboardingPremiumFeature(icon: "chart.bar.fill", title: "Advanced Insights", description: "Detailed statistics about your focus habits")
+                        OnboardingPremiumFeature(icon: "arrow.clockwise", title: "Future Updates", description: "Access to all new premium features")
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
+                .background(Color(.controlBackgroundColor))
+                .cornerRadius(12)
+                
+                VStack(spacing: 16) {
+                    Text("🎉 Open Beta")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                    
+                    Text("All premium features are currently free during our open beta period. After August 31, 2025, you'll need a license to continue using premium features.")
+                        .font(.body)
+                        .multilineTextAlignment(.center)
+                        .foregroundColor(.secondary)
+                    
+                    VStack(spacing: 12) {
+                        Link(destination: URL(string: "https://auto-focus.app/plus")!) {
+                            HStack {
+                                Text("Get Auto-Focus+ License")
+                                    .fontWeight(.medium)
+                                Image(systemName: "arrow.up.forward.app")
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 12)
+                            .background(Color.accentColor)
+                            .cornerRadius(8)
+                        }
+                        .buttonStyle(.plain)
+                        
+                        Text("OR")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        OnboardingLicenseInputView()
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct OnboardingPremiumFeature: View {
+    let icon: String
+    let title: String
+    let description: String
+    
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: icon)
+                .foregroundColor(.accentColor)
+                .frame(width: 20, height: 20)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.body)
+                    .fontWeight(.medium)
+                Text(description)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            
+            Spacer()
+        }
+    }
+}
+
+struct OnboardingLicenseInputView: View {
+    @EnvironmentObject var licenseManager: LicenseManager
+    @State private var licenseInput: String = ""
+    @State private var showingSuccess = false
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            TextField("Enter License Key (Optional)", text: $licenseInput)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .frame(maxWidth: 300)
+            
+            if let error = licenseManager.validationError {
+                Text(error)
+                    .foregroundColor(.red)
+                    .font(.caption)
+            }
+            
+            if showingSuccess {
+                HStack {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                    Text("License activated successfully!")
+                        .foregroundColor(.green)
+                        .font(.caption)
+                }
+                .transition(.opacity)
+            }
+            
+            if !licenseInput.isEmpty {
+                Button(action: {
+                    licenseManager.licenseKey = licenseInput
+                    licenseManager.activateLicense()
+                }) {
+                    if licenseManager.isActivating {
+                        HStack {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle())
+                                .scaleEffect(0.8)
+                            Text("Activating...")
+                        }
+                    } else {
+                        Text("Activate License")
+                    }
+                }
+                .disabled(licenseInput.count < 8 || licenseManager.isActivating)
+                .buttonStyle(.bordered)
+                .onChange(of: licenseManager.licenseStatus) { status in
+                    if status == .valid && !licenseInput.isEmpty {
+                        withAnimation {
+                            showingSuccess = true
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            withAnimation {
+                                showingSuccess = false
+                            }
+                        }
+                    }
+                }
+            }
+            
+            Text("You can also add your license later in the Auto-Focus+ tab")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+        }
+    }
+}
+
 private func installShortcut() {
     guard let shortcutUrl = ResourceManager.copyShortcutToTemporary() else {
         print("Could not prepare shortcut for installation")
@@ -521,4 +696,5 @@ private func installShortcut() {
 #Preview {
     OnboardingView()
         .environmentObject(FocusManager.shared)
+        .environmentObject(LicenseManager())
 }
