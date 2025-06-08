@@ -122,7 +122,7 @@ class InsightsDataProvider {
     func averageDailyMinutes(weekdayData: [DayData]) -> Int {
         let daysWithSessions = weekdayData.filter { $0.totalMinutes > 0 }
         guard !daysWithSessions.isEmpty else { return 0 }
-        
+
         let totalMinutes = daysWithSessions.reduce(0) { $0 + $1.totalMinutes }
         return totalMinutes / daysWithSessions.count
     }

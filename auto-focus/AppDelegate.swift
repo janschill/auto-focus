@@ -14,7 +14,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Start as a menu bar app with no dock icon
         NSApp.setActivationPolicy(.accessory)
-        
+
         // Listen for window creation to manage app activation policy
         NotificationCenter.default.addObserver(
             forName: NSWindow.didBecomeKeyNotification,
@@ -23,7 +23,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self] notification in
             self?.handleWindowBecameKey(notification)
         }
-        
+
         NotificationCenter.default.addObserver(
             forName: NSWindow.willCloseNotification,
             object: nil,
@@ -39,7 +39,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.deactivate()
         return false
     }
-    
+
     private func handleWindowBecameKey(_ notification: Notification) {
         // When a window becomes key (like Settings), make the app regular so it can be focused
         if NSApp.windows.contains(where: { $0.isVisible && !$0.title.isEmpty }) {
@@ -47,7 +47,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.activate(ignoringOtherApps: true)
         }
     }
-    
+
     private func handleWindowWillClose(_ notification: Notification) {
         // When windows close, check if we should return to accessory mode
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
