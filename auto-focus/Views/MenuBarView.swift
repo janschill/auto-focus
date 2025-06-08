@@ -2,11 +2,6 @@ import SwiftUI
 
 struct MenuBarView: View {
     @EnvironmentObject var focusManager: FocusManager
-    @StateObject private var viewModel: MenuBarViewModel
-
-    init() {
-        _viewModel = StateObject(wrappedValue: MenuBarViewModel(focusManager: FocusManager.shared))
-    }
 
     var version: String {
     #if DEBUG
@@ -25,11 +20,11 @@ struct MenuBarView: View {
                 Text("BETA")
                 Spacer()
 
-                if viewModel.isPaused {
+                if focusManager.isPaused {
                     Text("Paused")
                         .foregroundStyle(.orange)
                 } else {
-                    Text("\(viewModel.isInFocusMode ? "In Focus" : "Out of Focus")")
+                    Text("\(focusManager.isInFocusMode ? "In Focus" : "Out of Focus")")
                         .foregroundStyle(.secondary)
                 }
             }
@@ -37,19 +32,19 @@ struct MenuBarView: View {
             Divider()
 
             VStack(alignment: .leading, spacing: 8) {
-                if viewModel.timeSpent > 0 {
+                if focusManager.timeSpent > 0 {
                     StatusRow(
                         title: "Time in focus",
-                        value: TimeFormatter.duration(viewModel.timeSpent)
+                        value: TimeFormatter.duration(focusManager.timeSpent)
                     )
                 }
 
                 StatusRow(
                     title: "Sessions today",
-                    value: "\(viewModel.todaysSessions.count)"
+                    value: "\(focusManager.todaysSessions.count)"
                 )
 
-                if let lastSession = viewModel.todaysSessions.last {
+                if let lastSession = focusManager.todaysSessions.last {
                     StatusRow(
                         title: "Last session duration",
                         value: TimeFormatter.duration(lastSession.duration)
@@ -79,14 +74,14 @@ struct MenuBarView: View {
                 Spacer()
 
                 Button(action: {
-                    viewModel.togglePause()
+                    focusManager.togglePause()
                 }) {
                     HStack(spacing: 4) {
-                        Image(systemName: viewModel.isPaused ? "play.fill" : "pause.fill")
-                        Text(viewModel.isPaused ? "Start" : "Stop")
+                        Image(systemName: focusManager.isPaused ? "play.fill" : "pause.fill")
+                        Text(focusManager.isPaused ? "Start" : "Stop")
                     }
                 }
-                .help(viewModel.isPaused ? "Resume focus tracking" : "Stop focus tracking")
+                .help(focusManager.isPaused ? "Resume focus tracking" : "Stop focus tracking")
 
                 Spacer()
 

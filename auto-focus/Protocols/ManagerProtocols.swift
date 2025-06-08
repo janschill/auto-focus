@@ -18,12 +18,13 @@ protocol SessionManaging: AnyObject, ObservableObject {
 // MARK: - App Monitoring Protocol
 protocol AppMonitoring: AnyObject, ObservableObject {
     var currentApp: String? { get }
-    var isFocusAppActive: Bool { get }
+//    var isFocusAppActive: Bool { get }
     var delegate: AppMonitorDelegate? { get set }
 
     func startMonitoring()
     func stopMonitoring()
     func updateFocusApps(_ apps: [AppInfo])
+    func resetState()
 }
 
 // MARK: - Buffer Management Protocol

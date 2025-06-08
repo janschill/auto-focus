@@ -135,6 +135,10 @@ class FocusManager: ObservableObject {
                     focusModeController.setFocusMode(enabled: false)
                 }
             }
+        } else {
+            if let monitor = appMonitor as? AppMonitor {
+                monitor.resetState()
+            }
         }
     }
 

@@ -8,11 +8,11 @@ protocol AppMonitorDelegate: AnyObject {
 
 class AppMonitor: ObservableObject, AppMonitoring {
     @Published var currentApp: String?
-    @Published var isFocusAppActive = false
 
     private var timer: Timer?
     private let checkInterval: TimeInterval
     private var focusApps: [AppInfo] = []
+    private var lastFocusAppActive = false // Track last state internally
 
     weak var delegate: AppMonitorDelegate?
 
@@ -39,6 +39,11 @@ class AppMonitor: ObservableObject, AppMonitoring {
         focusApps = apps
     }
 
+    func resetState() {
+        lastFocusAppActive = false
+        currentApp = nil
+    }
+
     // MARK: - Private Methods
 
     private func checkActiveApp() {
@@ -52,8 +57,8 @@ class AppMonitor: ObservableObject, AppMonitoring {
         let isFocusApp = focusApps.contains { $0.bundleIdentifier == currentAppBundleId }
 
         // Only notify delegate if focus state changed
-        if isFocusApp != isFocusAppActive {
-            isFocusAppActive = isFocusApp
+        if isFocusApp != lastFocusAppActive {
+            lastFocusAppActive = isFocusApp
             delegate?.appMonitor(self, didDetectFocusApp: isFocusApp)
         }
     }

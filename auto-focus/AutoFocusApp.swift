@@ -1,10 +1,3 @@
-//
-//  auto_focusApp.swift
-//  auto-focus
-//
-//  Created by Jan Schill on 25/01/2025.
-//
-
 import SwiftUI
 
 @main

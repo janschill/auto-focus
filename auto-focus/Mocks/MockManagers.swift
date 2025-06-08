@@ -56,6 +56,10 @@ class MockAppMonitor: ObservableObject, AppMonitoring {
         focusApps = apps
     }
 
+    func resetState() {
+        // Mock implementation
+    }
+    
     // Test helper methods
     func simulateFocusAppActive() {
         isFocusAppActive = true
