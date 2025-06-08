@@ -36,6 +36,12 @@ struct DebugMenuView: View {
                 }
                 .buttonStyle(.borderedProminent)
             }
+            GroupBox("Onboarding") {
+                Button("Reset Onboarding") {
+                    focusManager.resetOnboarding()
+                }
+                .buttonStyle(.bordered)
+            }
             GroupBox("Sample Data Generator") {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {

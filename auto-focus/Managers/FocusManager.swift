@@ -51,6 +51,7 @@ class FocusManager: ObservableObject {
     @Published var selectedAppId: String?
     @Published var isInFocusMode = false
     @Published var shortcutRefreshTrigger: Bool = false
+    @Published var hasCompletedOnboarding: Bool = false
 
     private var freeAppLimit: Int = AppConfiguration.freeAppLimit
     @Published var isPremiumUser: Bool = false
@@ -123,6 +124,7 @@ class FocusManager: ObservableObject {
         focusLossBuffer = userDefaultsManager.getDouble(forKey: UserDefaultsManager.Keys.focusLossBuffer)
         if focusLossBuffer == 0 { focusLossBuffer = AppConfiguration.defaultBufferTime }
         isPaused = userDefaultsManager.getBool(forKey: UserDefaultsManager.Keys.isPaused)
+        hasCompletedOnboarding = userDefaultsManager.getBool(forKey: UserDefaultsManager.Keys.hasCompletedOnboarding)
 
         // Set up delegates and start monitoring
         self.appMonitor.delegate = self
@@ -228,6 +230,16 @@ class FocusManager: ObservableObject {
     
     func refreshShortcutStatus() {
         shortcutRefreshTrigger.toggle()
+    }
+    
+    func completeOnboarding() {
+        hasCompletedOnboarding = true
+        userDefaultsManager.setBool(true, forKey: UserDefaultsManager.Keys.hasCompletedOnboarding)
+    }
+    
+    func resetOnboarding() {
+        hasCompletedOnboarding = false
+        userDefaultsManager.setBool(false, forKey: UserDefaultsManager.Keys.hasCompletedOnboarding)
     }
 
     func selectFocusApplication() {

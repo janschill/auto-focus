@@ -8,9 +8,15 @@ struct AutoFocusApp: App {
 
     var body: some Scene {
         Settings {
-            SettingsView()
-                .environmentObject(focusManager)
-                .environmentObject(licenseManager)
+            if focusManager.hasCompletedOnboarding {
+                SettingsView()
+                    .environmentObject(focusManager)
+                    .environmentObject(licenseManager)
+            } else {
+                OnboardingView()
+                    .environmentObject(focusManager)
+                    .environmentObject(licenseManager)
+            }
         }
 
         MenuBarExtra {
