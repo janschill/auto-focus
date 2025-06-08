@@ -1,19 +1,36 @@
-name: Build and Release
+name: Lint, Test, Build and Release
 
 on:
   push:
-    branches: [main, develop, feature/**]
-    paths:
-      - "**.xcodeproj/project.pbxproj"
-      - "auto-focus/**"
-      - "auto-focusTests/**"
-      - ".github/workflows/build-release.yml"
 
 permissions:
   contents: write # This allows creating releases
 
 jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Install dependencies
+        run: |
+          brew install librsvg imagemagick swiftlint
+
+      - name: Run SwiftLint
+        run: |
+          swiftlint --strict
+
+      - name: Run Unit Tests
+        run: |
+          xcodebuild test -scheme auto-focus -destination 'platform=macOS' -enableCodeCoverage YES
+
   check-version:
+    if: github.ref == 'refs/heads/main'
     runs-on: macos-latest
     outputs:
       version_changed: ${{ steps.check_version.outputs.changed }}
@@ -44,8 +61,8 @@ jobs:
           fi
 
   build:
+    if: github.ref == 'refs/heads/main' && needs.check-version.outputs.version_changed == 'true'
     needs: check-version
-    if: needs.check-version.outputs.version_changed == 'true'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
@@ -133,25 +150,3 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  test:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Setup Xcode
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: latest-stable
-
-      - name: Install dependencies
-        run: |
-          brew install librsvg imagemagick swiftlint
-
-      - name: Run SwiftLint
-        run: |
-          swiftlint --strict
-
-      - name: Run Unit Tests
-        run: |
-          xcodebuild test -scheme auto-focus -destination 'platform=macOS' -enableCodeCoverage YES
