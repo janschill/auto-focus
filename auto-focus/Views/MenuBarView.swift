@@ -33,19 +33,22 @@ struct MenuBarView: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 if focusManager.timeSpent > 0 {
-                    StatusRow(title: "Time in focus") {
-                        TimeFormatter.duration(focusManager.timeSpent)
-                    }
+                    StatusRow(
+                        title: "Time in focus",
+                        value: TimeFormatter.duration(focusManager.timeSpent)
+                    )
                 }
 
-                StatusRow(title: "Sessions today") {
-                    "\(focusManager.todaysSessions.count)"
-                }
+                StatusRow(
+                    title: "Sessions today",
+                    value: "\(focusManager.todaysSessions.count)"
+                )
 
                 if let lastSession = focusManager.todaysSessions.last {
-                    StatusRow(title: "Last session duration") {
-                        TimeFormatter.duration(lastSession.duration)
-                    }
+                    StatusRow(
+                        title: "Last session duration",
+                        value: TimeFormatter.duration(lastSession.duration)
+                    )
                 }
             }
 
@@ -53,7 +56,7 @@ struct MenuBarView: View {
 
             HStack {
                 if #available(macOS 14.0, *) {
-                    SettingsLink(destination: {
+                    SettingsLink(label: {
                         Text("Settings...")
                             .foregroundStyle(.primary)
                     })
