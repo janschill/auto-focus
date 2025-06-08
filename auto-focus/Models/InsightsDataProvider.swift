@@ -120,8 +120,11 @@ class InsightsDataProvider {
     }
 
     func averageDailyMinutes(weekdayData: [DayData]) -> Int {
-        let totalMinutes = weekdayData.reduce(0) { $0 + $1.totalMinutes }
-        return totalMinutes / max(1, weekdayData.filter { $0.totalMinutes > 0 }.count)
+        let daysWithSessions = weekdayData.filter { $0.totalMinutes > 0 }
+        guard !daysWithSessions.isEmpty else { return 0 }
+        
+        let totalMinutes = daysWithSessions.reduce(0) { $0 + $1.totalMinutes }
+        return totalMinutes / daysWithSessions.count
     }
 
     func calculateProductiveTimeRange() -> (startHour: Int, endHour: Int, duration: TimeInterval)? {

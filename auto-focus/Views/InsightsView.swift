@@ -165,7 +165,7 @@ struct FocusTimeOverviewView: View {
 
     var body: some View {
         HStack {
-            let time = dataProvider.selectedTimeframe == .day ? Int(dataProvider.totalFocusTime / 60) : dataProvider.weekdayData.reduce(0) { $0 + $1.totalMinutes } / 7
+            let time = dataProvider.selectedTimeframe == .day ? Int(dataProvider.totalFocusTime / 60) : dataProvider.averageDailyMinutes
 
             Text(TimeFormatter.duration(time))
                 .font(.system(size: 32, weight: .medium))
