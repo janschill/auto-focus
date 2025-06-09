@@ -18,6 +18,8 @@ struct AutoFocusApp: App {
                     .environmentObject(licenseManager)
             }
         }
+        .windowResizability(.contentSize)
+        .windowToolbarStyle(.unifiedCompact)
 
         MenuBarExtra {
             MenuBarView()

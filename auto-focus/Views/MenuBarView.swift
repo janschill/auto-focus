@@ -60,15 +60,12 @@ struct MenuBarView: View {
                         Text("Settings...")
                             .foregroundStyle(.primary)
                     })
-                    .onTapGesture {
-                        openSettings()
-                    }
                     .keyboardShortcut(",", modifiers: .command)
                 } else {
                     Button("Settings...") {
-                        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
                         openSettings()
                     }
+                    .keyboardShortcut(",", modifiers: .command)
                 }
 
                 Spacer()
@@ -96,12 +93,8 @@ struct MenuBarView: View {
     }
 
     private func openSettings() {
-        NSApp.setActivationPolicy(.regular)
-        NSApp.activate(ignoringOtherApps: true)
-
-        DispatchQueue.main.async {
-            NSApp.windows.first?.orderFrontRegardless()
-        }
+        // Send the standard settings command
+        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
     }
 }
 
