@@ -4,6 +4,7 @@ import SwiftUI
 
 protocol AppMonitorDelegate: AnyObject {
     func appMonitor(_ monitor: any AppMonitoring, didDetectFocusApp isActive: Bool)
+    func appMonitor(_ monitor: any AppMonitoring, didChangeToApp bundleIdentifier: String?)
 }
 
 class AppMonitor: ObservableObject, AppMonitoring {
@@ -49,12 +50,18 @@ class AppMonitor: ObservableObject, AppMonitoring {
     private func checkActiveApp() {
         guard let workspace = NSWorkspace.shared.frontmostApplication else { return }
         let currentAppBundleId = workspace.bundleIdentifier
+        let previousApp = currentApp
 
         // Update current app
         currentApp = currentAppBundleId
 
         // Check if it's a focus app
         let isFocusApp = focusApps.contains { $0.bundleIdentifier == currentAppBundleId }
+
+        // Notify delegate if app changed (for any app transition)
+        if currentAppBundleId != previousApp {
+            delegate?.appMonitor(self, didChangeToApp: currentAppBundleId)
+        }
 
         // Only notify delegate if focus state changed
         if isFocusApp != lastFocusAppActive {

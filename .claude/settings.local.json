@@ -3,7 +3,13 @@
     "allow": [
       "Bash(rg:*)",
       "Bash(xcodebuild:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(chmod:*)",
+      "Bash(mkdir:*)",
+      "Bash(defaults read:*)",
+      "Bash(bash:*)",
+      "Bash(cp:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }
