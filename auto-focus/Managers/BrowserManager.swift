@@ -27,6 +27,7 @@ protocol BrowserManagerDelegate: AnyObject {
     func browserManager(_ manager: any BrowserManaging, didChangeConnectionState isConnected: Bool)
     func browserManager(_ manager: any BrowserManaging, didUpdateExtensionHealth health: ExtensionHealth?)
     func browserManager(_ manager: any BrowserManaging, didUpdateConnectionQuality quality: ConnectionQuality)
+    func browserManager(_ manager: any BrowserManaging, didUpdateFocusURLs urls: [FocusURL])
 }
 
 class BrowserManager: ObservableObject, BrowserManaging {
@@ -87,6 +88,7 @@ class BrowserManager: ObservableObject, BrowserManaging {
         focusURLs.append(focusURL)
         saveFocusURLs()
         sendFocusURLsToExtension()
+        delegate?.browserManager(self, didUpdateFocusURLs: focusURLs)
     }
     
     func addFocusURLWithoutImmediateActivation(_ focusURL: FocusURL) {
@@ -100,6 +102,7 @@ class BrowserManager: ObservableObject, BrowserManaging {
         focusURLs.removeAll { $0.id == focusURL.id }
         saveFocusURLs()
         sendFocusURLsToExtension()
+        delegate?.browserManager(self, didUpdateFocusURLs: focusURLs)
     }
     
     func updateFocusURL(_ focusURL: FocusURL) {
@@ -107,6 +110,7 @@ class BrowserManager: ObservableObject, BrowserManaging {
             focusURLs[index] = focusURL
             saveFocusURLs()
             sendFocusURLsToExtension()
+            delegate?.browserManager(self, didUpdateFocusURLs: focusURLs)
         }
     }
     
@@ -371,6 +375,11 @@ class BrowserManager: ObservableObject, BrowserManaging {
             print("BrowserManager: Loaded \(focusURLs.count) default focus URLs")
         } else {
             print("BrowserManager: Loaded \(focusURLs.count) saved focus URLs")
+        }
+        
+        // Notify delegate of initial URLs (after delegate is set)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.delegate?.browserManager(self, didUpdateFocusURLs: self.focusURLs)
         }
     }
     

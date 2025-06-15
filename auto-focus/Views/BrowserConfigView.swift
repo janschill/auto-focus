@@ -3,33 +3,38 @@ import SwiftUI
 struct BrowserConfigView: View {
     @EnvironmentObject var focusManager: FocusManager
     @EnvironmentObject var licenseManager: LicenseManager
+    @State private var showingAddURLOptions = false
     @State private var showingAddURL = false
     @State private var showingPresets = false
     @State private var newURL = FocusURL(name: "", domain: "")
     @State private var selectedCategory: URLCategory = .work
+    @State private var selectedURLId: UUID?
     
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 10) {
             HeaderView()
             
-            ExtensionStatusView()
+            ExtensionInstallationView()
             
-            FocusURLsListView(showingAddURL: $showingAddURL, showingPresets: $showingPresets)
-            
-            if focusManager.focusURLs.isEmpty {
-                EmptyStateView(showingPresets: $showingPresets)
-            }
+            FocusURLsManagementView(selectedURLId: $selectedURLId, showingAddURLOptions: $showingAddURLOptions)
             
             Spacer()
         }
         .padding()
+        .sheet(isPresented: $showingAddURLOptions) {
+            AddURLOptionsSheet(
+                showingAddURL: $showingAddURL,
+                showingPresets: $showingPresets
+            )
+            .frame(minWidth: 700, minHeight: 500)
+        }
         .sheet(isPresented: $showingAddURL) {
             AddURLSheet(newURL: $newURL, selectedCategory: $selectedCategory)
-                .frame(minWidth: 500, minHeight: 400)
+                .frame(minWidth: 700, minHeight: 600)
         }
         .sheet(isPresented: $showingPresets) {
             URLPresetsSheet()
-                .frame(minWidth: 600, minHeight: 500)
+                .frame(minWidth: 800, minHeight: 700)
         }
     }
 }
@@ -37,163 +42,91 @@ struct BrowserConfigView: View {
 private struct HeaderView: View {
     var body: some View {
         GroupBox {
-            VStack(spacing: 8) {
-                HStack {
-                    Image(systemName: "globe")
-                        .font(.title2)
-                        .foregroundColor(.blue)
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Browser Integration")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                        
-                        Text("Track focus time on specific websites and web apps")
-                            .font(.callout)
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    Spacer()
-                }
+            VStack {
+                Text("Browser Integration").font(.title)
+                    .fontDesign(.default)
+                    .fontWeight(.bold)
+                    .bold()
+                Text("Track focus time on specific websites and web apps. Add from a list of common categories or add your own URLs. Added websites will behave just like your focus apps")
+                    .font(.callout)
+                    .fontDesign(.default)
+                    .fontWeight(.regular)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
             }
-            .padding(.vertical, 8)
+            .padding(.horizontal, 40)
+            .padding(.vertical)
         }
+        .frame(maxWidth: .infinity)
     }
 }
 
-private struct ExtensionStatusView: View {
+//private struct HeaderView: View {
+//    var body: some View {
+//        GroupBox {
+//            VStack(spacing: 8) {
+//                HStack {
+//                    Image(systemName: "globe")
+//                        .font(.title2)
+//                        .foregroundColor(.blue)
+//                    
+//                    VStack(alignment: .leading, spacing: 4) {
+//                        Text("Browser Integration")
+//                            .font(.title2)
+//                            .fontWeight(.bold)
+//                        
+//                        Text("Track focus time on specific websites and web apps")
+//                            .font(.callout)
+//                            .foregroundColor(.secondary)
+//                    }
+//                    
+//                    Spacer()
+//                }
+//            }
+//            .padding(.vertical, 8)
+//        }
+//    }
+//}
+
+private struct ExtensionInstallationView: View {
     @EnvironmentObject var focusManager: FocusManager
-    @State private var showingHealthDetails = false
     
     var body: some View {
-        GroupBox("Extension Status") {
-            VStack(spacing: 12) {
-                // Main status row
+        GroupBox {
+            VStack {
                 HStack {
-                    connectionStatusIcon
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Text(connectionStatusText)
-                                .font(.headline)
-                            
-                            if focusManager.isExtensionConnected {
-                                connectionQualityBadge
-                            }
-                        }
-                        
-                        Text(connectionStatusDescription)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
+                    Text("Extension Installation")
+                        .frame(width: 150, alignment: .leading)
                     
                     Spacer()
                     
-                    actionButtons
-                }
-                
-                // Extension health details (if connected)
-                if focusManager.isExtensionConnected {
-                    extensionHealthRow
-                }
-                
-                // Detailed health view
-                if showingHealthDetails && focusManager.extensionHealth != nil {
-                    Divider()
-                    ExtensionHealthDetailView(health: focusManager.extensionHealth!)
-                }
-            }
-            .padding(.vertical, 8)
-        }
-    }
-    
-    private var connectionStatusIcon: some View {
-        Image(systemName: focusManager.isExtensionConnected ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-            .foregroundColor(focusManager.isExtensionConnected ? .green : .orange)
-            .font(.title2)
-    }
-    
-    private var connectionStatusText: String {
-        if focusManager.isExtensionConnected {
-            return "Chrome Extension Connected"
-        } else {
-            return "Chrome Extension Not Connected"
-        }
-    }
-    
-    private var connectionStatusDescription: String {
-        if focusManager.isExtensionConnected {
-            let quality = focusManager.connectionQuality.displayName
-            return "Browser tabs are being monitored • Connection: \(quality)"
-        } else {
-            return "Install and activate the Chrome extension to track browser focus"
-        }
-    }
-    
-    private var connectionQualityBadge: some View {
-        Label(focusManager.connectionQuality.displayName, systemImage: focusManager.connectionQuality.icon)
-            .font(.caption2)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(Color(focusManager.connectionQuality.color).opacity(0.2))
-            .foregroundColor(Color(focusManager.connectionQuality.color))
-            .cornerRadius(4)
-    }
-    
-    private var actionButtons: some View {
-        HStack(spacing: 8) {
-            if !focusManager.isExtensionConnected {
-                Button("Install Extension") {
-                    openExtensionInstallation()
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
-            } else {
-                if focusManager.extensionHealth != nil {
-                    Button(showingHealthDetails ? "Hide Details" : "Show Details") {
-                        showingHealthDetails.toggle()
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                }
-                
-                Button("Reconnect") {
-                    reconnectExtension()
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-            }
-        }
-    }
-    
-    private var extensionHealthRow: some View {
-        HStack {
-            if let health = focusManager.extensionHealth {
-                HStack(spacing: 16) {
-                    Label("v\(health.version)", systemImage: "app.badge")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    if health.errors.isEmpty {
-                        Label("No errors", systemImage: "checkmark.shield")
-                            .font(.caption)
+                    if focusManager.isExtensionConnected {
+                        Text("✓ Installed")
                             .foregroundColor(.green)
                     } else {
-                        Label("\(health.errors.count) error\(health.errors.count == 1 ? "" : "s")", systemImage: "exclamationmark.shield")
-                            .font(.caption)
-                            .foregroundColor(.orange)
-                    }
-                    
-                    if health.consecutiveFailures > 0 {
-                        Label("\(health.consecutiveFailures) failures", systemImage: "wifi.exclamationmark")
-                            .font(.caption)
+                        Text("⚠️ Not installed")
                             .foregroundColor(.red)
                     }
+                    
+                    Button("Install Extension") {
+                        openExtensionInstallation()
+                    }
+                    .disabled(focusManager.isExtensionConnected)
                 }
+                
+                HStack {
+                    Text("Auto-Focus will install a Chrome extension to monitor and track focus time on websites. The extension communicates with the app to coordinate focus sessions.")
+                        .font(.callout)
+                        .fontDesign(.default)
+                        .fontWeight(.regular)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            
-            Spacer()
+            .padding(.horizontal, 5)
+            .padding(.vertical)
         }
+        .frame(maxWidth: .infinity)
     }
     
     private func openExtensionInstallation() {
@@ -201,253 +134,133 @@ private struct ExtensionStatusView: View {
             NSWorkspace.shared.open(url)
         }
     }
-    
-    private func reconnectExtension() {
-        // This would trigger a reconnection attempt
-        print("Triggering extension reconnection")
-    }
 }
 
-private struct ExtensionHealthDetailView: View {
-    let health: ExtensionHealth
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Extension Health Details")
-                .font(.subheadline)
-                .fontWeight(.semibold)
-            
-            Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 4) {
-                GridRow {
-                    Text("Version:")
-                        .foregroundColor(.secondary)
-                    Text(health.version)
-                }
-                
-                if let installDate = health.installationDate {
-                    GridRow {
-                        Text("Installed:")
-                            .foregroundColor(.secondary)
-                        Text(installDate, style: .date)
-                    }
-                }
-                
-                if let lastUpdate = health.lastUpdateCheck {
-                    GridRow {
-                        Text("Last Check:")
-                            .foregroundColor(.secondary)
-                        Text(lastUpdate, style: .relative)
-                    }
-                }
-                
-                GridRow {
-                    Text("Consecutive Failures:")
-                        .foregroundColor(.secondary)
-                    Text("\(health.consecutiveFailures)")
-                        .foregroundColor(health.consecutiveFailures > 0 ? .red : .primary)
-                }
-            }
-            .font(.caption)
-            
-            if !health.errors.isEmpty {
-                Text("Recent Errors:")
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.secondary)
-                    .padding(.top, 4)
-                
-                ForEach(health.errors.prefix(3)) { error in
-                    HStack {
-                        Image(systemName: "exclamationmark.circle.fill")
-                            .foregroundColor(.orange)
-                            .font(.caption2)
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(error.type.capitalized)
-                                .font(.caption2)
-                                .fontWeight(.medium)
-                            Text(error.message)
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                                .lineLimit(2)
-                        }
-                        
-                        Spacer()
-                        
-                        Text(error.timestamp, style: .relative)
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.vertical, 2)
-                }
-                
-                if health.errors.count > 3 {
-                    Text("... and \(health.errors.count - 3) more errors")
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                        .italic()
-                }
-            }
-        }
-        .padding()
-        .background(Color.gray.opacity(0.1))
-        .cornerRadius(8)
-    }
-}
 
-private struct FocusURLsListView: View {
+private struct FocusURLsManagementView: View {
     @EnvironmentObject var focusManager: FocusManager
     @EnvironmentObject var licenseManager: LicenseManager
-    @Binding var showingAddURL: Bool
-    @Binding var showingPresets: Bool
+    @Binding var selectedURLId: UUID?
+    @Binding var showingAddURLOptions: Bool
     
     var body: some View {
-        GroupBox("Focus URLs") {
-            VStack(spacing: 12) {
-                // Header with add buttons
+        GroupBox(label: Text("Focus URLs").font(.headline)) {
+            VStack(alignment: .leading) {
+                Text("Being on any of these websites will automatically activate focus mode.")
+                    .font(.callout)
+                    .fontDesign(.default)
+                    .fontWeight(.regular)
+                    .foregroundColor(.secondary)
+                
+                FocusURLsList(selectedURLId: $selectedURLId)
+                
                 HStack {
-                    Text("Configure which websites count as focus work")
+                    Button {
+                        showingAddURLOptions = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .disabled(!focusManager.canAddMoreURLs)
+                    
+                    Button {
+                        removeSelectedURL()
+                    } label: {
+                        Image(systemName: "minus")
+                    }
+                    .disabled(selectedURLId == nil)
+                    
+                    Spacer()
+                }
+            }
+            .padding(.horizontal, 5)
+            .padding(.vertical)
+        }
+        .frame(maxWidth: .infinity)
+    }
+    
+    private func removeSelectedURL() {
+        guard let selectedId = selectedURLId,
+              let focusURL = focusManager.focusURLs.first(where: { $0.id == selectedId }) else {
+            return
+        }
+        
+        focusManager.removeFocusURL(focusURL)
+        selectedURLId = nil
+    }
+}
+
+private struct FocusURLsList: View {
+    @EnvironmentObject var focusManager: FocusManager
+    @EnvironmentObject var licenseManager: LicenseManager
+    @Binding var selectedURLId: UUID?
+    
+    var body: some View {
+        VStack {
+            List(selection: $selectedURLId) {
+                ForEach(focusManager.focusURLs) { focusURL in
+                    FocusURLRowSimple(focusURL: focusURL)
+                }
+            }
+            .listStyle(.bordered)
+            .animation(.easeInOut(duration: 0.2), value: focusManager.focusURLs.count)
+            
+            if !licenseManager.isLicensed {
+                HStack {
+                    Image(systemName: "lock.fill")
+                        .foregroundColor(.secondary)
+                    Text("Upgrade to Auto-Focus+ for unlimited URLs")
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
                     Spacer()
                     
-                    Button("Add Preset") {
-                        showingPresets = true
+                    Button("Upgrade") {
+                        // Navigate to upgrade tab
                     }
-                    .buttonStyle(.bordered)
                     .controlSize(.small)
-                    
-                    Button("Add Custom") {
-                        showingAddURL = true
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
-                    .disabled(!focusManager.canAddMoreURLs)
                 }
-                
-                // URL limits info
-                if !licenseManager.isLicensed {
-                    HStack {
-                        Image(systemName: "info.circle")
-                            .foregroundColor(.blue)
-                        
-                        Text("Free tier: \(focusManager.focusURLs.count)/3 URLs")
-                            .font(.caption)
-                            .foregroundColor(.blue)
-                        
-                        Spacer()
-                        
-                        if !focusManager.canAddMoreURLs {
-                            Text("Upgrade for unlimited URLs")
-                                .font(.caption)
-                                .foregroundColor(.orange)
-                        }
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(Color.blue.opacity(0.1))
-                    .cornerRadius(8)
-                }
-                
-                // URLs list
-                if !focusManager.focusURLs.isEmpty {
-                    VStack(spacing: 1) {
-                        ForEach(focusManager.focusURLs) { focusURL in
-                            FocusURLRow(focusURL: focusURL)
-                                .background(Color(.controlBackgroundColor))
-                        }
-                    }
-                    .background(Color(.separatorColor))
-                    .cornerRadius(8)
-                }
+                .padding(.vertical, 6)
+                .padding(.horizontal, 8)
+                .background(Color.secondary.opacity(0.1))
+                .cornerRadius(6)
             }
-            .padding(.vertical, 8)
         }
     }
 }
 
-private struct FocusURLRow: View {
+private struct FocusURLRowSimple: View {
     let focusURL: FocusURL
-    @EnvironmentObject var focusManager: FocusManager
-    @State private var showingEdit = false
     
     var body: some View {
-        HStack(spacing: 12) {
-            // Category icon
+        HStack {
             Image(systemName: focusURL.category.icon)
                 .foregroundColor(colorForCategory(focusURL.category))
                 .frame(width: 20)
             
-            // URL info
             VStack(alignment: .leading, spacing: 2) {
-                Text(focusURL.name)
-                    .font(.headline)
-                    .foregroundColor(.primary)
-                
-                HStack(spacing: 8) {
-                    Text(focusURL.domain)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                HStack {
+                    Text(focusURL.name)
+                        .font(.headline)
                     
-                    Text("•")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    Text(focusURL.matchType.displayName)
-                        .font(.caption)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.gray.opacity(0.2))
-                        .cornerRadius(4)
-                        .foregroundColor(.secondary)
-                }
-            }
-            
-            Spacer()
-            
-            // Status and actions
-            HStack(spacing: 8) {
-                if !focusURL.isEnabled {
-                    Image(systemName: "pause.circle")
-                        .foregroundColor(.orange)
-                }
-                
-                if focusURL.isPremium && focusManager.focusURLs.contains(where: { $0.id == focusURL.id }) {
-                    Image(systemName: "crown.fill")
-                        .foregroundColor(.yellow)
-                        .font(.caption)
-                }
-                
-                Menu {
-                    Button("Edit") {
-                        showingEdit = true
+                    if focusURL.isPremium {
+                        Image(systemName: "crown.fill")
+                            .foregroundColor(.yellow)
+                            .font(.caption)
                     }
                     
-                    Button("Toggle \(focusURL.isEnabled ? "Disable" : "Enable")") {
-                        var updatedURL = focusURL
-                        updatedURL.isEnabled.toggle()
-                        focusManager.updateFocusURL(updatedURL)
+                    if !focusURL.isEnabled {
+                        Image(systemName: "pause.circle")
+                            .foregroundColor(.orange)
+                            .font(.caption)
                     }
-                    
-                    Divider()
-                    
-                    Button("Remove", role: .destructive) {
-                        focusManager.removeFocusURL(focusURL)
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .foregroundColor(.secondary)
                 }
-                .menuStyle(.borderlessButton)
+                
+                Text(focusURL.domain)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(focusURL.isEnabled ? Color.clear : Color.gray.opacity(0.15))
-        .sheet(isPresented: $showingEdit) {
-            EditURLSheet(focusURL: focusURL)
-        }
+        .tag(focusURL.id)
     }
     
     private func colorForCategory(_ category: URLCategory) -> Color {
@@ -464,32 +277,107 @@ private struct FocusURLRow: View {
     }
 }
 
-private struct EmptyStateView: View {
+private struct AddURLOptionsSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Binding var showingAddURL: Bool
     @Binding var showingPresets: Bool
     
     var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "globe.badge.chevron.backward")
-                .font(.system(size: 48))
-                .foregroundColor(.gray)
-            
-            VStack(spacing: 8) {
-                Text("No Focus URLs Configured")
-                    .font(.headline)
-                    .foregroundColor(.primary)
+        NavigationView {
+            VStack(spacing: 24) {
+                VStack(spacing: 8) {
+                    Text("Add Focus URL")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    
+                    Text("Choose how you want to add a new focus URL")
+                        .font(.callout)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                }
                 
-                Text("Add websites that should count as focus work. Popular options like GitHub and Google Docs are available as presets.")
-                    .font(.callout)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
+                VStack(spacing: 16) {
+                    Button {
+                        dismiss()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            showingPresets = true
+                        }
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Image(systemName: "list.bullet.rectangle")
+                                        .font(.title2)
+                                        .foregroundColor(.blue)
+                                    
+                                    Text("Choose from Presets")
+                                        .font(.headline)
+                                        .foregroundColor(.primary)
+                                }
+                                
+                                Text("Select from common websites like GitHub, Google Docs, Notion, and more")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.secondary)
+                        }
+                        .padding()
+                        .background(Color(.controlBackgroundColor))
+                        .cornerRadius(8)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Button {
+                        dismiss()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            showingAddURL = true
+                        }
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Image(systemName: "plus.circle")
+                                        .font(.title2)
+                                        .foregroundColor(.green)
+                                    
+                                    Text("Add Custom URL")
+                                        .font(.headline)
+                                        .foregroundColor(.primary)
+                                }
+                                
+                                Text("Enter your own domain or URL pattern to track")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.secondary)
+                        }
+                        .padding()
+                        .background(Color(.controlBackgroundColor))
+                        .cornerRadius(8)
+                    }
+                    .buttonStyle(.plain)
+                }
+                
+                Spacer()
             }
-            
-            Button("Browse Presets") {
-                showingPresets = true
+            .padding()
+            .navigationTitle("")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
             }
-            .buttonStyle(.borderedProminent)
         }
-        .padding(.vertical, 24)
     }
 }
 
@@ -789,4 +677,5 @@ private struct PresetRow: View {
     BrowserConfigView()
         .environmentObject(FocusManager.shared)
         .environmentObject(LicenseManager())
+        .frame(width: 600, height: 900)
 }

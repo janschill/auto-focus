@@ -320,6 +320,7 @@ struct ConfigurationView: View {
 #Preview {
     ConfigurationView(selectedTab: .constant(0))
         .environmentObject(LicenseManager())
+        .environmentObject(FocusManager.shared)
         .frame(width: 600, height: 900)
 }
 

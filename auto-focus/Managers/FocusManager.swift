@@ -740,4 +740,11 @@ extension FocusManager: BrowserManagerDelegate {
         // Notify browser manager that focus session ended
         browserManager.notifyFocusSessionEnded()
     }
+    
+    func browserManager(_ manager: any BrowserManaging, didUpdateFocusURLs urls: [FocusURL]) {
+        // This will trigger UI updates for focusURLs computed property
+        DispatchQueue.main.async {
+            self.objectWillChange.send()
+        }
+    }
 }
