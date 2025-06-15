@@ -62,12 +62,6 @@ function setupEventListeners() {
     }
   });
   
-  // Open App button
-  document.getElementById('openAppButton')?.addEventListener('click', () => {
-    // Open Auto-Focus settings
-    chrome.runtime.sendMessage({ action: 'openApp' });
-    window.close();
-  });
 }
 
 // Update UI with current state
