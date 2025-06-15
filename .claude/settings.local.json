@@ -1,17 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(rg:*)",
-      "Bash(xcodebuild:*)",
-      "Bash(grep:*)",
-      "Bash(chmod:*)",
-      "Bash(mkdir:*)",
-      "Bash(defaults read:*)",
-      "Bash(bash:*)",
-      "Bash(cp:*)",
-      "Bash(ls:*)",
-      "Bash(git add:*)",
-      "Bash(mv:*)"
+      "Bash(rmdir:*)",
+      "Bash(true)",
+      "Bash(cp:*)"
     ],
     "deny": []
   }

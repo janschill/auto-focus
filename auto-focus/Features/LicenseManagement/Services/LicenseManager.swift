@@ -3,12 +3,16 @@ import Foundation
 import SwiftUI
 
 class LicenseManager: ObservableObject {
+    private let logger = AppLogger.license
     @Published var isLicensed: Bool = false
     @Published var licenseKey: String = "" {
         didSet {
             saveLicenseKey()
             if !licenseKey.isEmpty {
-                validateLicense()
+                // Defer validation to next runloop to avoid publishing during view updates
+                DispatchQueue.main.async { [weak self] in
+                    self?.validateLicense()
+                }
             }
         }
     }
@@ -111,14 +115,28 @@ class LicenseManager: ObservableObject {
     }
 
     init() {
+        logger.info("Initializing LicenseManager", metadata: [
+            "app_version": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
+        ])
+        
         loadAppVersion()
         loadLicense()
 
+        // Schedule initialization for next frame to avoid any initialization timing issues
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.performPostInitializationSetup()
+        }
+    }
+    
+    private func performPostInitializationSetup() {
         // Check if we're in beta period
         if isInBetaPeriod {
+            logger.info("Beta period active, enabling beta access", metadata: [
+                "beta_expiry": ISO8601DateFormatter().string(from: betaExpiryDate)
+            ])
             enableBetaAccess()
         } else if shouldValidateLicense() {
-            // Validate existing license on app launch if needed
+            logger.info("License validation required on startup")
             validateLicense()
         }
     }
@@ -318,9 +336,15 @@ class LicenseManager: ObservableObject {
     // MARK: - Server Communication
 
     private func validateLicenseWithServer(_ key: String) async throws -> License {
+        logger.info("Starting license validation", metadata: [
+            "key_length": String(key.count),
+            "timestamp": String(Date().timeIntervalSince1970)
+        ])
+        
         // Debug license key for development
         #if DEBUG
         if key == "DEBUG-AUTOFOCUS-DEV-2025" {
+            logger.info("Using debug license key")
             return License(
                 licenseKey: key,
                 ownerName: "Developer",
@@ -350,24 +374,41 @@ class LicenseManager: ObservableObject {
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
 
         do {
-            let (data, response) = try await URLSession.shared.data(for: request)
+            let license = try await logger.measureAsync("license_validation_request") {
+                let (data, response) = try await URLSession.shared.data(for: request)
 
-            guard let httpResponse = response as? HTTPURLResponse else {
-                throw LicenseError.networkError
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    throw LicenseError.networkError
+                }
+
+                guard httpResponse.statusCode == 200 else {
+                    let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+                    logger.error("License validation failed", metadata: [
+                        "status_code": String(httpResponse.statusCode),
+                        "error_message": errorMessage
+                    ])
+                    throw LicenseError.serverError(errorMessage)
+                }
+
+                guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                    throw LicenseError.invalidFormat
+                }
+
+                return try parseLicenseResponse(json)
             }
-
-            guard httpResponse.statusCode == 200 else {
-                let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
-                throw LicenseError.serverError(errorMessage)
-            }
-
-            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                throw LicenseError.invalidFormat
-            }
-
-            return try parseLicenseResponse(json)
+            
+            logger.info("License validation successful", metadata: [
+                "license_owner": license.ownerName,
+                "expires_at": license.expiryDate?.timeIntervalSince1970.description ?? "never"
+            ])
+            
+            return license
 
         } catch {
+            logger.error("License validation failed", error: error, metadata: [
+                "key_prefix": String(key.prefix(4))
+            ])
+            
             if error is LicenseError {
                 throw error
             } else {

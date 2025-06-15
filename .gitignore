@@ -9,6 +9,9 @@ builds/
 releases/
 .env
 
+# Distribution files - we now track them in git for GitHub Pages
+# (keeping this comment for reference)
+
 ### macOS ###
 # General
 .DS_Store

@@ -265,9 +265,13 @@ struct InstallShortcutStepView: View {
                 if !hasInstalled {
                     Button("Install Shortcut") {
                         installShortcut()
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                            focusManager.refreshShortcutStatus()
-                            hasInstalled = focusManager.isShortcutInstalled
+                        // Use Task for proper async handling without forcing view updates
+                        Task {
+                            try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+                            await MainActor.run {
+                                focusManager.refreshShortcutStatus()
+                                hasInstalled = focusManager.isShortcutInstalled
+                            }
                         }
                     }
                     .buttonStyle(.borderedProminent)
@@ -345,8 +349,12 @@ struct AddFocusAppsStepView: View {
 
                 Button(hasAddedApps ? "Add More Apps" : "Add Focus Apps") {
                     focusManager.selectFocusApplication()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        hasAddedApps = !focusManager.focusApps.isEmpty
+                    // Use Task for proper async handling
+                    Task {
+                        try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+                        await MainActor.run {
+                            hasAddedApps = !focusManager.focusApps.isEmpty
+                        }
                     }
                 }
                 .buttonStyle(.borderedProminent)

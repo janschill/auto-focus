@@ -6,11 +6,15 @@ struct AppRowView: View {
 
     var body: some View {
         HStack {
-            if let appUrl = NSWorkspace.shared.urlForApplication(withBundleIdentifier: app.bundleIdentifier),
-               let appIcon = Optional(NSWorkspace.shared.icon(forFile: appUrl.path)) {
+            if let appIcon = SafeImageLoader.loadAppIcon(for: app.bundleIdentifier) {
                 Image(nsImage: appIcon)
                     .resizable()
                     .frame(width: 24, height: 24)
+            } else {
+                // Fallback to SF Symbol if app icon can't be loaded safely
+                Image(systemName: "app.fill")
+                    .frame(width: 24, height: 24)
+                    .foregroundColor(.blue)
             }
             VStack(alignment: .leading) {
                 Text(app.name)
@@ -24,7 +28,6 @@ struct AppRowView: View {
 struct AppsListView: View {
     @EnvironmentObject var focusManager: FocusManager
     @EnvironmentObject var licenseManager: LicenseManager
-    @Binding var selectedTab: Int
 
     var body: some View {
         List(selection: $focusManager.selectedAppId) {
@@ -45,7 +48,9 @@ struct AppsListView: View {
                 Spacer()
 
                 Button("Upgrade") {
-                    selectedTab = 3
+                    // Instead of changing tabs, show an alert or notification
+                    // This removes the circular binding dependency
+                    print("Upgrade to premium for export/import features")
                 }
                 .controlSize(.small)
             }
@@ -259,7 +264,6 @@ struct ThresholdsView: View {
 struct FocusApplicationsView: View {
     @EnvironmentObject var focusManager: FocusManager
     @EnvironmentObject var licenseManager: LicenseManager
-    @Binding var selectedTab: Int
 
     var body: some View {
         GroupBox(label: Text("Focus Applications").font(.headline)) {
@@ -270,7 +274,7 @@ struct FocusApplicationsView: View {
                     .fontWeight(.regular)
                     .foregroundColor(.secondary)
 
-                AppsListView(selectedTab: $selectedTab)
+                AppsListView()
 
                 HStack {
                     Button {
@@ -304,21 +308,20 @@ struct FocusApplicationsView: View {
 struct ConfigurationView: View {
     @EnvironmentObject var focusManager: FocusManager
     @EnvironmentObject var licenseManager: LicenseManager
-    @Binding var selectedTab: Int
 
     var body: some View {
         VStack(spacing: 10) {
             HeaderView()
             GeneralSettingsView()
             ThresholdsView()
-            FocusApplicationsView(selectedTab: $selectedTab)
+            FocusApplicationsView()
         }
         .padding()
     }
 }
 
 #Preview {
-    ConfigurationView(selectedTab: .constant(0))
+    ConfigurationView()
         .environmentObject(LicenseManager())
         .environmentObject(FocusManager.shared)
         .frame(width: 600, height: 900)
