@@ -69,17 +69,17 @@ private struct HeaderView: View {
 //                    Image(systemName: "globe")
 //                        .font(.title2)
 //                        .foregroundColor(.blue)
-//                    
+//
 //                    VStack(alignment: .leading, spacing: 4) {
 //                        Text("Browser Integration")
 //                            .font(.title2)
 //                            .fontWeight(.bold)
-//                        
+//
 //                        Text("Track focus time on specific websites and web apps")
 //                            .font(.callout)
 //                            .foregroundColor(.secondary)
 //                    }
-//                    
+//
 //                    Spacer()
 //                }
 //            }

@@ -265,6 +265,18 @@ enum ConnectionQuality: String, Codable, CaseIterable {
 
 // MARK: - Native Messaging Protocol
 
+struct BrowserModels: Codable {
+    let command: String
+    let data: [String: AnyCodable]?
+    let timestamp: Date
+
+    init(command: String, data: [String: Any]? = nil) {
+        self.command = command
+        self.data = data?.mapValues { AnyCodable($0) }
+        self.timestamp = Date()
+    }
+}
+
 struct NativeMessage: Codable {
     let command: String
     let data: [String: AnyCodable]?
