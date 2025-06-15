@@ -342,19 +342,7 @@ complete-release: check-build-ready package-app deploy-downloads create-github-r
 	echo ""; \
 	echo "📝 Committing release changes..."; \
 	git status --porcelain; \
-	git commit -m "$(cat <<'EOF'
-Release v$$VERSION: Update distribution files and website
-
-- Updated Auto-Focus.zip with enhanced MenuBarView (v1.1.1)
-- Updated auto-focus-extension.zip  
-- Updated version.json with latest build info
-- Updated website to use local downloads
-
-🤖 Generated with [Claude Code](https://claude.ai/code)
-
-Co-Authored-By: Claude <noreply@anthropic.com>
-EOF
-)"; \
+	git commit -m "Release v$$VERSION: Update distribution files and website - 🤖 Generated with Claude Code"; \
 	echo "✅ Changes committed"; \
 	echo ""; \
 	echo "🎉 RELEASE v$$VERSION COMPLETE!"; \
