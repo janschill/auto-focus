@@ -9,6 +9,9 @@ builds/
 releases/
 .env
 
+# Distribution files (keep directory structure, ignore large binaries)
+docs/downloads/*.zip
+
 ### macOS ###
 # General
 .DS_Store
