@@ -1,4 +1,5 @@
 // Auto-Focus Browser Extension - Popup Script
+// Simplified version
 
 document.addEventListener('DOMContentLoaded', async () => {
   await initializePopup();
@@ -10,7 +11,6 @@ async function initializePopup() {
   try {
     // Get current state from background script
     const response = await chrome.runtime.sendMessage({ action: 'getCurrentState' });
-    
     updateUI(response);
     
     // Get current tab info
@@ -18,7 +18,6 @@ async function initializePopup() {
     if (tabs.length > 0) {
       updateCurrentTab(tabs[0]);
     }
-    
   } catch (error) {
     console.error('Failed to initialize popup:', error);
     showError('Failed to load extension state');
@@ -61,19 +60,12 @@ function setupEventListeners() {
       showMessage('❌ Error: ' + error.message);
     }
   });
-  
 }
 
 // Update UI with current state
 function updateUI(state) {
-  // Update connection status
   updateConnectionStatus(state.isConnectedToApp);
-  
-  // Update focus status
-  updateFocusStatus(state.isFocusUrl, state.currentUrl);
-  
-  // Update status indicator
-  updateStatusIndicator(state);
+  updateCurrentUrl(state.currentUrl);
 }
 
 // Update current tab display
@@ -82,13 +74,30 @@ function updateCurrentTab(tab) {
   const tabStatus = document.getElementById('tabStatus');
   
   if (tabUrl) {
-    const url = new URL(tab.url);
-    tabUrl.textContent = url.hostname;
-    tabUrl.title = tab.url;
+    try {
+      const url = new URL(tab.url);
+      tabUrl.textContent = url.hostname;
+      tabUrl.title = tab.url;
+    } catch {
+      tabUrl.textContent = 'Invalid URL';
+    }
   }
   
   if (tabStatus) {
     tabStatus.textContent = tab.title || 'Loading...';
+  }
+}
+
+// Update current URL display
+function updateCurrentUrl(url) {
+  if (url) {
+    try {
+      const urlObj = new URL(url);
+      const domain = urlObj.hostname;
+      document.getElementById('tabUrl').textContent = domain;
+    } catch {
+      // Invalid URL
+    }
   }
 }
 
@@ -97,94 +106,62 @@ function updateConnectionStatus(isConnected) {
   const connectionStatus = document.getElementById('connectionStatus');
   const connectionDot = connectionStatus?.querySelector('.connection-dot');
   const connectionText = connectionStatus?.querySelector('.connection-text');
+  const statusDot = document.querySelector('.status-dot');
+  const statusText = document.querySelector('.status-text');
   
   if (isConnected) {
     connectionDot?.classList.add('connected');
     connectionDot?.classList.remove('error');
+    statusDot?.classList.remove('error');
+    
     if (connectionText) {
       connectionText.textContent = 'Connected to Auto-Focus';
+    }
+    if (statusText) {
+      statusText.textContent = 'Ready';
     }
   } else {
     connectionDot?.classList.remove('connected');
     connectionDot?.classList.add('error');
+    statusDot?.classList.add('error');
+    
     if (connectionText) {
       connectionText.textContent = 'Auto-Focus app not running';
     }
-  }
-}
-
-// Update focus status
-function updateFocusStatus(isFocusUrl, currentUrl) {
-  const focusStatus = document.getElementById('focusStatus');
-  const focusIcon = document.getElementById('focusIndicator')?.querySelector('.focus-icon');
-  const focusText = document.getElementById('focusIndicator')?.querySelector('.focus-text');
-  
-  if (isFocusUrl) {
-    focusStatus?.classList.add('active');
-    if (focusIcon) focusIcon.textContent = '🎯';
-    if (focusText) focusText.textContent = 'Focus URL active';
-  } else {
-    focusStatus?.classList.remove('active');
-    if (focusIcon) focusIcon.textContent = '⚪';
-    if (focusText) focusText.textContent = 'Not a focus URL';
-  }
-}
-
-// Update status indicator
-function updateStatusIndicator(state) {
-  const statusDot = document.querySelector('.status-dot');
-  const statusText = document.querySelector('.status-text');
-  
-  if (!state.isConnectedToApp) {
-    statusDot?.classList.add('error');
-    statusDot?.classList.remove('warning');
-    if (statusText) statusText.textContent = 'Disconnected';
-  } else if (state.isFocusUrl) {
-    statusDot?.classList.remove('error', 'warning');
-    if (statusText) statusText.textContent = 'Focus Active';
-  } else {
-    statusDot?.classList.remove('error');
-    statusDot?.classList.add('warning');
-    if (statusText) statusText.textContent = 'Ready';
+    if (statusText) {
+      statusText.textContent = 'Disconnected';
+    }
   }
 }
 
 // Show error message
 function showError(message) {
-  const container = document.querySelector('.container');
-  const errorDiv = document.createElement('div');
-  errorDiv.className = 'error-message';
-  errorDiv.textContent = message;
-  errorDiv.style.cssText = `
-    padding: 12px;
-    background: #ffe6e6;
-    border: 1px solid #ffcccc;
-    border-radius: 6px;
-    color: #cc0000;
-    font-size: 12px;
-    margin-bottom: 16px;
-  `;
-  
-  container?.insertBefore(errorDiv, container.firstChild);
-  
-  // Remove error after 5 seconds
-  setTimeout(() => {
-    errorDiv.remove();
-  }, 5000);
+  showMessage(message, 'error');
 }
 
 // Show message to user
-function showMessage(message) {
+function showMessage(message, type = 'success') {
   const container = document.querySelector('.container');
   const messageDiv = document.createElement('div');
-  messageDiv.className = 'success-message';
+  messageDiv.className = `${type}-message`;
   messageDiv.textContent = message;
+  
+  const styles = type === 'error' ? {
+    background: '#ffe6e6',
+    border: '1px solid #ffcccc',
+    color: '#cc0000'
+  } : {
+    background: '#e6ffe6',
+    border: '1px solid #ccffcc',
+    color: '#008000'
+  };
+  
   messageDiv.style.cssText = `
     padding: 12px;
-    background: #e6ffe6;
-    border: 1px solid #ccffcc;
+    background: ${styles.background};
+    border: ${styles.border};
     border-radius: 6px;
-    color: #008000;
+    color: ${styles.color};
     font-size: 12px;
     margin-bottom: 16px;
     text-align: center;
@@ -196,14 +173,4 @@ function showMessage(message) {
   setTimeout(() => {
     messageDiv.remove();
   }, 3000);
-}
-
-// Utility function to format URLs
-function formatUrl(url) {
-  try {
-    const urlObj = new URL(url);
-    return urlObj.hostname + (urlObj.pathname !== '/' ? urlObj.pathname : '');
-  } catch {
-    return url;
-  }
 }

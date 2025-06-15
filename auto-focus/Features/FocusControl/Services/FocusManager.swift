@@ -747,8 +747,6 @@ extension FocusManager: BrowserManagerDelegate {
             updateFocusSession()
         }
 
-        // Notify browser manager that focus session started
-        browserManager.notifyFocusSessionStarted()
     }
 
     private func handleBrowserFocusDeactivated() {
@@ -767,8 +765,6 @@ extension FocusManager: BrowserManagerDelegate {
             }
         }
 
-        // Notify browser manager that focus session ended
-        browserManager.notifyFocusSessionEnded()
     }
 
     func browserManager(_ manager: any BrowserManaging, didUpdateFocusURLs urls: [FocusURL]) {

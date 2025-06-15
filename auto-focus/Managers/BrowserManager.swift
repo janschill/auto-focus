@@ -17,8 +17,6 @@ protocol BrowserManaging: AnyObject, ObservableObject {
     func updateFocusURL(_ focusURL: FocusURL)
     func checkIfURLIsFocus(_ url: String) -> (isFocus: Bool, matchedURL: FocusURL?)
     func addPresetURLs(_ presets: [FocusURL])
-    func notifyFocusSessionStarted()
-    func notifyFocusSessionEnded()
 }
 
 protocol BrowserManagerDelegate: AnyObject {
@@ -58,10 +56,6 @@ class BrowserManager: ObservableObject, BrowserManaging {
 
     private let userDefaultsManager: any PersistenceManaging
     private let licenseManager: LicenseManager
-    private var nativeMessagingTask: Process?
-    private var messageQueue: [NativeMessage] = []
-    private let nativeHost = NativeMessagingHost.shared
-
     private let httpServer = HTTPServer()
 
     // Suppress focus activation temporarily after adding a URL
@@ -75,9 +69,6 @@ class BrowserManager: ObservableObject, BrowserManaging {
         startHTTPServer()
     }
 
-    deinit {
-        stopNativeMessagingHost()
-    }
 
     // MARK: - Focus URL Management
 
@@ -95,7 +86,6 @@ class BrowserManager: ObservableObject, BrowserManaging {
 
         focusURLs.append(focusURL)
         saveFocusURLs()
-        sendFocusURLsToExtension()
         delegate?.browserManager(self, didUpdateFocusURLs: focusURLs)
     }
 
@@ -109,7 +99,6 @@ class BrowserManager: ObservableObject, BrowserManaging {
     func removeFocusURL(_ focusURL: FocusURL) {
         focusURLs.removeAll { $0.id == focusURL.id }
         saveFocusURLs()
-        sendFocusURLsToExtension()
         delegate?.browserManager(self, didUpdateFocusURLs: focusURLs)
     }
 
@@ -117,7 +106,6 @@ class BrowserManager: ObservableObject, BrowserManaging {
         if let index = focusURLs.firstIndex(where: { $0.id == focusURL.id }) {
             focusURLs[index] = focusURL
             saveFocusURLs()
-            sendFocusURLsToExtension()
             delegate?.browserManager(self, didUpdateFocusURLs: focusURLs)
         }
     }
@@ -131,7 +119,7 @@ class BrowserManager: ObservableObject, BrowserManaging {
         return (false, nil)
     }
 
-    // MARK: - Native Messaging
+    // MARK: - HTTP Server
 
     private func startHTTPServer() {
         print("BrowserManager: Starting HTTP server for browser extension")
@@ -227,145 +215,6 @@ class BrowserManager: ObservableObject, BrowserManaging {
         }
     }
 
-    private func stopNativeMessagingHost() {
-        nativeMessagingTask?.terminate()
-        nativeMessagingTask = nil
-        isExtensionConnected = false
-    }
-
-    private func sendMessageToExtension(_ message: NativeMessage) {
-        if isExtensionConnected {
-            // Send via native messaging host
-            let messageDict: [String: Any] = [
-                "command": message.command,
-                "data": message.data?.mapValues { $0.value } ?? [:],
-                "timestamp": message.timestamp.timeIntervalSince1970
-            ]
-            nativeHost.sendMessage(messageDict)
-            print("Sent to extension: \(message.command)")
-        } else {
-            // Queue messages for when extension connects
-            messageQueue.append(message)
-            print("Queued message for extension: \(message.command)")
-        }
-    }
-
-    private func sendFocusURLsToExtension() {
-        let message = NativeMessage(
-            command: "update_focus_urls",
-            data: [
-                "urls": focusURLs.map { url in
-                    [
-                        "id": url.id.uuidString,
-                        "domain": url.domain,
-                        "name": url.name,
-                        "matchType": url.matchType.rawValue,
-                        "isEnabled": url.isEnabled,
-                        "category": url.category.rawValue
-                    ]
-                }
-            ]
-        )
-        sendMessageToExtension(message)
-    }
-
-    // MARK: - Message Handling (from Extension)
-
-    func handleNativeMessage(_ message: NativeMessage) {
-        switch message.command {
-        case "handshake":
-            handleHandshake(message)
-        case "tab_changed":
-            handleTabChanged(message)
-        case "extension_state":
-            handleExtensionState(message)
-        default:
-            print("Unknown message from extension: \(message.command)")
-        }
-    }
-
-    private func handleHandshake(_ message: NativeMessage) {
-        print("BrowserManager: Received handshake from extension")
-        isExtensionConnected = true
-        delegate?.browserManager(self, didChangeConnectionState: true)
-
-        // Send response
-        let response = NativeMessage(
-            command: "handshake_response",
-            data: ["status": "connected", "version": "1.0.0"]
-        )
-        sendMessageToExtension(response)
-
-        // Send queued messages
-        for queuedMessage in messageQueue {
-            sendMessageToExtension(queuedMessage)
-        }
-        messageQueue.removeAll()
-
-        print("BrowserManager: Extension connected, ready to receive tab updates")
-    }
-
-    private func handleTabChanged(_ message: NativeMessage) {
-        guard let data = message.data else { return }
-
-        let url = data["url"]?.value as? String ?? ""
-        let title = data["title"]?.value as? String ?? ""
-
-        print("BrowserManager: Tab changed to \(url)")
-
-        let (isFocus, matchedURL) = checkIfURLIsFocus(url)
-
-        let tabInfo = BrowserTabInfo(
-            url: url,
-            title: title,
-            isFocusURL: isFocus,
-            matchedFocusURL: matchedURL
-        )
-
-        DispatchQueue.main.async {
-            self.currentBrowserTab = tabInfo
-
-            // Update focus state if changed
-            if self.isBrowserInFocus != isFocus {
-                self.isBrowserInFocus = isFocus
-                self.delegate?.browserManager(self, didChangeFocusState: isFocus)
-
-                // Send focus state back to extension
-                let response = NativeMessage(
-                    command: "focus_state_changed",
-                    data: ["isFocusActive": isFocus]
-                )
-                self.sendMessageToExtension(response)
-            }
-
-            self.delegate?.browserManager(self, didReceiveTabUpdate: tabInfo)
-        }
-
-        print("BrowserManager: URL \(url) is \(isFocus ? "FOCUS" : "NOT FOCUS")")
-    }
-
-    private func handleExtensionState(_ message: NativeMessage) {
-        // Handle extension state updates
-        print("Extension state update received")
-    }
-
-    // MARK: - Session Management Integration
-
-    func notifyFocusSessionStarted() {
-        let message = NativeMessage(
-            command: "focus_session_started",
-            data: ["timestamp": Date().timeIntervalSince1970]
-        )
-        sendMessageToExtension(message)
-    }
-
-    func notifyFocusSessionEnded() {
-        let message = NativeMessage(
-            command: "focus_session_ended",
-            data: ["timestamp": Date().timeIntervalSince1970]
-        )
-        sendMessageToExtension(message)
-    }
 
     // MARK: - Persistence
 
