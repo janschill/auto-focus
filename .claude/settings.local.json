@@ -9,7 +9,8 @@
       "Bash(defaults read:*)",
       "Bash(bash:*)",
       "Bash(cp:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }

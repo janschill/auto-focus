@@ -165,7 +165,8 @@ class HTTPServer: ObservableObject {
                 return
             }
             
-            print("HTTPServer: Adding focus URL - domain: \(domain), name: \(name)")
+            let currentUrl = message["url"] as? String
+            print("HTTPServer: Adding focus URL - domain: \(domain), name: \(name), current URL: \(currentUrl ?? "unknown")")
             
             // Create new FocusURL
             let newURL = FocusURL(
@@ -179,8 +180,8 @@ class HTTPServer: ObservableObject {
             // Add URL through BrowserManager
             DispatchQueue.main.async {
                 if let browserManager = self.browserManager {
-                    browserManager.addFocusURL(newURL)
-                    print("HTTPServer: Successfully added focus URL: \(domain)")
+                    browserManager.addFocusURLWithoutImmediateActivation(newURL)
+                    print("HTTPServer: Successfully added focus URL: \(domain) (with suppressed activation)")
                     
                     let response = [
                         "command": "add_focus_url_response",

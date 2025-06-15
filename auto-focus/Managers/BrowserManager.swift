@@ -55,6 +55,9 @@ class BrowserManager: ObservableObject, BrowserManaging {
     
     private let httpServer = HTTPServer()
     
+    // Suppress focus activation temporarily after adding a URL
+    private var suppressFocusActivationUntil: Date?
+    
     init(userDefaultsManager: any PersistenceManaging, licenseManager: LicenseManager = LicenseManager()) {
         self.userDefaultsManager = userDefaultsManager
         self.licenseManager = licenseManager
@@ -84,6 +87,13 @@ class BrowserManager: ObservableObject, BrowserManaging {
         focusURLs.append(focusURL)
         saveFocusURLs()
         sendFocusURLsToExtension()
+    }
+    
+    func addFocusURLWithoutImmediateActivation(_ focusURL: FocusURL) {
+        // Add URL but suppress focus activation for 2 seconds
+        addFocusURL(focusURL)
+        suppressFocusActivationUntil = Date().addingTimeInterval(2.0)
+        print("BrowserManager: Suppressing focus activation for 2 seconds after adding URL")
     }
     
     func removeFocusURL(_ focusURL: FocusURL) {
@@ -121,16 +131,24 @@ class BrowserManager: ObservableObject, BrowserManaging {
         let previousFocusState = self.isBrowserInFocus
         self.currentBrowserTab = tabInfo
         
+        // Check if we should suppress focus activation
+        let shouldSuppressFocus = shouldSuppressFocusActivation()
+        let effectiveIsFocus = shouldSuppressFocus ? false : isFocus
+        
+        if shouldSuppressFocus && isFocus {
+            print("BrowserManager: Suppressing focus activation for \(tabInfo.url) (recently added as focus URL)")
+        }
+        
         // Update focus state if changed
-        if self.isBrowserInFocus != isFocus {
-            print("BrowserManager: Focus state changing from \(self.isBrowserInFocus) to \(isFocus)")
-            self.isBrowserInFocus = isFocus
+        if self.isBrowserInFocus != effectiveIsFocus {
+            print("BrowserManager: Focus state changing from \(self.isBrowserInFocus) to \(effectiveIsFocus)")
+            self.isBrowserInFocus = effectiveIsFocus
             self.isExtensionConnected = true
             
             // Immediately notify delegate of focus state change
-            self.delegate?.browserManager(self, didChangeFocusState: isFocus)
+            self.delegate?.browserManager(self, didChangeFocusState: effectiveIsFocus)
             
-            if isFocus {
+            if effectiveIsFocus {
                 print("BrowserManager: ✅ Browser entered focus mode for \(tabInfo.url)")
             } else {
                 print("BrowserManager: ❌ Browser exited focus mode - was on \(tabInfo.url)")
@@ -142,8 +160,20 @@ class BrowserManager: ObservableObject, BrowserManaging {
             self.delegate?.browserManager(self, didReceiveTabUpdate: tabInfo)
         }
         
-        if previousFocusState != isFocus {
-            print("BrowserManager: Browser focus state updated - \(isFocus ? "FOCUS" : "NO FOCUS") for \(tabInfo.url)")
+        if previousFocusState != effectiveIsFocus {
+            print("BrowserManager: Browser focus state updated - \(effectiveIsFocus ? "FOCUS" : "NO FOCUS") for \(tabInfo.url)")
+        }
+    }
+    
+    private func shouldSuppressFocusActivation() -> Bool {
+        guard let suppressUntil = suppressFocusActivationUntil else { return false }
+        
+        if Date() < suppressUntil {
+            return true
+        } else {
+            // Clear the suppression flag if time has passed
+            suppressFocusActivationUntil = nil
+            return false
         }
     }
     
