@@ -37,6 +37,19 @@ clean:
 	@echo "Cleaning build artifacts..."
 	rm -rf $(BUILD_DIR)
 	xcodebuild -scheme $(SCHEME) clean
+	@echo "Clearing Xcode derived data..."
+	rm -rf ~/Library/Developer/Xcode/DerivedData/auto-focus-*
+
+# Deep clean for release builds
+deep-clean: clean
+	@echo "🧹 Deep cleaning for fresh release build..."
+	@echo "Resolving package dependencies..."
+	@xcodebuild -resolvePackageDependencies -project auto-focus.xcodeproj
+	@echo "Clearing module cache..."
+	@rm -rf ~/Library/Developer/Xcode/DerivedData/ModuleCache.noindex
+	@echo "Clearing build cache..."
+	@defaults delete com.apple.dt.Xcode DVTSourceControlWorkspaceBlueprintWorkingCopyPathsKey 2>/dev/null || true
+	@echo "✅ Deep clean complete - ready for fresh build"
 
 # Archive and signing
 archive-mac:
@@ -152,6 +165,8 @@ package-app: prepare-downloads
 	fi
 	@echo "Renaming app for distribution..."
 	@cd $(BUILD_DIR) && cp -R $(PROJECT_NAME)_temp.app $(PROJECT_NAME).app
+	@echo "Removing old ZIP file..."
+	@rm -f $(APP_ZIP)
 	@echo "Creating final distribution ZIP..."
 	@cd $(BUILD_DIR) && zip -r ../$(APP_ZIP) $(PROJECT_NAME).app
 	@echo "Verifying ZIP contents..."
@@ -293,7 +308,7 @@ create-github-release: tag-release
 	@echo "✅ GitHub release created at: https://github.com/janschill/auto-focus/releases/tag/v$$VERSION"
 
 # Phase 1: Build and prepare for release (includes automated notarization)
-prepare-release: clean archive-mac prepare-app-for-notarization
+prepare-release: deep-clean archive-mac prepare-app-for-notarization
 	@echo ""
 	@echo "🚀 Starting automated notarization..."
 	@echo "   This may take 1-5 minutes..."
