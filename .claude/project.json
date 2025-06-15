@@ -1,0 +1,20 @@
+{
+  "name": "auto-focus",
+  "description": "macOS productivity app with license management",
+  "languages": [
+    "swift"
+  ],
+  "frameworks": [
+    "SwiftUI",
+    "Combine",
+    "StoreKit"
+  ],
+  "architecture": "MVVM + Clean Architecture",
+  "backend_integration": "REST API with auto-focus-cloud",
+  "key_features": [
+    "License validation and activation",
+    "Focus session management",
+    "Stripe subscription handling",
+    "macOS system integration"
+  ]
+}

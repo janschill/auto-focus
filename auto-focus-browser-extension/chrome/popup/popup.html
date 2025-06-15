@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Auto-Focus</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="logo">
+        <img src="../icons/icon32.png" alt="Auto-Focus" class="logo-icon">
+        <span class="logo-text">Auto-Focus</span>
+      </div>
+      <div class="status-indicator" id="statusIndicator">
+        <span class="status-dot"></span>
+        <span class="status-text">Ready</span>
+      </div>
+    </div>
+    
+    <!-- Current Tab Info -->
+    <div class="current-tab" id="currentTab">
+      <div class="tab-icon">🌐</div>
+      <div class="tab-info">
+        <div class="tab-url" id="tabUrl">Loading...</div>
+        <div class="tab-status" id="tabStatus">Checking...</div>
+      </div>
+    </div>
+    
+    <!-- Focus Status -->
+    <div class="focus-status" id="focusStatus">
+      <div class="focus-indicator" id="focusIndicator">
+        <span class="focus-icon">⚪</span>
+        <span class="focus-text">Not a focus URL</span>
+      </div>
+    </div>
+    
+    <!-- Connection Status -->
+    <div class="connection-status" id="connectionStatus">
+      <div class="connection-indicator">
+        <span class="connection-dot"></span>
+        <span class="connection-text">Connecting to Auto-Focus...</span>
+      </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="actions">
+      <button class="action-button" id="addCurrentSiteButton">
+        <span class="button-icon">➕</span>
+        Add Current Site
+      </button>
+    </div>
+    
+    <!-- Footer -->
+    <div class="footer">
+      <div class="version">v1.0.0</div>
+      <div class="links">
+        <a href="#" id="helpLink">Help</a>
+        <span class="separator">•</span>
+        <a href="#" id="settingsLink">Settings</a>
+      </div>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

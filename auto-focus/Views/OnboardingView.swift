@@ -5,8 +5,9 @@ enum OnboardingStep: Int, CaseIterable {
     case howItWorks = 1
     case installShortcut = 2
     case addFocusApps = 3
-    case license = 4
-    case complete = 5
+    case browserIntegration = 4
+    case license = 5
+    case complete = 6
 
     var title: String {
         switch self {
@@ -18,6 +19,8 @@ enum OnboardingStep: Int, CaseIterable {
             return "Install Shortcut"
         case .addFocusApps:
             return "Add Focus Apps"
+        case .browserIntegration:
+            return "Browser Integration"
         case .license:
             return "Get Auto-Focus+"
         case .complete:
@@ -32,6 +35,7 @@ struct OnboardingView: View {
     @State private var currentStep: OnboardingStep = .welcome
     @State private var hasInstalledShortcut: Bool = false
     @State private var hasAddedApps: Bool = false
+    @State private var hasSetupBrowser: Bool = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -54,7 +58,8 @@ struct OnboardingView: View {
             NavigationButtonsView(
                 currentStep: $currentStep,
                 hasInstalledShortcut: $hasInstalledShortcut,
-                hasAddedApps: $hasAddedApps
+                hasAddedApps: $hasAddedApps,
+                hasSetupBrowser: $hasSetupBrowser
             )
             .padding(.horizontal, 40)
             .padding(.bottom, 30)
@@ -63,6 +68,7 @@ struct OnboardingView: View {
         .onAppear {
             hasInstalledShortcut = focusManager.isShortcutInstalled
             hasAddedApps = !focusManager.focusApps.isEmpty
+            hasSetupBrowser = focusManager.isExtensionConnected || !focusManager.focusURLs.isEmpty
         }
     }
 
@@ -77,6 +83,8 @@ struct OnboardingView: View {
             InstallShortcutStepView(hasInstalled: $hasInstalledShortcut)
         case .addFocusApps:
             AddFocusAppsStepView(hasAddedApps: $hasAddedApps)
+        case .browserIntegration:
+            BrowserIntegrationStepView(hasSetupBrowser: $hasSetupBrowser)
         case .license:
             LicenseOnboardingStepView()
         case .complete:
@@ -128,6 +136,7 @@ struct WelcomeStepView: View {
 
             VStack(spacing: 12) {
                 FeatureRow(icon: "app.badge", text: "Automatically detects focus apps")
+                FeatureRow(icon: "globe", text: "Track focus time on websites")
                 FeatureRow(icon: "bell.slash", text: "Blocks notifications during focus")
                 FeatureRow(icon: "chart.bar", text: "Tracks your focus sessions")
                 FeatureRow(icon: "timer", text: "Customizable focus thresholds")
@@ -380,6 +389,136 @@ struct RecommendedAppTag: View {
     }
 }
 
+struct BrowserIntegrationStepView: View {
+    @EnvironmentObject var focusManager: FocusManager
+    @EnvironmentObject var licenseManager: LicenseManager
+    @Binding var hasSetupBrowser: Bool
+    @State private var showingBrowserConfig = false
+
+    var body: some View {
+        VStack(spacing: 24) {
+            Image(systemName: hasSetupBrowser ? "checkmark.circle.fill" : "globe")
+                .font(.system(size: 60))
+                .foregroundColor(hasSetupBrowser ? .green : .accentColor)
+
+            VStack(spacing: 16) {
+                Text("Browser Integration")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+
+                Text("Track focus time on websites like GitHub, Notion, Google Docs, and more. Auto-Focus can monitor your browser tabs and activate focus mode when you're on designated websites.")
+                    .font(.title3)
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.secondary)
+            }
+
+            VStack(spacing: 16) {
+                HStack {
+                    Image(systemName: hasSetupBrowser ? "checkmark.circle.fill" : "circle")
+                        .foregroundColor(hasSetupBrowser ? .green : .gray)
+
+                    Text(hasSetupBrowser ? browserStatusText : "Browser integration not set up")
+                        .font(.headline)
+                        .foregroundColor(hasSetupBrowser ? .green : .primary)
+
+                    Spacer()
+                }
+
+                if !focusManager.focusURLs.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(focusManager.focusURLs.prefix(3)) { url in
+                            HStack {
+                                Image(systemName: "globe")
+                                    .foregroundColor(.accentColor)
+                                Text(url.name)
+                                    .font(.body)
+                                Spacer()
+                            }
+                        }
+
+                        if focusManager.focusURLs.count > 3 {
+                            Text("... and \(focusManager.focusURLs.count - 3) more")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .padding(.leading, 24)
+                        }
+                    }
+                    .padding(.top, 8)
+                }
+
+                Button(hasSetupBrowser ? "Configure Websites" : "Set Up Browser Integration") {
+                    showingBrowserConfig = true
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+
+                VStack(spacing: 12) {
+                    if !licenseManager.isLicensed {
+                        HStack {
+                            Image(systemName: "info.circle")
+                                .foregroundColor(.blue)
+                            Text("Free tier: 3 focus websites • Auto-Focus+ unlocks unlimited websites")
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Color.blue.opacity(0.1))
+                        .cornerRadius(8)
+                    }
+
+                    VStack(spacing: 8) {
+                        Text("Popular focus websites:")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.secondary)
+
+                        HStack(spacing: 12) {
+                            RecommendedWebsiteTag(name: "GitHub")
+                            RecommendedWebsiteTag(name: "Notion")
+                            RecommendedWebsiteTag(name: "Google Docs")
+                            RecommendedWebsiteTag(name: "Figma")
+                        }
+                    }
+                    .padding(.top, 8)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 20)
+            .background(Color(.controlBackgroundColor))
+            .cornerRadius(12)
+        }
+        .sheet(isPresented: $showingBrowserConfig) {
+            OnboardingBrowserConfigSheet(hasSetupBrowser: $hasSetupBrowser)
+                .frame(minWidth: 700, minHeight: 600)
+        }
+    }
+
+    private var browserStatusText: String {
+        if focusManager.isExtensionConnected {
+            return "Extension connected • \(focusManager.focusURLs.count) website(s) configured"
+        } else if !focusManager.focusURLs.isEmpty {
+            return "\(focusManager.focusURLs.count) website(s) configured"
+        } else {
+            return "Ready to configure"
+        }
+    }
+}
+
+struct RecommendedWebsiteTag: View {
+    let name: String
+
+    var body: some View {
+        Text(name)
+            .font(.caption)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Color.accentColor.opacity(0.1))
+            .foregroundColor(.accentColor)
+            .cornerRadius(6)
+    }
+}
+
 struct CompleteStepView: View {
     @EnvironmentObject var focusManager: FocusManager
 
@@ -403,6 +542,7 @@ struct CompleteStepView: View {
             VStack(spacing: 16) {
                 CompletionRow(icon: "checkmark.circle.fill", text: "Shortcut installed", isComplete: focusManager.isShortcutInstalled)
                 CompletionRow(icon: "checkmark.circle.fill", text: "Focus apps configured", isComplete: !focusManager.focusApps.isEmpty)
+                CompletionRow(icon: "checkmark.circle.fill", text: "Browser integration ready", isComplete: focusManager.isExtensionConnected || !focusManager.focusURLs.isEmpty)
 
                 Divider()
                     .padding(.vertical, 8)
@@ -412,6 +552,7 @@ struct CompleteStepView: View {
                         .font(.headline)
                         .fontWeight(.semibold)
 
+                    NextStepRow(icon: "globe", text: "Set up browser extension for website tracking")
                     NextStepRow(icon: "gearshape", text: "Adjust settings in Configuration tab")
                     NextStepRow(icon: "chart.bar", text: "View your focus insights")
                     NextStepRow(icon: "brain.head.profile", text: "Start focusing!")
@@ -467,6 +608,7 @@ struct NavigationButtonsView: View {
     @Binding var currentStep: OnboardingStep
     @Binding var hasInstalledShortcut: Bool
     @Binding var hasAddedApps: Bool
+    @Binding var hasSetupBrowser: Bool
 
     private var canProceed: Bool {
         switch currentStep {
@@ -474,6 +616,8 @@ struct NavigationButtonsView: View {
             return hasInstalledShortcut
         case .addFocusApps:
             return hasAddedApps
+        case .browserIntegration:
+            return true // Optional step, can always proceed
         default:
             return true
         }
@@ -543,6 +687,7 @@ struct LicenseOnboardingStepView: View {
 
                     VStack(spacing: 10) {
                         OnboardingPremiumFeature(icon: "list.bullet", title: "Unlimited Focus Apps", description: "Add as many focus-triggering apps as you need")
+                        OnboardingPremiumFeature(icon: "globe", title: "Unlimited Focus Websites", description: "Track unlimited websites with browser integration")
                         OnboardingPremiumFeature(icon: "externaldrive", title: "Data Export & Import", description: "Backup and transfer your focus data")
                         OnboardingPremiumFeature(icon: "chart.bar.fill", title: "Advanced Insights", description: "Detailed statistics about your focus habits")
                         OnboardingPremiumFeature(icon: "arrow.clockwise", title: "Future Updates", description: "Access to all new premium features")
@@ -680,6 +825,332 @@ struct OnboardingLicenseInputView: View {
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
+        }
+    }
+}
+
+struct OnboardingBrowserConfigSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var focusManager: FocusManager
+    @EnvironmentObject var licenseManager: LicenseManager
+    @Binding var hasSetupBrowser: Bool
+    @State private var showingAddURLOptions = false
+    @State private var showingAddURL = false
+    @State private var showingPresets = false
+    @State private var newURL = FocusURL(name: "", domain: "")
+    @State private var selectedCategory: URLCategory = .work
+    @State private var selectedURLId: UUID?
+
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                // Focus URLs Management only
+                GroupBox(label: Text("Add Focus URL").font(.headline)) {
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Being on any of these websites will automatically activate focus mode.")
+                            .font(.callout)
+                            .foregroundColor(.secondary)
+
+                        // Current URLs list
+                        if !focusManager.focusURLs.isEmpty {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Current Focus URLs:")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+
+                                ForEach(focusManager.focusURLs.prefix(5)) { url in
+                                    HStack {
+                                        Image(systemName: "globe")
+                                            .foregroundColor(.blue)
+                                            .frame(width: 16)
+                                        Text(url.name)
+                                            .font(.body)
+                                        Spacer()
+                                    }
+                                }
+
+                                if focusManager.focusURLs.count > 5 {
+                                    Text("... and \(focusManager.focusURLs.count - 5) more")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .padding(.vertical, 8)
+                        }
+
+                        // Add URL options
+                        VStack(spacing: 12) {
+                            Button {
+                                showingPresets = true
+                            } label: {
+                                HStack {
+                                    Image(systemName: "list.bullet.rectangle")
+                                        .font(.title3)
+                                        .foregroundColor(.blue)
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Choose from Presets")
+                                            .font(.headline)
+                                        Text("GitHub, Google Docs, Notion, and more")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+
+                                    Spacer()
+
+                                    Image(systemName: "chevron.right")
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding()
+                                .background(Color(.controlBackgroundColor))
+                                .cornerRadius(8)
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(!focusManager.canAddMoreURLs)
+
+                            Button {
+                                showingAddURL = true
+                            } label: {
+                                HStack {
+                                    Image(systemName: "plus.circle")
+                                        .font(.title3)
+                                        .foregroundColor(.green)
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Add Custom URL")
+                                            .font(.headline)
+                                        Text("Enter your own domain to track")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+
+                                    Spacer()
+
+                                    Image(systemName: "chevron.right")
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding()
+                                .background(Color(.controlBackgroundColor))
+                                .cornerRadius(8)
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(!focusManager.canAddMoreURLs)
+                        }
+
+                        // Free tier limitation
+                        if !licenseManager.isLicensed {
+                            HStack {
+                                Image(systemName: "info.circle")
+                                    .foregroundColor(.blue)
+                                Text("Free tier: \(focusManager.focusURLs.count)/3 websites • Auto-Focus+ unlocks unlimited websites")
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(Color.blue.opacity(0.1))
+                            .cornerRadius(8)
+                        }
+                    }
+                    .padding()
+                }
+
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Configure Websites")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showingAddURL) {
+            OnboardingAddURLSheet(newURL: $newURL, selectedCategory: $selectedCategory)
+                .frame(minWidth: 500, minHeight: 400)
+        }
+        .sheet(isPresented: $showingPresets) {
+            OnboardingURLPresetsSheet()
+                .frame(minWidth: 600, minHeight: 500)
+        }
+        .onDisappear {
+            // Update status when sheet closes
+            hasSetupBrowser = focusManager.isExtensionConnected || !focusManager.focusURLs.isEmpty
+        }
+    }
+}
+
+struct OnboardingAddURLSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var focusManager: FocusManager
+    @Binding var newURL: FocusURL
+    @Binding var selectedCategory: URLCategory
+    @State private var selectedMatchType: URLMatchType = .domain
+
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                GroupBox("URL Information") {
+                    VStack(spacing: 12) {
+                        TextField("Name (e.g., 'GitHub')", text: $newURL.name)
+                        TextField("Domain (e.g., 'github.com')", text: $newURL.domain)
+                            .autocorrectionDisabled()
+                    }
+                    .padding(.vertical, 8)
+                }
+
+                GroupBox("Category") {
+                    VStack(spacing: 12) {
+                        Picker("Category", selection: $selectedCategory) {
+                            ForEach(URLCategory.allCases, id: \.self) { category in
+                                Label(category.displayName, systemImage: category.icon)
+                                    .tag(category)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                    }
+                    .padding(.vertical, 8)
+                }
+
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Add Custom URL")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Add") {
+                        addURL()
+                    }
+                    .disabled(newURL.name.isEmpty || newURL.domain.isEmpty)
+                }
+            }
+        }
+    }
+
+    private func addURL() {
+        var urlToAdd = newURL
+        urlToAdd.category = selectedCategory
+        urlToAdd.matchType = selectedMatchType
+        urlToAdd.domain = urlToAdd.domain.lowercased()
+
+        focusManager.addFocusURL(urlToAdd)
+
+        // Reset form
+        newURL = FocusURL(name: "", domain: "")
+        selectedCategory = .work
+        selectedMatchType = .domain
+
+        dismiss()
+    }
+}
+
+struct OnboardingURLPresetsSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var focusManager: FocusManager
+    @EnvironmentObject var licenseManager: LicenseManager
+    @State private var selectedPresets: Set<UUID> = []
+
+    var body: some View {
+        NavigationView {
+            List {
+                ForEach(URLCategory.allCases, id: \.self) { category in
+                    let presetsInCategory = focusManager.availableURLPresets.filter { $0.category == category }
+
+                    if !presetsInCategory.isEmpty {
+                        Section(category.displayName) {
+                            ForEach(presetsInCategory) { preset in
+                                OnboardingPresetRow(
+                                    preset: preset,
+                                    isSelected: selectedPresets.contains(preset.id),
+                                    canSelect: !preset.isPremium || licenseManager.isLicensed,
+                                    onToggle: { togglePreset(preset) }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Choose Presets")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Add Selected") {
+                        addSelectedPresets()
+                    }
+                    .disabled(selectedPresets.isEmpty)
+                }
+            }
+        }
+    }
+
+    private func togglePreset(_ preset: FocusURL) {
+        if selectedPresets.contains(preset.id) {
+            selectedPresets.remove(preset.id)
+        } else {
+            selectedPresets.insert(preset.id)
+        }
+    }
+
+    private func addSelectedPresets() {
+        let presetsToAdd = focusManager.availableURLPresets.filter { selectedPresets.contains($0.id) }
+        focusManager.addPresetURLs(presetsToAdd)
+        dismiss()
+    }
+}
+
+struct OnboardingPresetRow: View {
+    let preset: FocusURL
+    let isSelected: Bool
+    let canSelect: Bool
+    let onToggle: () -> Void
+
+    var body: some View {
+        HStack {
+            Button(action: onToggle) {
+                HStack(spacing: 12) {
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .foregroundColor(isSelected ? .blue : .gray)
+
+                    Image(systemName: preset.category.icon)
+                        .foregroundColor(.blue)
+                        .frame(width: 20)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack {
+                            Text(preset.name)
+                                .font(.headline)
+
+                            if preset.isPremium {
+                                Image(systemName: "crown.fill")
+                                    .foregroundColor(.yellow)
+                                    .font(.caption)
+                            }
+                        }
+
+                        Text(preset.domain)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+                }
+            }
+            .buttonStyle(.plain)
+            .disabled(!canSelect)
+            .opacity(canSelect ? 1.0 : 0.6)
         }
     }
 }

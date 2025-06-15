@@ -15,18 +15,26 @@ struct SettingsView: View {
                 .tag(0)
                 .environmentObject(licenseManager)
 
+            BrowserConfigView()
+                .tabItem {
+                    Label("Browser", systemImage: "globe")
+                }
+                .tag(1)
+                .environmentObject(focusManager)
+                .environmentObject(licenseManager)
+
             InsightsView(selectedTab: $selectedTab)
                 .tabItem {
                     Label("Insights", systemImage: "chart.bar")
                 }
-                .tag(1)
+                .tag(2)
                 .environmentObject(licenseManager)
 
             DataView(selectedTab: $selectedTab)
                 .tabItem {
                     Label("Data", systemImage: "externaldrive")
                 }
-                .tag(2)
+                .tag(3)
                 .environmentObject(focusManager)
                 .environmentObject(licenseManager)
 
@@ -34,7 +42,7 @@ struct SettingsView: View {
                 .tabItem {
                     Label("Auto-Focus+", systemImage: "star.circle.fill")
                 }
-                .tag(3)
+                .tag(4)
                 .environmentObject(licenseManager)
 
             if focusManager.canShowDebugOptions {
@@ -42,7 +50,7 @@ struct SettingsView: View {
                     .tabItem {
                         Label("Debug", systemImage: "ladybug")
                     }
-                    .tag(4)
+                    .tag(5)
                     .environmentObject(focusManager)
                     .environmentObject(licenseManager)
             }

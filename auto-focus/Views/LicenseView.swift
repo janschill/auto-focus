@@ -259,15 +259,21 @@ struct LicenseBenefitsView: View {
             )
 
             PremiumFeatureRow(
+                icon: "globe",
+                title: "Unlimited Focus Websites",
+                description: "Track unlimited websites with browser integration"
+            )
+
+            PremiumFeatureRow(
                 icon: "chart.bar.fill",
                 title: "Advanced Insights",
                 description: "Get detailed statistics about your focus habits"
             )
 
             PremiumFeatureRow(
-                icon: "cloud",
-                title: "Data Synchronization",
-                description: "Keep your data synchronized across Macs"
+                icon: "externaldrive",
+                title: "Data Export & Import",
+                description: "Backup and transfer your focus data"
             )
 
             PremiumFeatureRow(
@@ -295,7 +301,7 @@ struct UnlicensedView: View {
                     .fontDesign(.default)
                     .fontWeight(.bold)
                     .bold()
-                Text("Unlimited focus apps, advanced insights and more.")
+                Text("Unlimited focus apps, unlimited focus websites, advanced insights and more.")
                     .font(.callout)
                     .fontDesign(.default)
                     .fontWeight(.regular)
