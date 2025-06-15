@@ -239,8 +239,24 @@ create-dmg: package-app
 		echo "✅ DMG created at $(DOWNLOADS_DIR)/$$DMG_NAME"; \
 	fi
 
+# Check for version bump
+check-version-bump:
+	@echo "🔍 Checking for version bump..."
+	@if git diff --name-only | grep -q "auto-focus.xcodeproj/project.pbxproj"; then \
+		if git diff auto-focus.xcodeproj/project.pbxproj | grep -q "MARKETING_VERSION"; then \
+			echo "✅ Version bump detected in project.pbxproj"; \
+			CURRENT_VERSION=$$(grep "MARKETING_VERSION" auto-focus.xcodeproj/project.pbxproj | head -1 | sed 's/.*= \(.*\);/\1/' | tr -d ' '); \
+			echo "📋 New version: $$CURRENT_VERSION"; \
+		else \
+			echo "⚠️  WARNING: project.pbxproj changed but no MARKETING_VERSION bump detected"; \
+			echo "   Consider bumping version for this release"; \
+		fi; \
+	else \
+		echo "ℹ️  No changes to project.pbxproj - version remains the same"; \
+	fi
+
 # Tag release in git
-tag-release:
+tag-release: check-version-bump
 	@VERSION=$$(date +"%Y.%m.%d"); \
 	echo "Creating git tag for version $$VERSION..."; \
 	git tag -a "v$$VERSION" -m "Release $$VERSION" 2>/dev/null || echo "Tag already exists"; \

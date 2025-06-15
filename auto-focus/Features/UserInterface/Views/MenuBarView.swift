@@ -10,32 +10,71 @@ struct MenuBarView: View {
             return Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
     #endif
     }
+    
+    // Calculate total focus time today
+    var totalFocusTimeToday: TimeInterval {
+        return focusManager.todaysSessions.reduce(0) { $0 + $1.duration }
+    }
+    
+    // Get current smart status
+    var smartStatus: String {
+        if focusManager.isPaused {
+            return "Paused"
+        } else if focusManager.isInBufferPeriod {
+            let remaining = Int(focusManager.bufferTimeRemaining)
+            return "Buffer: \(remaining)s"
+        } else if focusManager.isInFocusMode {
+            return "In Focus"
+        } else if focusManager.isInOverallFocus {
+            return "Focusing"
+        } else {
+            return "Out of Focus"
+        }
+    }
+    
+    var smartStatusColor: Color {
+        if focusManager.isPaused {
+            return .orange
+        } else if focusManager.isInBufferPeriod {
+            return .yellow
+        } else if focusManager.isInFocusMode {
+            return .green
+        } else if focusManager.isInOverallFocus {
+            return .blue
+        } else {
+            return .secondary
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            // Header with enhanced status
             HStack {
                 Text("Auto-Focus")
                     .font(.system(size: 13, weight: .semibold))
-//                Text(version)
                 Text("BETA")
                 Spacer()
 
-                if focusManager.isPaused {
-                    Text("Paused")
-                        .foregroundStyle(.orange)
-                } else {
-                    Text("\(focusManager.isInFocusMode ? "In Focus" : "Out of Focus")")
-                        .foregroundStyle(.secondary)
-                }
+                Text(smartStatus)
+                    .foregroundStyle(smartStatusColor)
+                    .font(.system(size: 12, weight: .medium))
             }
 
             Divider()
 
+            // Enhanced session metrics
             VStack(alignment: .leading, spacing: 8) {
                 if focusManager.timeSpent > 0 {
                     StatusRow(
-                        title: "Time in focus",
+                        title: "Current session",
                         value: TimeFormatter.duration(focusManager.timeSpent)
+                    )
+                }
+                
+                if totalFocusTimeToday > 0 {
+                    StatusRow(
+                        title: "Total focus today",
+                        value: TimeFormatter.duration(totalFocusTimeToday)
                     )
                 }
 
@@ -43,17 +82,44 @@ struct MenuBarView: View {
                     title: "Sessions today",
                     value: "\(focusManager.todaysSessions.count)"
                 )
+                
+                StatusRow(
+                    title: "Sessions this week",
+                    value: "\(focusManager.weekSessions.count)"
+                )
 
                 if let lastSession = focusManager.todaysSessions.last {
                     StatusRow(
-                        title: "Last session duration",
+                        title: "Last session",
                         value: TimeFormatter.duration(lastSession.duration)
                     )
                 }
             }
+            
+            // App limit status for free users
+            if focusManager.isPremiumRequired {
+                Divider()
+                
+                HStack {
+                    Image(systemName: "star.fill")
+                        .foregroundStyle(.yellow)
+                        .font(.system(size: 11))
+                    Text("App limit reached - Premium needed")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+            } else if !focusManager.canAddMoreApps && !focusManager.isPremiumRequired {
+                Divider()
+                
+                StatusRow(
+                    title: "Focus apps",
+                    value: "\(focusManager.focusApps.count)/\(focusManager.isPremiumRequired ? "∞" : "5")"
+                )
+            }
 
             Divider()
 
+            // Controls section
             HStack {
                 if #available(macOS 14.0, *) {
                     SettingsLink(label: {
@@ -89,7 +155,7 @@ struct MenuBarView: View {
             }
         }
         .padding(12)
-        .frame(width: 280)
+        .frame(width: 290) // Slightly wider to accommodate new info
     }
 
     private func openSettings() {
