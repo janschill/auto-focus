@@ -1,15 +1,5 @@
 import SwiftUI
 
-func setLicense() {
-    LicenseManager().licenseStatus = .valid
-    LicenseManager().licenseStatus = .valid
-    LicenseManager().isLicensed = true
-    LicenseManager().licenseOwner = "Debugger Boy"
-    LicenseManager().licenseEmail = "debugger-boy@janschill.de"
-    LicenseManager().licenseKey = "aasdasdd23443tfgsdfgq234"
-    LicenseManager().licenseExpiry = Date() + 365 * 24 * 60 * 60
-
-}
 
 struct DebugMenuView: View {
     @EnvironmentObject var focusManager: FocusManager
@@ -32,7 +22,13 @@ struct DebugMenuView: View {
             .padding(.bottom, 4)
             GroupBox("License") {
                 Button("Add license") {
-                    setLicense()
+                    // Use environment object instead of creating new instances
+                    licenseManager.licenseStatus = .valid
+                    licenseManager.isLicensed = true
+                    licenseManager.licenseOwner = "Debugger Boy"
+                    licenseManager.licenseEmail = "debugger-boy@janschill.de"
+                    licenseManager.licenseKey = "aasdasdd23443tfgsdfgq234"
+                    licenseManager.licenseExpiry = Date() + 365 * 24 * 60 * 60
                 }
                 .buttonStyle(.borderedProminent)
             }

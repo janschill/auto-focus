@@ -37,12 +37,20 @@ class BrowserManager: ObservableObject, BrowserManaging {
     @Published var isExtensionConnected: Bool = false
     @Published var extensionHealth: ExtensionHealth? {
         didSet {
-            delegate?.browserManager(self, didUpdateExtensionHealth: extensionHealth)
+            // Defer delegate call to avoid publishing during view updates
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.delegate?.browserManager(self, didUpdateExtensionHealth: self.extensionHealth)
+            }
         }
     }
     @Published var connectionQuality: ConnectionQuality = .unknown {
         didSet {
-            delegate?.browserManager(self, didUpdateConnectionQuality: connectionQuality)
+            // Defer delegate call to avoid publishing during view updates
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.delegate?.browserManager(self, didUpdateConnectionQuality: self.connectionQuality)
+            }
         }
     }
 

@@ -5,17 +5,28 @@ class InsightsViewModel: ObservableObject {
     @Published var selectedTimeframe: InsightsDataProvider.Timeframe = .day
     @Published var selectedDate: Date = Date()
 
-    private var dataProvider: InsightsDataProvider
+    private var dataProvider: InsightsDataProvider?
 
+    init() {
+        // Initialize without data provider to avoid circular dependencies
+        self.dataProvider = nil
+    }
+    
     init(dataProvider: InsightsDataProvider) {
         self.dataProvider = dataProvider
     }
 
+    func configure(with dataProvider: InsightsDataProvider) {
+        self.dataProvider = dataProvider
+    }
+
     func updateFocusManager(_ focusManager: FocusManager) {
-        dataProvider.focusManager = focusManager
+        dataProvider?.focusManager = focusManager
     }
 
     var displayedDateString: String {
+        guard let dataProvider = dataProvider else { return "Loading..." }
+        
         let calendar = Calendar.current
         let now = Date()
 
@@ -39,30 +50,33 @@ class InsightsViewModel: ObservableObject {
     }
 
     var totalFocusTime: TimeInterval {
-        dataProvider.totalFocusTime(timeframe: selectedTimeframe, selectedDate: selectedDate)
+        dataProvider?.totalFocusTime(timeframe: selectedTimeframe, selectedDate: selectedDate) ?? 0
     }
 
     var totalFocusTimeThisMonth: TimeInterval {
-        dataProvider.calculateTotalFocusTimeThisMonth()
+        dataProvider?.calculateTotalFocusTimeThisMonth() ?? 0
     }
 
     var relevantSessions: [FocusSession] {
-        dataProvider.relevantSessions(timeframe: selectedTimeframe, selectedDate: selectedDate)
+        dataProvider?.relevantSessions(timeframe: selectedTimeframe, selectedDate: selectedDate) ?? []
     }
 
     var weekdayData: [DayData] {
-        dataProvider.weekdayData(selectedDate: selectedDate, selectedTimeframe: selectedTimeframe)
+        dataProvider?.weekdayData(selectedDate: selectedDate, selectedTimeframe: selectedTimeframe) ?? []
     }
 
     var hourlyData: [HourData] {
-        dataProvider.hourlyData(selectedDate: selectedDate)
+        dataProvider?.hourlyData(selectedDate: selectedDate) ?? []
     }
 
     var averageDailyMinutes: Int {
-        dataProvider.averageDailyMinutes(weekdayData: weekdayData)
+        guard let dataProvider = dataProvider else { return 0 }
+        return dataProvider.averageDailyMinutes(weekdayData: weekdayData)
     }
 
     var weekComparisonPercentage: Int? {
+        guard let dataProvider = dataProvider else { return nil }
+        
         let calendar = Calendar.current
         guard selectedTimeframe == .week else { return nil }
 
@@ -104,19 +118,19 @@ class InsightsViewModel: ObservableObject {
     }
 
     var productiveTimeRange: (startHour: Int, endHour: Int, duration: TimeInterval)? {
-        return dataProvider.calculateProductiveTimeRange()
+        return dataProvider?.calculateProductiveTimeRange()
     }
 
     var productiveWeekday: (weekday: Int, duration: TimeInterval)? {
-        return dataProvider.calculateProductiveWeekday()
+        return dataProvider?.calculateProductiveWeekday()
     }
 
     var weekdayAverages: [(day: String, average: TimeInterval)] {
-        return dataProvider.calculateWeekdayAverages()
+        return dataProvider?.calculateWeekdayAverages() ?? []
     }
 
     func formatHourRange(_ startHour: Int, _ endHour: Int) -> String {
-        return dataProvider.formatHourRange(startHour, endHour)
+        return dataProvider?.formatHourRange(startHour, endHour) ?? "\(startHour):00 - \(endHour):00"
     }
 }
 

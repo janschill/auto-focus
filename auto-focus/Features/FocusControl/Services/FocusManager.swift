@@ -24,6 +24,7 @@ class FocusManager: ObservableObject {
     private let bufferManager: any BufferManaging
     private let focusModeController: any FocusModeControlling
     private let browserManager: any BrowserManaging
+    private let licenseManager: LicenseManager
 
     @Published var timeSpent: TimeInterval = 0
     @Published var isFocusAppActive = false
@@ -51,7 +52,6 @@ class FocusManager: ObservableObject {
     }
     @Published var selectedAppId: String?
     @Published var isInFocusMode = false
-    @Published var shortcutRefreshTrigger: Bool = false
     @Published var hasCompletedOnboarding: Bool = false
     @Published var isBrowserInFocus: Bool = false
     @Published var currentBrowserTab: BrowserTabInfo?
@@ -64,6 +64,10 @@ class FocusManager: ObservableObject {
 
     private var timeTrackingTimer: Timer?
     private let checkInterval: TimeInterval = AppConfiguration.checkInterval
+    
+    // Batch update system to prevent publishing during view updates
+    private var pendingUpdates: [() -> Void] = []
+    private var updateTimer: Timer?
 
     // MARK: - Buffer Access
     var bufferTimeRemaining: TimeInterval {
@@ -89,7 +93,7 @@ class FocusManager: ObservableObject {
 
     // MARK: - Shortcut Status
     var isShortcutInstalled: Bool {
-        _ = shortcutRefreshTrigger // Trigger dependency tracking
+        // Remove dependency trigger to prevent AttributeGraph cycles
         return focusModeController.checkShortcutExists()
     }
 
@@ -98,7 +102,6 @@ class FocusManager: ObservableObject {
     }
 
     var canAddMoreApps: Bool {
-        let licenseManager = LicenseManager()
         if licenseManager.isLicensed {
             // Licensed users: check their specific limit (-1 means unlimited)
             return licenseManager.maxAppsAllowed == -1 || focusApps.count < licenseManager.maxAppsAllowed
@@ -109,7 +112,6 @@ class FocusManager: ObservableObject {
     }
 
     var isPremiumRequired: Bool {
-        let licenseManager = LicenseManager()
         if licenseManager.isLicensed {
             return false // Licensed users don't need premium
         } else {
@@ -123,9 +125,11 @@ class FocusManager: ObservableObject {
         appMonitor: (any AppMonitoring)? = nil,
         bufferManager: (any BufferManaging)? = nil,
         focusModeController: (any FocusModeControlling)? = nil,
-        browserManager: (any BrowserManaging)? = nil
+        browserManager: (any BrowserManaging)? = nil,
+        licenseManager: LicenseManager? = nil
     ) {
         self.userDefaultsManager = userDefaultsManager
+        self.licenseManager = licenseManager ?? LicenseManager()
 
         // Create default implementations if not provided
         let checkInterval = AppConfiguration.checkInterval
@@ -260,7 +264,10 @@ class FocusManager: ObservableObject {
     }
 
     func refreshShortcutStatus() {
-        shortcutRefreshTrigger.toggle()
+        // Defer notification to avoid triggering during view updates
+        DispatchQueue.main.async { [weak self] in
+            self?.objectWillChange.send()
+        }
     }
 
     func completeOnboarding() {
@@ -271,6 +278,31 @@ class FocusManager: ObservableObject {
     func resetOnboarding() {
         hasCompletedOnboarding = false
         userDefaultsManager.setBool(false, forKey: UserDefaultsManager.Keys.hasCompletedOnboarding)
+    }
+    
+    // MARK: - Safe Update System
+    
+    private func batchUpdate(_ update: @escaping () -> Void) {
+        pendingUpdates.append(update)
+        
+        // Schedule execution if not already scheduled
+        if updateTimer == nil {
+            updateTimer = Timer.scheduledTimer(withTimeInterval: 0.001, repeats: false) { [weak self] _ in
+                self?.executePendingUpdates()
+            }
+        }
+    }
+    
+    private func executePendingUpdates() {
+        let updates = pendingUpdates
+        pendingUpdates.removeAll()
+        updateTimer?.invalidate()
+        updateTimer = nil
+        
+        // Execute all pending updates in a batch
+        for update in updates {
+            update()
+        }
     }
 
     // MARK: - Browser Management
@@ -319,7 +351,6 @@ class FocusManager: ObservableObject {
     }
 
     func exportDataToFile(options: ExportOptions = .default) {
-        let licenseManager = LicenseManager()
         guard licenseManager.isLicensed else {
             print("Export feature requires premium subscription")
             return
@@ -352,7 +383,6 @@ class FocusManager: ObservableObject {
     }
 
     func importDataFromFile(completion: @escaping (ImportResult) -> Void) {
-        let licenseManager = LicenseManager()
         guard licenseManager.isLicensed else {
             completion(.failure(.readError))
             return
@@ -663,7 +693,7 @@ extension FocusManager {
 // MARK: - BrowserManagerDelegate
 extension FocusManager: BrowserManagerDelegate {
     func browserManager(_ manager: any BrowserManaging, didChangeFocusState isFocus: Bool) {
-        DispatchQueue.main.async {
+        batchUpdate {
             self.isBrowserInFocus = isFocus
 
             // Handle browser focus like app focus
@@ -676,27 +706,27 @@ extension FocusManager: BrowserManagerDelegate {
     }
 
     func browserManager(_ manager: any BrowserManaging, didReceiveTabUpdate tabInfo: BrowserTabInfo) {
-        DispatchQueue.main.async {
+        batchUpdate {
             self.currentBrowserTab = tabInfo
             print("Browser tab updated: \(tabInfo.url) (Focus: \(tabInfo.isFocusURL))")
         }
     }
 
     func browserManager(_ manager: any BrowserManaging, didChangeConnectionState isConnected: Bool) {
-        DispatchQueue.main.async {
+        batchUpdate {
             self.isExtensionConnected = isConnected
             print("Browser extension connection: \(isConnected ? "connected" : "disconnected")")
         }
     }
 
     func browserManager(_ manager: any BrowserManaging, didUpdateExtensionHealth health: ExtensionHealth?) {
-        DispatchQueue.main.async {
+        batchUpdate {
             self.extensionHealth = health
         }
     }
 
     func browserManager(_ manager: any BrowserManaging, didUpdateConnectionQuality quality: ConnectionQuality) {
-        DispatchQueue.main.async {
+        batchUpdate {
             self.connectionQuality = quality
         }
     }
@@ -743,7 +773,7 @@ extension FocusManager: BrowserManagerDelegate {
 
     func browserManager(_ manager: any BrowserManaging, didUpdateFocusURLs urls: [FocusURL]) {
         // This will trigger UI updates for focusURLs computed property
-        DispatchQueue.main.async {
+        batchUpdate {
             self.objectWillChange.send()
         }
     }
