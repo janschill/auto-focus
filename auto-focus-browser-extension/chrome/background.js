@@ -268,6 +268,7 @@ async function connectToNativeApp() {
     connectionHealth.consecutiveFailures++;
     connectionHealth.connectionState = 'error';
     connectionHealth.errorDetails = error.message;
+    currentTabIsFocusUrl = false; // Reset focus status when connection fails
     
     // Stop heartbeat on connection failure
     stopHeartbeat();
@@ -432,6 +433,7 @@ function startHeartbeat() {
         
         isConnectedToApp = false;
         connectionHealth.connectionState = 'lost';
+        currentTabIsFocusUrl = false; // Reset focus status when connection is lost
         stopHeartbeat();
         
         // Reset reconnect attempts and try to reconnect
@@ -567,6 +569,7 @@ function handleNativeMessage(message) {
   switch (message.command) {
     case 'focus_state_changed':
       console.log('Focus state changed:', message.isFocusActive);
+      currentTabIsFocusUrl = message.isFocusActive || false;
       updateIcon(message.isFocusActive ? 'focus' : 'normal');
       break;
 
@@ -582,6 +585,17 @@ function handleNativeMessage(message) {
 
     case 'handshake_response':
       console.log('Handshake successful with app');
+      // Check if the handshake response includes current focus status
+      if (message.hasOwnProperty('isFocusUrl')) {
+        currentTabIsFocusUrl = message.isFocusUrl;
+      }
+      break;
+
+    case 'tab_focus_status':
+      // Handle specific tab focus status updates from the app
+      console.log('Tab focus status update:', message.isFocusUrl);
+      currentTabIsFocusUrl = message.isFocusUrl || false;
+      updateIcon(message.isFocusUrl ? 'focus' : 'normal');
       break;
 
     default:
@@ -755,6 +769,7 @@ async function sendToNativeApp(message, retryCount = 0) {
       console.error('Failed to send message after retries, marking as disconnected');
       isConnectedToApp = false;
       connectionHealth.connectionState = 'error';
+      currentTabIsFocusUrl = false; // Reset focus status when messages fail
       
       // For critical messages (like tab changes), queue them for later
       if (isCriticalMessage(message)) {
@@ -888,6 +903,9 @@ function updateIcon(state) {
   chrome.action.setTitle({ title });
 }
 
+// Store current focus status (updated by app responses)
+let currentTabIsFocusUrl = false;
+
 // Expose API for popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   switch (request.action) {
@@ -896,7 +914,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         currentUrl,
         isConnectedToApp,
         focusUrls,
-        isFocusUrl: checkIfFocusUrl(currentUrl)
+        isFocusUrl: currentTabIsFocusUrl // Use the status from the app instead of local check
       });
       break;
 
