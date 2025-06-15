@@ -9,15 +9,15 @@ struct BrowserConfigView: View {
     @State private var newURL = FocusURL(name: "", domain: "")
     @State private var selectedCategory: URLCategory = .work
     @State private var selectedURLId: UUID?
-    
+
     var body: some View {
         VStack(spacing: 10) {
             HeaderView()
-            
+
             ExtensionInstallationView()
-            
+
             FocusURLsManagementView(selectedURLId: $selectedURLId, showingAddURLOptions: $showingAddURLOptions)
-            
+
             Spacer()
         }
         .padding()
@@ -61,7 +61,7 @@ private struct HeaderView: View {
     }
 }
 
-//private struct HeaderView: View {
+// private struct HeaderView: View {
 //    var body: some View {
 //        GroupBox {
 //            VStack(spacing: 8) {
@@ -86,20 +86,20 @@ private struct HeaderView: View {
 //            .padding(.vertical, 8)
 //        }
 //    }
-//}
+// }
 
 private struct ExtensionInstallationView: View {
     @EnvironmentObject var focusManager: FocusManager
-    
+
     var body: some View {
         GroupBox {
             VStack {
                 HStack {
                     Text("Extension Installation")
                         .frame(width: 150, alignment: .leading)
-                    
+
                     Spacer()
-                    
+
                     if focusManager.isExtensionConnected {
                         Text("✓ Installed")
                             .foregroundColor(.green)
@@ -107,13 +107,13 @@ private struct ExtensionInstallationView: View {
                         Text("⚠️ Not installed")
                             .foregroundColor(.red)
                     }
-                    
+
                     Button("Install Extension") {
                         openExtensionInstallation()
                     }
                     .disabled(focusManager.isExtensionConnected)
                 }
-                
+
                 HStack {
                     Text("Auto-Focus will install a Chrome extension to monitor and track focus time on websites. The extension communicates with the app to coordinate focus sessions.")
                         .font(.callout)
@@ -128,7 +128,7 @@ private struct ExtensionInstallationView: View {
         }
         .frame(maxWidth: .infinity)
     }
-    
+
     private func openExtensionInstallation() {
         if let url = URL(string: "https://chrome.google.com/webstore/detail/auto-focus/") {
             NSWorkspace.shared.open(url)
@@ -136,13 +136,12 @@ private struct ExtensionInstallationView: View {
     }
 }
 
-
 private struct FocusURLsManagementView: View {
     @EnvironmentObject var focusManager: FocusManager
     @EnvironmentObject var licenseManager: LicenseManager
     @Binding var selectedURLId: UUID?
     @Binding var showingAddURLOptions: Bool
-    
+
     var body: some View {
         GroupBox(label: Text("Focus URLs").font(.headline)) {
             VStack(alignment: .leading) {
@@ -151,9 +150,9 @@ private struct FocusURLsManagementView: View {
                     .fontDesign(.default)
                     .fontWeight(.regular)
                     .foregroundColor(.secondary)
-                
+
                 FocusURLsList(selectedURLId: $selectedURLId)
-                
+
                 HStack {
                     Button {
                         showingAddURLOptions = true
@@ -161,14 +160,14 @@ private struct FocusURLsManagementView: View {
                         Image(systemName: "plus")
                     }
                     .disabled(!focusManager.canAddMoreURLs)
-                    
+
                     Button {
                         removeSelectedURL()
                     } label: {
                         Image(systemName: "minus")
                     }
                     .disabled(selectedURLId == nil)
-                    
+
                     Spacer()
                 }
             }
@@ -177,13 +176,13 @@ private struct FocusURLsManagementView: View {
         }
         .frame(maxWidth: .infinity)
     }
-    
+
     private func removeSelectedURL() {
         guard let selectedId = selectedURLId,
               let focusURL = focusManager.focusURLs.first(where: { $0.id == selectedId }) else {
             return
         }
-        
+
         focusManager.removeFocusURL(focusURL)
         selectedURLId = nil
     }
@@ -193,7 +192,7 @@ private struct FocusURLsList: View {
     @EnvironmentObject var focusManager: FocusManager
     @EnvironmentObject var licenseManager: LicenseManager
     @Binding var selectedURLId: UUID?
-    
+
     var body: some View {
         VStack {
             List(selection: $selectedURLId) {
@@ -203,7 +202,7 @@ private struct FocusURLsList: View {
             }
             .listStyle(.bordered)
             .animation(.easeInOut(duration: 0.2), value: focusManager.focusURLs.count)
-            
+
             if !licenseManager.isLicensed {
                 HStack {
                     Image(systemName: "lock.fill")
@@ -211,9 +210,9 @@ private struct FocusURLsList: View {
                     Text("Upgrade to Auto-Focus+ for unlimited URLs")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    
+
                     Spacer()
-                    
+
                     Button("Upgrade") {
                         // Navigate to upgrade tab
                     }
@@ -230,31 +229,31 @@ private struct FocusURLsList: View {
 
 private struct FocusURLRowSimple: View {
     let focusURL: FocusURL
-    
+
     var body: some View {
         HStack {
             Image(systemName: focusURL.category.icon)
                 .foregroundColor(colorForCategory(focusURL.category))
                 .frame(width: 20)
-            
+
             VStack(alignment: .leading, spacing: 2) {
                 HStack {
                     Text(focusURL.name)
                         .font(.headline)
-                    
+
                     if focusURL.isPremium {
                         Image(systemName: "crown.fill")
                             .foregroundColor(.yellow)
                             .font(.caption)
                     }
-                    
+
                     if !focusURL.isEnabled {
                         Image(systemName: "pause.circle")
                             .foregroundColor(.orange)
                             .font(.caption)
                     }
                 }
-                
+
                 Text(focusURL.domain)
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -262,7 +261,7 @@ private struct FocusURLRowSimple: View {
         }
         .tag(focusURL.id)
     }
-    
+
     private func colorForCategory(_ category: URLCategory) -> Color {
         switch category.color {
         case "blue": return .blue
@@ -281,7 +280,7 @@ private struct AddURLOptionsSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var showingAddURL: Bool
     @Binding var showingPresets: Bool
-    
+
     var body: some View {
         NavigationView {
             VStack(spacing: 24) {
@@ -289,13 +288,13 @@ private struct AddURLOptionsSheet: View {
                     Text("Add Focus URL")
                         .font(.title2)
                         .fontWeight(.bold)
-                    
+
                     Text("Choose how you want to add a new focus URL")
                         .font(.callout)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                 }
-                
+
                 VStack(spacing: 16) {
                     Button {
                         dismiss()
@@ -309,19 +308,19 @@ private struct AddURLOptionsSheet: View {
                                     Image(systemName: "list.bullet.rectangle")
                                         .font(.title2)
                                         .foregroundColor(.blue)
-                                    
+
                                     Text("Choose from Presets")
                                         .font(.headline)
                                         .foregroundColor(.primary)
                                 }
-                                
+
                                 Text("Select from common websites like GitHub, Google Docs, Notion, and more")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
-                            
+
                             Spacer()
-                            
+
                             Image(systemName: "chevron.right")
                                 .foregroundColor(.secondary)
                         }
@@ -330,7 +329,7 @@ private struct AddURLOptionsSheet: View {
                         .cornerRadius(8)
                     }
                     .buttonStyle(.plain)
-                    
+
                     Button {
                         dismiss()
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -343,19 +342,19 @@ private struct AddURLOptionsSheet: View {
                                     Image(systemName: "plus.circle")
                                         .font(.title2)
                                         .foregroundColor(.green)
-                                    
+
                                     Text("Add Custom URL")
                                         .font(.headline)
                                         .foregroundColor(.primary)
                                 }
-                                
+
                                 Text("Enter your own domain or URL pattern to track")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
-                            
+
                             Spacer()
-                            
+
                             Image(systemName: "chevron.right")
                                 .foregroundColor(.secondary)
                         }
@@ -365,7 +364,7 @@ private struct AddURLOptionsSheet: View {
                     }
                     .buttonStyle(.plain)
                 }
-                
+
                 Spacer()
             }
             .padding()
@@ -387,7 +386,7 @@ private struct AddURLSheet: View {
     @Binding var newURL: FocusURL
     @Binding var selectedCategory: URLCategory
     @State private var selectedMatchType: URLMatchType = .domain
-    
+
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
@@ -399,7 +398,7 @@ private struct AddURLSheet: View {
                     }
                     .padding(.vertical, 8)
                 }
-                
+
                 GroupBox("Matching") {
                     VStack(spacing: 12) {
                         Picker("Match Type", selection: $selectedMatchType) {
@@ -417,7 +416,7 @@ private struct AddURLSheet: View {
                     }
                     .padding(.vertical, 8)
                 }
-                
+
                 GroupBox("Category") {
                     VStack(spacing: 12) {
                         Picker("Category", selection: $selectedCategory) {
@@ -430,14 +429,14 @@ private struct AddURLSheet: View {
                     }
                     .padding(.vertical, 8)
                 }
-                
+
                 if !newURL.domain.isEmpty {
                     GroupBox("Preview") {
                         VStack(spacing: 8) {
                             Text("Will match URLs like:")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            
+
                             Text(previewText)
                                 .font(.caption)
                                 .foregroundColor(.blue)
@@ -446,7 +445,7 @@ private struct AddURLSheet: View {
                         .padding(.vertical, 8)
                     }
                 }
-                
+
                 Spacer()
             }
             .padding()
@@ -457,7 +456,7 @@ private struct AddURLSheet: View {
                         dismiss()
                     }
                 }
-                
+
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Add") {
                         addURL()
@@ -467,7 +466,7 @@ private struct AddURLSheet: View {
             }
         }
     }
-    
+
     private var previewText: String {
         let domain = newURL.domain.lowercased()
         switch selectedMatchType {
@@ -481,20 +480,20 @@ private struct AddURLSheet: View {
             return "URLs starting with '\(domain)'"
         }
     }
-    
+
     private func addURL() {
         var urlToAdd = newURL
         urlToAdd.category = selectedCategory
         urlToAdd.matchType = selectedMatchType
         urlToAdd.domain = urlToAdd.domain.lowercased()
-        
+
         focusManager.addFocusURL(urlToAdd)
-        
+
         // Reset form
         newURL = FocusURL(name: "", domain: "")
         selectedCategory = .work
         selectedMatchType = .domain
-        
+
         dismiss()
     }
 }
@@ -503,7 +502,7 @@ private struct EditURLSheet: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var focusManager: FocusManager
     @State var focusURL: FocusURL
-    
+
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
@@ -515,7 +514,7 @@ private struct EditURLSheet: View {
                     }
                     .padding(.vertical, 8)
                 }
-                
+
                 GroupBox("Settings") {
                     VStack(spacing: 12) {
                         Picker("Match Type", selection: $focusURL.matchType) {
@@ -530,7 +529,7 @@ private struct EditURLSheet: View {
                             }
                         }
                         .pickerStyle(.menu)
-                        
+
                         Picker("Category", selection: $focusURL.category) {
                             ForEach(URLCategory.allCases, id: \.self) { category in
                                 Label(category.displayName, systemImage: category.icon)
@@ -538,12 +537,12 @@ private struct EditURLSheet: View {
                             }
                         }
                         .pickerStyle(.menu)
-                        
+
                         Toggle("Enabled", isOn: $focusURL.isEnabled)
                     }
                     .padding(.vertical, 8)
                 }
-                
+
                 Spacer()
             }
             .padding()
@@ -554,7 +553,7 @@ private struct EditURLSheet: View {
                         dismiss()
                     }
                 }
-                
+
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
                         saveURL()
@@ -563,7 +562,7 @@ private struct EditURLSheet: View {
             }
         }
     }
-    
+
     private func saveURL() {
         focusManager.updateFocusURL(focusURL)
         dismiss()
@@ -575,13 +574,13 @@ private struct URLPresetsSheet: View {
     @EnvironmentObject var focusManager: FocusManager
     @EnvironmentObject var licenseManager: LicenseManager
     @State private var selectedPresets: Set<UUID> = []
-    
+
     var body: some View {
         NavigationView {
             List {
                 ForEach(URLCategory.allCases, id: \.self) { category in
                     let presetsInCategory = focusManager.availableURLPresets.filter { $0.category == category }
-                    
+
                     if !presetsInCategory.isEmpty {
                         Section(category.displayName) {
                             ForEach(presetsInCategory) { preset in
@@ -603,7 +602,7 @@ private struct URLPresetsSheet: View {
                         dismiss()
                     }
                 }
-                
+
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Add Selected") {
                         addSelectedPresets()
@@ -613,7 +612,7 @@ private struct URLPresetsSheet: View {
             }
         }
     }
-    
+
     private func togglePreset(_ preset: FocusURL) {
         if selectedPresets.contains(preset.id) {
             selectedPresets.remove(preset.id)
@@ -621,7 +620,7 @@ private struct URLPresetsSheet: View {
             selectedPresets.insert(preset.id)
         }
     }
-    
+
     private func addSelectedPresets() {
         let presetsToAdd = focusManager.availableURLPresets.filter { selectedPresets.contains($0.id) }
         focusManager.addPresetURLs(presetsToAdd)
@@ -634,35 +633,35 @@ private struct PresetRow: View {
     let isSelected: Bool
     let canSelect: Bool
     let onToggle: () -> Void
-    
+
     var body: some View {
         HStack {
             Button(action: onToggle) {
                 HStack(spacing: 12) {
                     Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                         .foregroundColor(isSelected ? .blue : .gray)
-                    
+
                     Image(systemName: preset.category.icon)
                         .foregroundColor(.blue)
                         .frame(width: 20)
-                    
+
                     VStack(alignment: .leading, spacing: 2) {
                         HStack {
                             Text(preset.name)
                                 .font(.headline)
-                            
+
                             if preset.isPremium {
                                 Image(systemName: "crown.fill")
                                     .foregroundColor(.yellow)
                                     .font(.caption)
                             }
                         }
-                        
+
                         Text(preset.domain)
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
-                    
+
                     Spacer()
                 }
             }

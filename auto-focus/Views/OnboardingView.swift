@@ -493,7 +493,7 @@ struct BrowserIntegrationStepView: View {
                 .frame(minWidth: 700, minHeight: 600)
         }
     }
-    
+
     private var browserStatusText: String {
         if focusManager.isExtensionConnected {
             return "Extension connected • \(focusManager.focusURLs.count) website(s) configured"
@@ -840,7 +840,7 @@ struct OnboardingBrowserConfigSheet: View {
     @State private var newURL = FocusURL(name: "", domain: "")
     @State private var selectedCategory: URLCategory = .work
     @State private var selectedURLId: UUID?
-    
+
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
@@ -850,14 +850,14 @@ struct OnboardingBrowserConfigSheet: View {
                         Text("Being on any of these websites will automatically activate focus mode.")
                             .font(.callout)
                             .foregroundColor(.secondary)
-                        
+
                         // Current URLs list
                         if !focusManager.focusURLs.isEmpty {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Current Focus URLs:")
                                     .font(.subheadline)
                                     .fontWeight(.medium)
-                                
+
                                 ForEach(focusManager.focusURLs.prefix(5)) { url in
                                     HStack {
                                         Image(systemName: "globe")
@@ -868,7 +868,7 @@ struct OnboardingBrowserConfigSheet: View {
                                         Spacer()
                                     }
                                 }
-                                
+
                                 if focusManager.focusURLs.count > 5 {
                                     Text("... and \(focusManager.focusURLs.count - 5) more")
                                         .font(.caption)
@@ -877,7 +877,7 @@ struct OnboardingBrowserConfigSheet: View {
                             }
                             .padding(.vertical, 8)
                         }
-                        
+
                         // Add URL options
                         VStack(spacing: 12) {
                             Button {
@@ -887,7 +887,7 @@ struct OnboardingBrowserConfigSheet: View {
                                     Image(systemName: "list.bullet.rectangle")
                                         .font(.title3)
                                         .foregroundColor(.blue)
-                                    
+
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text("Choose from Presets")
                                             .font(.headline)
@@ -895,9 +895,9 @@ struct OnboardingBrowserConfigSheet: View {
                                             .font(.caption)
                                             .foregroundColor(.secondary)
                                     }
-                                    
+
                                     Spacer()
-                                    
+
                                     Image(systemName: "chevron.right")
                                         .foregroundColor(.secondary)
                                 }
@@ -907,7 +907,7 @@ struct OnboardingBrowserConfigSheet: View {
                             }
                             .buttonStyle(.plain)
                             .disabled(!focusManager.canAddMoreURLs)
-                            
+
                             Button {
                                 showingAddURL = true
                             } label: {
@@ -915,7 +915,7 @@ struct OnboardingBrowserConfigSheet: View {
                                     Image(systemName: "plus.circle")
                                         .font(.title3)
                                         .foregroundColor(.green)
-                                    
+
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text("Add Custom URL")
                                             .font(.headline)
@@ -923,9 +923,9 @@ struct OnboardingBrowserConfigSheet: View {
                                             .font(.caption)
                                             .foregroundColor(.secondary)
                                     }
-                                    
+
                                     Spacer()
-                                    
+
                                     Image(systemName: "chevron.right")
                                         .foregroundColor(.secondary)
                                 }
@@ -936,7 +936,7 @@ struct OnboardingBrowserConfigSheet: View {
                             .buttonStyle(.plain)
                             .disabled(!focusManager.canAddMoreURLs)
                         }
-                        
+
                         // Free tier limitation
                         if !licenseManager.isLicensed {
                             HStack {
@@ -954,7 +954,7 @@ struct OnboardingBrowserConfigSheet: View {
                     }
                     .padding()
                 }
-                
+
                 Spacer()
             }
             .padding()
@@ -988,7 +988,7 @@ struct OnboardingAddURLSheet: View {
     @Binding var newURL: FocusURL
     @Binding var selectedCategory: URLCategory
     @State private var selectedMatchType: URLMatchType = .domain
-    
+
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
@@ -1000,7 +1000,7 @@ struct OnboardingAddURLSheet: View {
                     }
                     .padding(.vertical, 8)
                 }
-                
+
                 GroupBox("Category") {
                     VStack(spacing: 12) {
                         Picker("Category", selection: $selectedCategory) {
@@ -1013,7 +1013,7 @@ struct OnboardingAddURLSheet: View {
                     }
                     .padding(.vertical, 8)
                 }
-                
+
                 Spacer()
             }
             .padding()
@@ -1024,7 +1024,7 @@ struct OnboardingAddURLSheet: View {
                         dismiss()
                     }
                 }
-                
+
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Add") {
                         addURL()
@@ -1034,20 +1034,20 @@ struct OnboardingAddURLSheet: View {
             }
         }
     }
-    
+
     private func addURL() {
         var urlToAdd = newURL
         urlToAdd.category = selectedCategory
         urlToAdd.matchType = selectedMatchType
         urlToAdd.domain = urlToAdd.domain.lowercased()
-        
+
         focusManager.addFocusURL(urlToAdd)
-        
+
         // Reset form
         newURL = FocusURL(name: "", domain: "")
         selectedCategory = .work
         selectedMatchType = .domain
-        
+
         dismiss()
     }
 }
@@ -1057,13 +1057,13 @@ struct OnboardingURLPresetsSheet: View {
     @EnvironmentObject var focusManager: FocusManager
     @EnvironmentObject var licenseManager: LicenseManager
     @State private var selectedPresets: Set<UUID> = []
-    
+
     var body: some View {
         NavigationView {
             List {
                 ForEach(URLCategory.allCases, id: \.self) { category in
                     let presetsInCategory = focusManager.availableURLPresets.filter { $0.category == category }
-                    
+
                     if !presetsInCategory.isEmpty {
                         Section(category.displayName) {
                             ForEach(presetsInCategory) { preset in
@@ -1085,7 +1085,7 @@ struct OnboardingURLPresetsSheet: View {
                         dismiss()
                     }
                 }
-                
+
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Add Selected") {
                         addSelectedPresets()
@@ -1095,7 +1095,7 @@ struct OnboardingURLPresetsSheet: View {
             }
         }
     }
-    
+
     private func togglePreset(_ preset: FocusURL) {
         if selectedPresets.contains(preset.id) {
             selectedPresets.remove(preset.id)
@@ -1103,7 +1103,7 @@ struct OnboardingURLPresetsSheet: View {
             selectedPresets.insert(preset.id)
         }
     }
-    
+
     private func addSelectedPresets() {
         let presetsToAdd = focusManager.availableURLPresets.filter { selectedPresets.contains($0.id) }
         focusManager.addPresetURLs(presetsToAdd)
@@ -1116,35 +1116,35 @@ struct OnboardingPresetRow: View {
     let isSelected: Bool
     let canSelect: Bool
     let onToggle: () -> Void
-    
+
     var body: some View {
         HStack {
             Button(action: onToggle) {
                 HStack(spacing: 12) {
                     Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                         .foregroundColor(isSelected ? .blue : .gray)
-                    
+
                     Image(systemName: preset.category.icon)
                         .foregroundColor(.blue)
                         .frame(width: 20)
-                    
+
                     VStack(alignment: .leading, spacing: 2) {
                         HStack {
                             Text(preset.name)
                                 .font(.headline)
-                            
+
                             if preset.isPremium {
                                 Image(systemName: "crown.fill")
                                     .foregroundColor(.yellow)
                                     .font(.caption)
                             }
                         }
-                        
+
                         Text(preset.domain)
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
-                    
+
                     Spacer()
                 }
             }
