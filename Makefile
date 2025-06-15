@@ -298,7 +298,7 @@ create-github-release: tag-release
 	@VERSION=$$(date +"%Y.%m.%d"); \
 	echo "Creating GitHub release v$$VERSION..."; \
 	git push origin "v$$VERSION" 2>/dev/null || echo "Tag already pushed"; \
-	RELEASE_NOTES="## Auto-Focus v$$VERSION\n\n### Features\n- Intelligent focus detection\n- Browser integration with Chrome extension\n- Focus session analytics\n- Configurable thresholds and buffer times\n\n### Installation\n1. Download Auto-Focus.zip\n2. Extract and move Auto-Focus.app to Applications\n3. Install the included Shortcut\n4. Launch and configure focus apps\n\n### System Requirements\n- macOS Sonoma (14.0) or later\n- Chrome browser (for extension)\n\n---\n\n🔗 **Website**: https://auto-focus.app  \n📧 **Support**: help@auto-focus.app"; \
+	RELEASE_NOTES="## Auto-Focus v$$VERSION\n\n### Features\n- Intelligent focus detection\n- Browser integration with Chrome extension\n- Focus session analytics\n- Configurable thresholds and buffer times\n\n### Installation\n1. Download Auto-Focus.zip\n2. Extract and move Auto-Focus.app to Applications\n3. Install the included Shortcut\n4. Launch and configure focus apps\n\n### System Requirements\n- macOS Sonoma (14.0) or later\n- Chrome browser (for extension)\n\n---\n\n🔗 **Website**: https://auto-focus.app  \n📧 **Support**: auto-focus@janschill.de"; \
 	gh release create "v$$VERSION" \
 		"docs/downloads/Auto-Focus.zip#Auto-Focus.zip" \
 		"docs/downloads/auto-focus-extension.zip#Chrome-Extension.zip" \
