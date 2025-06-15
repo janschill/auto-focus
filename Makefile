@@ -123,16 +123,18 @@ prepare-app-for-notarization: archive-mac
 	@echo "Extracting app from archive..."
 	@rm -rf $(BUILD_DIR)/$(PROJECT_NAME)_temp.app
 	@cp -R "$(ARCHIVE_PATH)/Products/Applications/$(PROJECT_NAME).app" "$(BUILD_DIR)/$(PROJECT_NAME)_temp.app"
+	@echo "Code signing app for notarization..."
+	@codesign --sign "Developer ID Application: Jan Schill (LKQJ2JG34Y)" \
+		--timestamp \
+		--options runtime \
+		--deep \
+		--force \
+		"$(BUILD_DIR)/$(PROJECT_NAME)_temp.app"
+	@echo "Verifying code signature..."
+	@codesign --verify --verbose "$(BUILD_DIR)/$(PROJECT_NAME)_temp.app"
 	@echo "Creating ZIP for notarization..."
 	@cd $(BUILD_DIR) && zip -r $(PROJECT_NAME)_notarization.zip $(PROJECT_NAME)_temp.app
 	@echo "✅ App ready for notarization at $(BUILD_DIR)/$(PROJECT_NAME)_notarization.zip"
-	@echo ""
-	@echo "📝 Next steps:"
-	@echo "   1. Submit for notarization:"
-	@echo "      xcrun notarytool submit '$(BUILD_DIR)/$(PROJECT_NAME)_notarization.zip' --keychain-profile 'Developer' --wait"
-	@echo "   2. After notarization succeeds, staple the ticket:"
-	@echo "      xcrun stapler staple '$(BUILD_DIR)/$(PROJECT_NAME)_temp.app'"
-	@echo "   3. Then run: make package-app"
 
 package-app: prepare-downloads
 	@echo "Packaging notarized app for distribution..."
@@ -152,7 +154,16 @@ package-app: prepare-downloads
 	@cd $(BUILD_DIR) && cp -R $(PROJECT_NAME)_temp.app $(PROJECT_NAME).app
 	@echo "Creating final distribution ZIP..."
 	@cd $(BUILD_DIR) && zip -r ../$(APP_ZIP) $(PROJECT_NAME).app
-	@rm -rf $(BUILD_DIR)/$(PROJECT_NAME).app
+	@echo "Verifying ZIP contents..."
+	@if unzip -l $(APP_ZIP) | grep -q "$(PROJECT_NAME).app/"; then \
+		echo "✅ ZIP contains correctly named $(PROJECT_NAME).app"; \
+	else \
+		echo "❌ ERROR: ZIP does not contain $(PROJECT_NAME).app!"; \
+		unzip -l $(APP_ZIP) | head -10; \
+		exit 1; \
+	fi
+	@echo "Cleaning up temporary files..."
+	@rm -rf $(BUILD_DIR)/$(PROJECT_NAME).app $(BUILD_DIR)/$(PROJECT_NAME)_temp.app
 	@echo "✅ App packaged for distribution at $(APP_ZIP)"
 
 package-extension: prepare-downloads
@@ -201,8 +212,8 @@ deploy-downloads: prepare-distribution package-app
 	@echo "✅ Website updated to use local downloads"
 	@echo ""
 	@echo "📦 Managing git files..."
-	@echo "Removing old distribution files from git..."
-	@git rm -f --ignore-unmatch docs/downloads/*.zip 2>/dev/null || true
+	@echo "Removing old distribution files from git tracking (keeping files)..."
+	@git rm --cached --ignore-unmatch docs/downloads/*.zip 2>/dev/null || true
 	@echo "Adding current distribution files to git..."
 	@git add docs/downloads/Auto-Focus.zip docs/downloads/auto-focus-extension.zip docs/downloads/version.json docs/index.html
 	@echo ""
@@ -281,8 +292,52 @@ create-github-release: tag-release
 		--latest || echo "Release may already exist"
 	@echo "✅ GitHub release created at: https://github.com/janschill/auto-focus/releases/tag/v$$VERSION"
 
-# Complete manual release workflow
-manual-release: deploy-downloads create-github-release
+# Phase 1: Build and prepare for release (includes automated notarization)
+prepare-release: clean archive-mac prepare-app-for-notarization
+	@echo ""
+	@echo "🚀 Starting automated notarization..."
+	@echo "   This may take 1-5 minutes..."
+	@if xcrun notarytool submit 'build/auto-focus_notarization.zip' --keychain-profile 'Developer' --wait; then \
+		echo "✅ Notarization successful!"; \
+		echo "📎 Stapling notarization ticket..."; \
+		if xcrun stapler staple 'build/auto-focus_temp.app'; then \
+			echo "✅ Stapling successful!"; \
+			echo ""; \
+			echo "🎯 PHASE 1 COMPLETE: Build & Notarization"; \
+			echo ""; \
+			echo "✅ App built with current version"; \
+			echo "✅ App notarized and stapled"; \
+			echo ""; \
+			echo "🚀 Next: Run 'make complete-release' to deploy"; \
+		else \
+			echo "❌ Stapling failed!"; \
+			echo "   Try manually: xcrun stapler staple 'build/auto-focus_temp.app'"; \
+			exit 1; \
+		fi; \
+	else \
+		echo "❌ Notarization failed!"; \
+		echo "   Check your keychain profile 'Developer' is configured"; \
+		echo "   Run: xcrun notarytool store-credentials 'Developer' --apple-id 'your@email.com' --team-id 'YOUR_TEAM_ID'"; \
+		exit 1; \
+	fi
+
+# Check that Phase 1 was completed before deploying
+check-build-ready:
+	@echo "🔍 Checking if build is ready for release..."
+	@if [ ! -d "build/auto-focus_temp.app" ]; then \
+		echo "❌ No prepared app found. Run 'make prepare-release' first."; \
+		exit 1; \
+	fi
+	@if ! xcrun stapler validate "build/auto-focus_temp.app" 2>/dev/null; then \
+		echo "❌ App is not properly notarized. Complete notarization steps first."; \
+		echo "   Run: xcrun notarytool submit 'build/auto-focus_notarization.zip' --keychain-profile 'Developer' --wait"; \
+		echo "   Then: xcrun stapler staple 'build/auto-focus_temp.app'"; \
+		exit 1; \
+	fi
+	@echo "✅ Build is ready for release"
+
+# Phase 2: Complete the release (package, deploy, create GitHub release)
+complete-release: check-build-ready package-app deploy-downloads create-github-release
 	@VERSION=$$(date +"%Y.%m.%d"); \
 	echo ""; \
 	echo "🎉 RELEASE v$$VERSION COMPLETE!"; \
@@ -297,6 +352,14 @@ manual-release: deploy-downloads create-github-release
 	echo ""; \
 	echo "🚀 Next: Push to deploy"; \
 	echo "   git push origin main"
+
+# Legacy target (deprecated - use prepare-release + complete-release)
+manual-release: 
+	@echo "⚠️  DEPRECATED: Use the new streamlined process instead:"
+	@echo "   1. make prepare-release    (builds, signs, and notarizes automatically)"
+	@echo "   2. make complete-release   (packages and deploys)"
+	@echo ""
+	@echo "This ensures proper build with current version, automated notarization, and safer release process."
 
 # Complete build pipeline
 release: clean build codesign-check
@@ -338,17 +401,22 @@ help:
 	@echo "  ai-context               - Generate AI context files"
 	@echo "  help                     - Show this help"
 	@echo ""
-	@echo "💡 Complete distribution workflow:"
-	@echo "  1. make prepare-app-for-notarization"
-	@echo "  2. Follow notarization steps (output will guide you)"
-	@echo "  3. make package-app"
-	@echo "  4. make deploy-downloads"
-	@echo "  5. make tag-release (optional: create git tag)"
+	@echo "💡 New Release Workflow (Fully Automated):"
+	@echo "  1. make prepare-release      - Clean, build, sign, and notarize automatically"
+	@echo "  2. make complete-release     - Package, verify naming, deploy, create GitHub release"
+	@echo ""
+	@echo "🔐 Security Features:"
+	@echo "  - Uses 'Developer' keychain profile consistently"
+	@echo "  - Automatic code signing with Developer ID certificate"
+	@echo "  - Verifies app naming in final ZIP (auto-focus.app)"
 	@echo ""
 	@echo "🎯 Release Management:"
+	@echo "  prepare-release          - Phase 1: Build and prepare for notarization"
+	@echo "  check-build-ready        - Verify build is ready for release"
+	@echo "  complete-release         - Phase 2: Package, deploy, create GitHub release"
 	@echo "  tag-release              - Tag current version in git"
 	@echo "  create-github-release    - Create GitHub release with assets"
-	@echo "  manual-release           - Complete release workflow (recommended)"
+	@echo "  manual-release           - (DEPRECATED) Use prepare-release + complete-release"
 	@echo ""
 	@echo "🎯 Optional:"
 	@echo "  create-dmg               - Create DMG format (requires create-dmg)"
