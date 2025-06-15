@@ -306,10 +306,11 @@ struct ProductivityMetricsView: View {
 struct InsightsView: View {
     @EnvironmentObject var focusManager: FocusManager
     @EnvironmentObject var licenseManager: LicenseManager
-    @StateObject private var dataProvider = InsightsViewModel()
+    @StateObject private var dataProvider: InsightsViewModel
     @Binding var selectedTab: Int
 
     init(selectedTab: Binding<Int>) {
+        _dataProvider = StateObject(wrappedValue: InsightsViewModel(dataProvider: InsightsDataProvider(focusManager: FocusManager.shared)))
         _selectedTab = selectedTab
     }
 
@@ -403,7 +404,7 @@ struct InsightsView: View {
         }
         .padding()
         .onAppear {
-            dataProvider.configure(with: InsightsDataProvider(focusManager: focusManager))
+            dataProvider.updateFocusManager(focusManager)
         }
     }
 }
