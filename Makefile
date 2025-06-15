@@ -148,8 +148,11 @@ package-app: prepare-downloads
 	else \
 		echo "✅ App is properly notarized"; \
 	fi
+	@echo "Renaming app for distribution..."
+	@cd $(BUILD_DIR) && cp -R $(PROJECT_NAME)_temp.app $(PROJECT_NAME).app
 	@echo "Creating final distribution ZIP..."
-	@cd $(BUILD_DIR) && zip -r ../$(APP_ZIP) $(PROJECT_NAME)_temp.app
+	@cd $(BUILD_DIR) && zip -r ../$(APP_ZIP) $(PROJECT_NAME).app
+	@rm -rf $(BUILD_DIR)/$(PROJECT_NAME).app
 	@echo "✅ App packaged for distribution at $(APP_ZIP)"
 
 package-extension: prepare-downloads
