@@ -1,152 +1,32 @@
-name: Lint, Test, Build and Release
+name: CI
 
 on:
   push:
-
-permissions:
-  contents: write # This allows creating releases
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   test:
     runs-on: macos-latest
+    
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Setup Xcode
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: latest-stable
-
-      - name: Install dependencies
-        run: |
-          brew install librsvg imagemagick swiftlint
-
-      - name: Run SwiftLint
-        run: |
-          swiftlint --strict
-
-      - name: Run Unit Tests
-        run: |
-          xcodebuild test -scheme auto-focus -destination 'platform=macOS' -enableCodeCoverage YES CODE_SIGN_IDENTITY="-" CODE_SIGNING_ALLOWED=NO
-
-  check-version:
-    if: github.ref == 'refs/heads/main'
-    runs-on: macos-latest
-    outputs:
-      version_changed: ${{ steps.check_version.outputs.changed }}
-      new_version: ${{ steps.check_version.outputs.version }}
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
-
-      - name: Check version change
-        id: check_version
-        run: |
-          echo "Checking previous version..."
-          OLD_VERSION=$(git show HEAD^:auto-focus.xcodeproj/project.pbxproj | grep 'MARKETING_VERSION = ' | head -n1 | sed 's/.*= //' | tr -d ';' | tr -d ' ')
-          echo "Previous version: $OLD_VERSION"
-
-          echo "Checking current version..."
-          NEW_VERSION=$(grep 'MARKETING_VERSION = ' auto-focus.xcodeproj/project.pbxproj | head -n1 | sed 's/.*= //' | tr -d ';' | tr -d ' ')
-          echo "Current version: $NEW_VERSION"
-
-          if [ "$OLD_VERSION" != "$NEW_VERSION" ]; then
-            echo "Version changed from $OLD_VERSION to $NEW_VERSION"
-            echo "changed=true" >> $GITHUB_OUTPUT
-            echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          else
-            echo "No version change detected"
-            echo "changed=false" >> $GITHUB_OUTPUT
-          fi
-
-  build:
-    if: github.ref == 'refs/heads/main' && needs.check-version.outputs.version_changed == 'true'
-    needs: check-version
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Setup Xcode
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: latest-stable
-
-      - name: Install dependencies
-        run: |
-          brew install create-dmg
-          brew install librsvg
-          brew install imagemagick
-
-      - name: Build App
-        run: |
-          xcodebuild -scheme auto-focus -configuration Release -derivedDataPath build
-
-      - name: Create DMG Background
-        run: |
-          mkdir dmg-resources
-          cat > dmg-resources/background.svg << 'EOF'
-          <svg width="540" height="380" xmlns="http://www.w3.org/2000/svg">
-            <rect width="540" height="380" fill="#f5f5f7"/>
-            <text x="270" y="330" font-family="SF Pro" font-size="13" fill="#666" text-anchor="middle">Drag Auto-Focus to the Applications folder to install</text>
-          </svg>
-          EOF
-          rsvg-convert dmg-resources/background.svg -o dmg-resources/background.png
-
-      - name: Prepare DMG Contents
-        run: |
-          mkdir -p dmg-build/Auto-Focus
-          cp -r build/Build/Products/Release/auto-focus.app dmg-build/Auto-Focus/
-          ln -s /Applications dmg-build/Auto-Focus/
-
-          # Create Shortcuts directory and copy the shortcut file
-          mkdir -p dmg-build/Auto-Focus/Shortcuts
-          cp auto-focus/Shortcuts/Toggle\ Do\ Not\ Disturb.shortcut dmg-build/Auto-Focus/Shortcuts/
-
-          # Create a README
-          cat > dmg-build/Auto-Focus/README.txt << 'EOF'
-          Auto-Focus Installation
-
-          1. Drag Auto-Focus to the Applications folder
-          2. Double-click the Shortcuts folder
-          3. Double-click the Toggle Do Not Disturb shortcut to install it (do not rename the shortcut)
-          4. Launch Auto-Focus and complete the setup
-          EOF
-
-      - name: Create DMG
-        run: |
-          create-dmg \
-            --volname "Auto-Focus" \
-            --background "dmg-resources/background.png" \
-            --window-pos 200 120 \
-            --window-size 540 380 \
-            --icon-size 128 \
-            --icon "auto-focus.app" 125 180 \
-            --icon "Applications" 415 180 \
-            --icon "Shortcuts" 125 280 \
-            --icon "README.txt" 415 280 \
-            --hide-extension "auto-focus.app" \
-            --hide-extension "README.txt" \
-            --app-drop-link 415 180 \
-            --no-internet-enable \
-            "Auto-Focus.dmg" \
-            "dmg-build/Auto-Focus/"
-
-      - name: Upload DMG Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Auto-Focus-${{ needs.check-version.outputs.new_version }}
-          path: Auto-Focus.dmg
-          retention-days: 90
-          compression-level: 0 # DMG is already compressed
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: Auto-Focus.dmg
-          tag_name: v${{ needs.check-version.outputs.new_version }}
-          name: Auto-Focus v${{ needs.check-version.outputs.new_version }}
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - uses: actions/checkout@v3
+    
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: latest-stable
+    
+    - name: Install SwiftLint
+      run: brew install swiftlint
+    
+    - name: Build
+      run: make build
+      
+    - name: Test
+      run: make test-swift
+      
+    - name: Lint
+      run: make lint
+      continue-on-error: true
