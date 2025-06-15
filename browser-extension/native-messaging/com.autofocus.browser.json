@@ -1,9 +1,0 @@
-{
-  "name": "com.autofocus.browser",
-  "description": "Auto-Focus Browser Integration",
-  "path": "/Users/janschill/code/janschill/auto-focus/browser-extension/auto-focus-bridge.sh",
-  "type": "stdio",
-  "allowed_origins": [
-    "chrome-extension://dohhaodonlocmngnchdngdmfdodlmidb/"
-  ]
-}
