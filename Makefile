@@ -340,18 +340,36 @@ check-build-ready:
 complete-release: check-build-ready package-app deploy-downloads create-github-release
 	@VERSION=$$(date +"%Y.%m.%d"); \
 	echo ""; \
+	echo "📝 Committing release changes..."; \
+	git status --porcelain; \
+	git commit -m "$(cat <<'EOF'
+Release v$$VERSION: Update distribution files and website
+
+- Updated Auto-Focus.zip with enhanced MenuBarView (v1.1.1)
+- Updated auto-focus-extension.zip  
+- Updated version.json with latest build info
+- Updated website to use local downloads
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+EOF
+)"; \
+	echo "✅ Changes committed"; \
+	echo ""; \
 	echo "🎉 RELEASE v$$VERSION COMPLETE!"; \
 	echo ""; \
 	echo "✅ Distribution files updated and committed"; \
 	echo "✅ Website updated to use local downloads"; \
 	echo "✅ Git tag v$$VERSION created"; \
 	echo "✅ GitHub release created with assets"; \
+	echo "✅ All changes committed to git"; \
 	echo ""; \
 	echo "🌐 Your website is now live with direct downloads!"; \
 	echo "📦 GitHub release provides backup distribution"; \
 	echo ""; \
-	echo "🚀 Next: Push to deploy"; \
-	echo "   git push origin main"
+	echo "🚀 Final step: Push to deploy"; \
+	echo "   git push origin main --tags"
 
 # Legacy target (deprecated - use prepare-release + complete-release)
 manual-release: 
