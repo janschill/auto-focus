@@ -22,7 +22,7 @@ build-swift:
 
 test-swift:
 	@echo "Running Swift tests..."
-	swift test --parallel
+	xcodebuild test -scheme $(SCHEME) -destination 'platform=macOS' CODE_SIGN_IDENTITY="-" CODE_SIGNING_ALLOWED=NO
 
 swift-package-update:
 	@echo "Updating Swift packages..."
