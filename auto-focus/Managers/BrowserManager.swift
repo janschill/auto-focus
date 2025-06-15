@@ -402,10 +402,8 @@ class BrowserManager: ObservableObject, BrowserManaging {
     }
 
     func addPresetURLs(_ presets: [FocusURL]) {
-        for preset in presets {
-            if !focusURLs.contains(where: { $0.domain == preset.domain }) {
-                addFocusURL(preset)
-            }
+        for preset in presets where !focusURLs.contains(where: { $0.domain == preset.domain }) {
+            addFocusURL(preset)
         }
     }
 }

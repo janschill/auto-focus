@@ -46,76 +46,108 @@ struct FocusURL: Identifiable, Codable, Hashable {
 }
 
 enum URLMatchType: String, CaseIterable, Codable {
-    case exact = "exact"
-    case domain = "domain"
-    case contains = "contains"
-    case startsWith = "startsWith"
+    case exact
+    case domain
+    case contains
+    case startsWith
 
     var displayName: String {
         switch self {
-        case .exact: return "Exact URL"
-        case .domain: return "Domain"
-        case .contains: return "Contains"
-        case .startsWith: return "Starts With"
+        case .exact:
+            return "Exact URL"
+        case .domain:
+            return "Domain"
+        case .contains:
+            return "Contains"
+        case .startsWith:
+            return "Starts With"
         }
     }
 
     var description: String {
         switch self {
-        case .exact: return "Matches the exact URL"
-        case .domain: return "Matches the domain (recommended)"
-        case .contains: return "URL contains the text"
-        case .startsWith: return "URL starts with the text"
+        case .exact:
+            return "Matches the exact URL"
+        case .domain:
+            return "Matches the domain (recommended)"
+        case .contains:
+            return "URL contains the text"
+        case .startsWith:
+            return "URL starts with the text"
         }
     }
 }
 
 enum URLCategory: String, CaseIterable, Codable {
-    case work = "work"
-    case communication = "communication"
-    case development = "development"
-    case design = "design"
-    case documentation = "documentation"
-    case productivity = "productivity"
-    case learning = "learning"
-    case custom = "custom"
+    case work
+    case communication
+    case development
+    case design
+    case documentation
+    case productivity
+    case learning
+    case custom
 
     var displayName: String {
         switch self {
-        case .work: return "Work"
-        case .communication: return "Communication"
-        case .development: return "Development"
-        case .design: return "Design"
-        case .documentation: return "Documentation"
-        case .productivity: return "Productivity"
-        case .learning: return "Learning"
-        case .custom: return "Custom"
+        case .work:
+            return "Work"
+        case .communication:
+            return "Communication"
+        case .development:
+            return "Development"
+        case .design:
+            return "Design"
+        case .documentation:
+            return "Documentation"
+        case .productivity:
+            return "Productivity"
+        case .learning:
+            return "Learning"
+        case .custom:
+            return "Custom"
         }
     }
 
     var icon: String {
         switch self {
-        case .work: return "briefcase"
-        case .communication: return "message"
-        case .development: return "terminal"
-        case .design: return "paintbrush"
-        case .documentation: return "doc.text"
-        case .productivity: return "checkmark.circle"
-        case .learning: return "book"
-        case .custom: return "star"
+        case .work:
+            return "briefcase"
+        case .communication:
+            return "message"
+        case .development:
+            return "terminal"
+        case .design:
+            return "paintbrush"
+        case .documentation:
+            return "doc.text"
+        case .productivity:
+            return "checkmark.circle"
+        case .learning:
+            return "book"
+        case .custom:
+            return "star"
         }
     }
 
     var color: String {
         switch self {
-        case .work: return "blue"
-        case .communication: return "green"
-        case .development: return "purple"
-        case .design: return "pink"
-        case .documentation: return "orange"
-        case .productivity: return "indigo"
-        case .learning: return "yellow"
-        case .custom: return "gray"
+        case .work:
+            return "blue"
+        case .communication:
+            return "green"
+        case .development:
+            return "purple"
+        case .design:
+            return "pink"
+        case .documentation:
+            return "orange"
+        case .productivity:
+            return "indigo"
+        case .learning:
+            return "yellow"
+        case .custom:
+            return "gray"
         }
     }
 }
@@ -172,43 +204,61 @@ struct ExtensionError: Codable, Identifiable {
 }
 
 enum ConnectionQuality: String, Codable, CaseIterable {
-    case unknown = "unknown"
-    case excellent = "excellent"
-    case good = "good"
-    case fair = "fair"
-    case poor = "poor"
-    case disconnected = "disconnected"
+    case unknown
+    case excellent
+    case good
+    case fair
+    case poor
+    case disconnected
 
     var displayName: String {
         switch self {
-        case .unknown: return "Unknown"
-        case .excellent: return "Excellent"
-        case .good: return "Good"
-        case .fair: return "Fair"
-        case .poor: return "Poor"
-        case .disconnected: return "Disconnected"
+        case .unknown:
+            return "Unknown"
+        case .excellent:
+            return "Excellent"
+        case .good:
+            return "Good"
+        case .fair:
+            return "Fair"
+        case .poor:
+            return "Poor"
+        case .disconnected:
+            return "Disconnected"
         }
     }
 
     var color: String {
         switch self {
-        case .unknown: return "gray"
-        case .excellent: return "green"
-        case .good: return "blue"
-        case .fair: return "yellow"
-        case .poor: return "orange"
-        case .disconnected: return "red"
+        case .unknown:
+            return "gray"
+        case .excellent:
+            return "green"
+        case .good:
+            return "blue"
+        case .fair:
+            return "yellow"
+        case .poor:
+            return "orange"
+        case .disconnected:
+            return "red"
         }
     }
 
     var icon: String {
         switch self {
-        case .unknown: return "questionmark.circle"
-        case .excellent: return "wifi.circle.fill"
-        case .good: return "wifi.circle"
-        case .fair: return "wifi.exclamationmark"
-        case .poor: return "wifi.slash"
-        case .disconnected: return "wifi.slash.circle"
+        case .unknown:
+            return "questionmark.circle"
+        case .excellent:
+            return "wifi.circle.fill"
+        case .good:
+            return "wifi.circle"
+        case .fair:
+            return "wifi.exclamationmark"
+        case .poor:
+            return "wifi.slash"
+        case .disconnected:
+            return "wifi.slash.circle"
         }
     }
 }

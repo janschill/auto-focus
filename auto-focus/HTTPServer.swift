@@ -99,114 +99,126 @@ class HTTPServer: ObservableObject {
             handleHeartbeatMessage(message, connection: connection)
 
         case "browser_lost_focus":
-            print("HTTPServer: Browser lost focus")
-
-            // Immediately notify browser manager that browser is no longer in focus
-            DispatchQueue.main.async {
-                // Create a dummy tab info indicating no focus
-                let tabInfo = BrowserTabInfo(
-                    url: "about:blank",
-                    title: "Browser Lost Focus",
-                    isFocusURL: false,
-                    matchedFocusURL: nil
-                )
-                self.browserManager?.updateFromExtension(tabInfo: tabInfo, isFocus: false)
-            }
-
-            let response = [
-                "command": "browser_lost_focus_response",
-                "status": "ok"
-            ] as [String: Any]
-            sendJSONResponse(response, to: connection)
+            handleBrowserLostFocus(message, connection: connection)
 
         case "tab_changed":
-            guard let url = message["url"] as? String else {
-                sendResponse("HTTP/1.1 400 Bad Request\r\n\r\n", to: connection)
-                return
-            }
-
-            let forcedByFocus = message["forcedByFocus"] as? Bool ?? false
-            print("HTTPServer: Tab changed to \(url)\(forcedByFocus ? " (due to Chrome focus)" : "")")
-
-            // Check if URL is a focus URL using BrowserManager
-            let (isFocus, matchedURL) = browserManager?.checkIfURLIsFocus(url) ?? (false, nil)
-            print("HTTPServer: URL check result - isFocus: \(isFocus), matched: \(matchedURL?.name ?? "none")")
-
-            // Update browser manager state
-            let tabInfo = BrowserTabInfo(
-                url: url,
-                title: message["title"] as? String ?? "",
-                isFocusURL: isFocus,
-                matchedFocusURL: matchedURL
-            )
-
-            // If this was forced by focus change, prioritize immediate processing
-            if forcedByFocus {
-                DispatchQueue.main.async {
-                    self.browserManager?.updateFromExtension(tabInfo: tabInfo, isFocus: isFocus)
-                }
-            } else {
-                DispatchQueue.main.async {
-                    self.browserManager?.updateFromExtension(tabInfo: tabInfo, isFocus: isFocus)
-                }
-            }
-
-            let response = [
-                "command": "focus_state_changed",
-                "isFocusActive": isFocus
-            ] as [String: Any]
-
-            sendJSONResponse(response, to: connection)
+            handleTabChanged(message, connection: connection)
 
         case "add_focus_url":
-            guard let domain = message["domain"] as? String,
-                  let name = message["name"] as? String else {
-                sendResponse("HTTP/1.1 400 Bad Request\r\n\r\n", to: connection)
-                return
-            }
-
-            let currentUrl = message["url"] as? String
-            print("HTTPServer: Adding focus URL - domain: \(domain), name: \(name), current URL: \(currentUrl ?? "unknown")")
-
-            // Create new FocusURL
-            let newURL = FocusURL(
-                name: name,
-                domain: domain.lowercased(),
-                matchType: .domain,
-                category: .work,
-                isPremium: false
-            )
-
-            // Add URL through BrowserManager
-            DispatchQueue.main.async {
-                if let browserManager = self.browserManager {
-                    browserManager.addFocusURLWithoutImmediateActivation(newURL)
-                    print("HTTPServer: Successfully added focus URL: \(domain) (with suppressed activation)")
-
-                    let response = [
-                        "command": "add_focus_url_response",
-                        "success": true,
-                        "message": "Added \(domain) as focus URL"
-                    ] as [String: Any]
-
-                    self.sendJSONResponse(response, to: connection)
-                } else {
-                    print("HTTPServer: Failed to add focus URL - no browser manager")
-
-                    let response = [
-                        "command": "add_focus_url_response",
-                        "success": false,
-                        "error": "Browser manager not available"
-                    ] as [String: Any]
-
-                    self.sendJSONResponse(response, to: connection)
-                }
-            }
-            return // Early return since we handle response in async block
+            handleAddFocusURL(message, connection: connection)
 
         default:
             sendResponse("HTTP/1.1 400 Bad Request\r\n\r\n", to: connection)
         }
+    }
+
+    private func handleBrowserLostFocus(_ message: [String: Any], connection: NWConnection) {
+        print("HTTPServer: Browser lost focus")
+
+        // Immediately notify browser manager that browser is no longer in focus
+        DispatchQueue.main.async {
+            // Create a dummy tab info indicating no focus
+            let tabInfo = BrowserTabInfo(
+                url: "about:blank",
+                title: "Browser Lost Focus",
+                isFocusURL: false,
+                matchedFocusURL: nil
+            )
+            self.browserManager?.updateFromExtension(tabInfo: tabInfo, isFocus: false)
+        }
+
+        let response = [
+            "command": "browser_lost_focus_response",
+            "status": "ok"
+        ] as [String: Any]
+        sendJSONResponse(response, to: connection)
+    }
+
+    private func handleTabChanged(_ message: [String: Any], connection: NWConnection) {
+        guard let url = message["url"] as? String else {
+            sendResponse("HTTP/1.1 400 Bad Request\r\n\r\n", to: connection)
+            return
+        }
+
+        let forcedByFocus = message["forcedByFocus"] as? Bool ?? false
+        print("HTTPServer: Tab changed to \(url)\(forcedByFocus ? " (due to Chrome focus)" : "")")
+
+        // Check if URL is a focus URL using BrowserManager
+        let (isFocus, matchedURL) = browserManager?.checkIfURLIsFocus(url) ?? (false, nil)
+        print("HTTPServer: URL check result - isFocus: \(isFocus), matched: \(matchedURL?.name ?? "none")")
+
+        // Update browser manager state
+        let tabInfo = BrowserTabInfo(
+            url: url,
+            title: message["title"] as? String ?? "",
+            isFocusURL: isFocus,
+            matchedFocusURL: matchedURL
+        )
+
+        // If this was forced by focus change, prioritize immediate processing
+        if forcedByFocus {
+            DispatchQueue.main.async {
+                self.browserManager?.updateFromExtension(tabInfo: tabInfo, isFocus: isFocus)
+            }
+        } else {
+            DispatchQueue.main.async {
+                self.browserManager?.updateFromExtension(tabInfo: tabInfo, isFocus: isFocus)
+            }
+        }
+
+        let response = [
+            "command": "focus_state_changed",
+            "isFocusActive": isFocus
+        ] as [String: Any]
+
+        sendJSONResponse(response, to: connection)
+    }
+
+    private func handleAddFocusURL(_ message: [String: Any], connection: NWConnection) {
+        guard let domain = message["domain"] as? String,
+              let name = message["name"] as? String else {
+            sendResponse("HTTP/1.1 400 Bad Request\r\n\r\n", to: connection)
+            return
+        }
+
+        let currentUrl = message["url"] as? String
+        print("HTTPServer: Adding focus URL - domain: \(domain), name: \(name), current URL: \(currentUrl ?? "unknown")")
+
+        // Create new FocusURL
+        let newURL = FocusURL(
+            name: name,
+            domain: domain.lowercased(),
+            matchType: .domain,
+            category: .work,
+            isPremium: false
+        )
+
+        // Add URL through BrowserManager
+        DispatchQueue.main.async {
+            if let browserManager = self.browserManager {
+                browserManager.addFocusURLWithoutImmediateActivation(newURL)
+                print("HTTPServer: Successfully added focus URL: \(domain) (with suppressed activation)")
+
+                let response = [
+                    "command": "add_focus_url_response",
+                    "success": true,
+                    "message": "Added \(domain) as focus URL"
+                ] as [String: Any]
+
+                self.sendJSONResponse(response, to: connection)
+            } else {
+                print("HTTPServer: Failed to add focus URL - no browser manager")
+
+                let response = [
+                    "command": "add_focus_url_response",
+                    "success": false,
+                    "error": "Browser manager not available"
+                ] as [String: Any]
+
+                self.sendJSONResponse(response, to: connection)
+            }
+        }
+        return // Early return since we handle response in async block
     }
 
     private func sendJSONResponse(_ object: [String: Any], to connection: NWConnection) {
