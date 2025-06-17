@@ -102,6 +102,12 @@ class SessionManager: ObservableObject, SessionManaging {
         focusSessions = userDefaultsManager.load([FocusSession].self, forKey: UserDefaultsManager.Keys.focusSessions) ?? []
     }
 
+    // MARK: - Import Methods
+    
+    func importSessions(_ sessions: [FocusSession]) {
+        focusSessions.append(contentsOf: sessions)
+    }
+
     // MARK: - Debug Methods
 
     func addSampleSessions(_ sessions: [FocusSession]) {

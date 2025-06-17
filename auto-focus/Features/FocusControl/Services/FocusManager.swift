@@ -496,7 +496,7 @@ class FocusManager: ObservableObject {
             }
 
             if !isDuplicate {
-                sessionManager.addSampleSessions([session])
+                sessionManager.importSessions([session])
                 imported += 1
             } else {
                 skipped += 1
@@ -659,6 +659,19 @@ extension FocusManager: AppMonitorDelegate {
                     } else if isFocusAppActive {
                         // We were in native app focus, now we're leaving
                         handleNonFocusAppInFront()
+                    }
+                }
+            } else {
+                // Switched to a browser app - check if extension is connected
+                if !isExtensionConnected {
+                    print("FocusManager: Switched to browser without extension - ending browser focus")
+                    // No extension means we can't track browser focus, so set it to false
+                    batchUpdate {
+                        self.isBrowserInFocus = false
+                    }
+                    // If we were only in browser focus (not native app focus), end the session
+                    if !isFocusAppActive {
+                        handleBrowserFocusDeactivated()
                     }
                 }
             }
