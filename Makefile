@@ -118,9 +118,36 @@ ai-swift-refactor:
 	@echo "Triggering AI refactor analysis..."
 	@echo "Feature analysis complete. Use 'claude \"Review the FocusControl feature and suggest SwiftUI improvements for better performance\"'"
 
-# Browser extension
-build-extension:
-	@echo "Browser extension is built separately. Check auto-focus-browser-extension/ directory."
+# Browser extension build with semantic versioning
+# Usage: make build-extension BUMP=patch|minor|major (defaults to patch)
+BUMP ?= patch
+build-extension: prepare-downloads
+	@echo "🌐 Building browser extension..."
+	@CURRENT_VERSION=$$(grep '"version"' auto-focus-browser-extension/chrome/manifest.json | sed 's/.*"version": "\([^"]*\)".*/\1/'); \
+	echo "Current version: $$CURRENT_VERSION"; \
+	MAJOR=$$(echo $$CURRENT_VERSION | cut -d. -f1); \
+	MINOR=$$(echo $$CURRENT_VERSION | cut -d. -f2); \
+	PATCH=$$(echo $$CURRENT_VERSION | cut -d. -f3); \
+	if [ "$(BUMP)" = "major" ]; then \
+		NEW_VERSION="$$((MAJOR + 1)).0.0"; \
+	elif [ "$(BUMP)" = "minor" ]; then \
+		NEW_VERSION="$$MAJOR.$$((MINOR + 1)).0"; \
+	elif [ "$(BUMP)" = "patch" ]; then \
+		NEW_VERSION="$$MAJOR.$$MINOR.$$((PATCH + 1))"; \
+	else \
+		echo "❌ Invalid BUMP value: $(BUMP). Use patch, minor, or major"; \
+		exit 1; \
+	fi; \
+	echo "🔢 Bumping $(BUMP) version: $$CURRENT_VERSION -> $$NEW_VERSION"; \
+	sed -i.bak "s/\"version\": \"[^\"]*\"/\"version\": \"$$NEW_VERSION\"/" auto-focus-browser-extension/chrome/manifest.json; \
+	rm -f auto-focus-browser-extension/chrome/manifest.json.bak; \
+	echo "📦 Creating extension ZIP for version $$NEW_VERSION..."; \
+	cd auto-focus-browser-extension && zip -r ../$(EXTENSION_ZIP) chrome/ -x "*.DS_Store*" "*/.git*"; \
+	echo "✅ Extension built and packaged at $(EXTENSION_ZIP)"; \
+	echo "📋 Extension info:"; \
+	echo "   Version: $$NEW_VERSION"; \
+	echo "   File: $(EXTENSION_ZIP)"; \
+	echo "   Ready for Chrome Web Store submission"
 
 # Distribution targets
 prepare-downloads:
@@ -181,10 +208,10 @@ package-app: prepare-downloads
 	@rm -rf $(BUILD_DIR)/$(PROJECT_NAME).app $(BUILD_DIR)/$(PROJECT_NAME)_temp.app
 	@echo "✅ App packaged for distribution at $(APP_ZIP)"
 
-package-extension: prepare-downloads
-	@echo "Packaging browser extension..."
-	@cd auto-focus-browser-extension && zip -r ../$(EXTENSION_ZIP) chrome/
-	@echo "✅ Extension packaged at $(EXTENSION_ZIP)"
+package-extension:
+	@echo "⚠️  DEPRECATED: Use 'make build-extension BUMP=patch|minor|major' instead"
+	@echo "   This target now calls build-extension with patch bump"
+	@$(MAKE) build-extension BUMP=patch
 
 generate-version: prepare-downloads
 	@echo "Generating version information..."
