@@ -5,8 +5,7 @@
   "description": "Integrate browser tabs with Auto-Focus for enhanced productivity tracking",
   
   "permissions": [
-    "tabs",
-    "storage"
+    "tabs"
   ],
   
   "host_permissions": [
