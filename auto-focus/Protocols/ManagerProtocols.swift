@@ -13,6 +13,7 @@ protocol SessionManaging: AnyObject, ObservableObject {
     func cancelCurrentSession()
     func addSampleSessions(_ sessions: [FocusSession])
     func clearAllSessions()
+    func importSessions(_ sessions: [FocusSession])
 }
 
 // MARK: - App Monitoring Protocol
