@@ -33,7 +33,7 @@ class LicenseManager: ObservableObject {
     private let validationIntervalHours: TimeInterval = 24 // Validate once per day
 
     // License server configuration
-    private let licenseServerURL = "https://api.auto-focus.app/v1/licenses"
+    private let licenseServerURL = "http://localhost:8080/api/v1/licenses"
 
     enum LicenseStatus: String, CaseIterable {
         case inactive = "inactive"
@@ -129,15 +129,16 @@ class LicenseManager: ObservableObject {
     }
     
     private func performPostInitializationSetup() {
-        // Check if we're in beta period
-        if isInBetaPeriod {
-            logger.info("Beta period active, enabling beta access", metadata: [
+        // First check if user has a valid license that needs validation
+        if shouldValidateLicense() {
+            logger.info("License validation required on startup")
+            validateLicense()
+        } else if !isLicensed && isInBetaPeriod {
+            // Only enable beta access if user doesn't have a valid license
+            logger.info("No valid license found, enabling beta access", metadata: [
                 "beta_expiry": ISO8601DateFormatter().string(from: betaExpiryDate)
             ])
             enableBetaAccess()
-        } else if shouldValidateLicense() {
-            logger.info("License validation required on startup")
-            validateLicense()
         }
     }
 
@@ -366,9 +367,7 @@ class LicenseManager: ObservableObject {
 
         let requestBody = [
             "license_key": key,
-            "instance_id": generateInstanceIdentifier(),
-            "app_version": appVersion,
-            "platform": "macos"
+            "app_version": appVersion
         ]
 
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
@@ -394,7 +393,7 @@ class LicenseManager: ObservableObject {
                     throw LicenseError.invalidFormat
                 }
 
-                return try parseLicenseResponse(json)
+                return try parseLicenseResponse(json, licenseKey: key)
             }
             
             logger.info("License validation successful", metadata: [
@@ -441,28 +440,25 @@ class LicenseManager: ObservableObject {
         }
     }
 
-    private func parseLicenseResponse(_ json: [String: Any]) throws -> License {
-        guard let ownerName = json["owner_name"] as? String,
-              let email = json["email"] as? String else {
+    private func parseLicenseResponse(_ json: [String: Any], licenseKey: String) throws -> License {
+        guard let valid = json["valid"] as? Bool,
+              let message = json["message"] as? String else {
             throw LicenseError.invalidFormat
         }
 
-        var expiryDate: Date?
-        if let expiryString = json["expires_at"] as? String {
-            let formatter = ISO8601DateFormatter()
-            expiryDate = formatter.date(from: expiryString)
+        guard valid else {
+            throw LicenseError.serverError(message)
         }
 
-        let appVersion = json["app_version"] as? String
-        let maxApps = json["max_apps"] as? Int
-
+        // Since your API only returns valid/message, we'll create a basic license
+        // You can extend this if your API returns more license details in the future
         return License(
             licenseKey: licenseKey,
-            ownerName: ownerName,
-            email: email,
-            expiryDate: expiryDate,
+            ownerName: "Licensed User", // Default since API doesn't return this
+            email: "user@example.com", // Default since API doesn't return this
+            expiryDate: nil, // No expiry info from API
             appVersion: appVersion,
-            maxApps: maxApps
+            maxApps: nil // No limit info from API
         )
     }
 
