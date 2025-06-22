@@ -10,6 +10,7 @@
     <script defer data-domain="auto-focus.app" src="https://nsa.janschill.de/js/script.file-downloads.js"></script>
     <script>window.plausible = window.plausible || function () { (window.plausible.q = window.plausible.q || []).push(arguments) }</script>
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <script src="https://js.stripe.com/v3"></script>
     <style>
         :root {
             --primary-color: rgb(123, 170, 191);
@@ -499,6 +500,21 @@
                     </div>
                 </div>
 
+                <!-- Stripe Checkout Section - Hidden for testing
+                <div class="mt-8 p-6 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg">
+                    <h3 class="font-semibold text-lg mb-3 text-gray-900">Early Access Special</h3>
+                    <p class="text-gray-600 mb-4">Get lifetime access to Auto-Focus+ at a special early bird price. Limited time offer for beta users!</p>
+                    <button
+                        style="background-color:#6772E5;color:#FFF;padding:12px 24px;border:0;border-radius:8px;font-size:1em;cursor:pointer;font-weight:600"
+                        id="checkout-button-price_1RclfYHG3jEF4Mbtk53ComY9"
+                        role="link"
+                        type="button">
+                        Get Lifetime Access
+                    </button>
+                    <div id="error-message" class="text-red-600 mt-2"></div>
+                </div>
+                -->
+
                 <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
                     <a href="mailto:auto-focus@janschill.de?subject=Feedback"
                         class="primary-btn text-white px-6 py-3 rounded-lg font-semibold inline-flex items-center gap-2">
@@ -531,6 +547,30 @@
             <p class="text-sm">© 2025 Auto-Focus. All rights reserved.</p>
         </footer>
     </div>
+
+    <script>
+    (function() {
+        var stripe = Stripe('pk_live_51RJsTJHG3jEF4MbtWkI32NWB3j69lMvPnwlAhH81xKsWwko0vNrj9rTZzsvzaUzmSYqMbSnTGrS7Xs24ymwIoqay008AuEGDQG');
+
+        var checkoutButton = document.getElementById('checkout-button-price_1RclfYHG3jEF4Mbtk53ComY9');
+        if (checkoutButton) {
+            checkoutButton.addEventListener('click', function () {
+                stripe.redirectToCheckout({
+                    lineItems: [{price: 'price_1RclfYHG3jEF4Mbtk53ComY9', quantity: 1}],
+                    mode: 'payment',
+                    successUrl: 'https://auto-focus.app/success',
+                    cancelUrl: 'https://auto-focus.app/canceled',
+                })
+                .then(function (result) {
+                    if (result.error) {
+                        var displayError = document.getElementById('error-message');
+                        displayError.textContent = result.error.message;
+                    }
+                });
+            });
+        }
+    })();
+    </script>
 </body>
 
 </html>

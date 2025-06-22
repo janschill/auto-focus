@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purchase Successful - Auto-Focus</title>
+    <meta name="description" content="Thank you for purchasing Auto-Focus! Your license key and download instructions are ready.">
+    <script defer data-domain="auto-focus.app" src="https://nsa.janschill.de/js/script.file-downloads.js"></script>
+    <script>window.plausible = window.plausible || function () { (window.plausible.q = window.plausible.q || []).push(arguments) }</script>
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <style>
+        :root {
+            --primary-color: rgb(123, 170, 191);
+            --primary-hover: rgb(98, 136, 153);
+            --primary-light: rgba(123, 170, 191, 0.1);
+            --accent-color: #4f46e5;
+            --accent-hover: #4338ca;
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        }
+
+        .primary-btn {
+            background-color: var(--primary-color);
+            transition: all 0.3s ease;
+        }
+
+        .primary-btn:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 10px 25px rgba(119, 119, 119, 0.2);
+        }
+
+        .primary-text {
+            color: var(--primary-color);
+        }
+
+        .success-icon {
+            animation: checkmark 0.6s ease-out;
+        }
+
+        @keyframes checkmark {
+            0% { transform: scale(0) rotate(45deg); opacity: 0; }
+            50% { transform: scale(1.2) rotate(45deg); }
+            100% { transform: scale(1) rotate(45deg); opacity: 1; }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+
+<body class="gradient-bg min-h-screen flex items-center justify-center px-4">
+    <div class="max-w-2xl w-full text-center fade-in">
+        <div class="bg-white rounded-2xl shadow-xl p-8 md:p-12">
+            <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg class="w-10 h-10 text-green-500 success-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                Purchase Successful!
+            </h1>
+            
+            <p class="text-lg text-gray-600 mb-8">
+                Thank you for purchasing Auto-Focus. Your license key has been sent to your email address.
+                Check your inbox for download instructions and activation details.
+            </p>
+
+            <div class="bg-gray-50 rounded-lg p-6 mb-8">
+                <h2 class="text-lg font-semibold text-gray-900 mb-3">What's Next?</h2>
+                <ol class="text-left space-y-2 text-gray-600">
+                    <li class="flex items-start gap-2">
+                        <span class="primary-text font-semibold">1.</span>
+                        <span>Check your email for your license key and receipt</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="primary-text font-semibold">2.</span>
+                        <span>Download Auto-Focus if you haven't already</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="primary-text font-semibold">3.</span>
+                        <span>Enter your license key in the app's License view</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="primary-text font-semibold">4.</span>
+                        <span>Start protecting your focus time!</span>
+                    </li>
+                </ol>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="downloads/Auto-Focus.zip"
+                    class="primary-btn text-white px-6 py-3 rounded-lg font-semibold inline-flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Download Auto-Focus
+                </a>
+                <a href="/"
+                    class="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-50">
+                    Return to Home
+                </a>
+            </div>
+
+            <p class="text-sm text-gray-500 mt-8">
+                Need help? Contact us at <a href="mailto:auto-focus@janschill.de" class="primary-text hover:underline">auto-focus@janschill.de</a>
+            </p>
+        </div>
+    </div>
+</body>
+
+</html>

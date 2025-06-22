@@ -5,6 +5,10 @@ import Foundation
 
 // MARK: - Mock Session Manager
 class MockSessionManager: ObservableObject, SessionManaging {
+    func importSessions(_ sessions: [FocusSession]) {
+        
+    }
+    
     @Published var focusSessions: [FocusSession] = []
     @Published var isSessionActive: Bool = false
 

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout Test - Auto-Focus</title>
+    <meta name="robots" content="noindex, nofollow">
+    <script defer data-domain="auto-focus.app" src="https://nsa.janschill.de/js/script.file-downloads.js"></script>
+    <script>window.plausible = window.plausible || function () { (window.plausible.q = window.plausible.q || []).push(arguments) }</script>
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <script src="https://js.stripe.com/v3"></script>
+    <style>
+        :root {
+            --primary-color: rgb(123, 170, 191);
+            --primary-hover: rgb(98, 136, 153);
+            --primary-light: rgba(123, 170, 191, 0.1);
+            --accent-color: #4f46e5;
+            --accent-hover: #4338ca;
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        }
+
+        .primary-btn {
+            background-color: var(--primary-color);
+            transition: all 0.3s ease;
+        }
+
+        .primary-btn:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 10px 25px rgba(119, 119, 119, 0.2);
+        }
+
+        .primary-text {
+            color: var(--primary-color);
+        }
+    </style>
+</head>
+
+<body class="gradient-bg min-h-screen flex items-center justify-center px-4">
+    <div class="max-w-2xl w-full text-center">
+        <div class="bg-white rounded-2xl shadow-xl p-8 md:p-12">
+            <h1 class="text-3xl font-bold text-gray-900 mb-4">
+                Stripe Checkout Test Page
+            </h1>
+            
+            <p class="text-lg text-gray-600 mb-8">
+                This is a hidden test page for testing the Stripe Checkout integration.
+                This page is not linked from the main site and is not indexed by search engines.
+            </p>
+
+            <div class="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-6 mb-6">
+                <h3 class="font-semibold text-lg mb-3 text-gray-900">Early Access Special</h3>
+                <p class="text-gray-600 mb-4">Get lifetime access to Auto-Focus+ at a special early bird price. Limited time offer for beta users!</p>
+                <button
+                    style="background-color:#6772E5;color:#FFF;padding:12px 24px;border:0;border-radius:8px;font-size:1em;cursor:pointer;font-weight:600"
+                    id="checkout-button-price_1RclfYHG3jEF4Mbtk53ComY9"
+                    role="link"
+                    type="button">
+                    Get Lifetime Access
+                </button>
+                <div id="error-message" class="text-red-600 mt-2"></div>
+            </div>
+
+            <div class="text-sm text-gray-500 mt-8">
+                <p>Test URLs:</p>
+                <p>Success: <code class="bg-gray-100 px-2 py-1 rounded">/success.html</code></p>
+                <p>Canceled: <code class="bg-gray-100 px-2 py-1 rounded">/canceled.html</code></p>
+            </div>
+
+            <a href="/" class="primary-btn text-white px-6 py-3 rounded-lg font-semibold inline-block mt-6">
+                Back to Home
+            </a>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        var stripe = Stripe('pk_live_51RJsTJHG3jEF4MbtWkI32NWB3j69lMvPnwlAhH81xKsWwko0vNrj9rTZzsvzaUzmSYqMbSnTGrS7Xs24ymwIoqay008AuEGDQG');
+
+        var checkoutButton = document.getElementById('checkout-button-price_1RclfYHG3jEF4Mbtk53ComY9');
+        if (checkoutButton) {
+            checkoutButton.addEventListener('click', function () {
+                stripe.redirectToCheckout({
+                    lineItems: [{price: 'price_1RclfYHG3jEF4Mbtk53ComY9', quantity: 1}],
+                    mode: 'payment',
+                    successUrl: 'https://auto-focus.app/success',
+                    cancelUrl: 'https://auto-focus.app/canceled',
+                })
+                .then(function (result) {
+                    if (result.error) {
+                        var displayError = document.getElementById('error-message');
+                        displayError.textContent = result.error.message;
+                    }
+                });
+            });
+        }
+    })();
+    </script>
+</body>
+
+</html>
