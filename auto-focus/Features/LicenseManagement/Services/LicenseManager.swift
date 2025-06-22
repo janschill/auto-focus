@@ -33,7 +33,7 @@ class LicenseManager: ObservableObject {
     private let validationIntervalHours: TimeInterval = 24 // Validate once per day
 
     // License server configuration
-    private let licenseServerURL = "http://localhost:8080/api/v1/licenses"
+    private let licenseServerURL = "https://auto-focus.app/api/v1/licenses"
 
     enum LicenseStatus: String, CaseIterable {
         case inactive = "inactive"
