@@ -255,9 +255,19 @@ class LicenseManager: ObservableObject {
             } catch {
                 await MainActor.run {
                     self.validationError = error.localizedDescription
-                    self.licenseStatus = .invalid
-                    self.isLicensed = false
                     self.isActivating = false
+                    
+                    // During beta period, still give beta access even if license activation fails
+                    if isInBetaPeriod {
+                        logger.info("License activation failed but beta period active, enabling beta access", metadata: [
+                            "error": error.localizedDescription,
+                            "beta_expiry": ISO8601DateFormatter().string(from: betaExpiryDate)
+                        ])
+                        enableBetaAccess()
+                    } else {
+                        self.licenseStatus = .invalid
+                        self.isLicensed = false
+                    }
                 }
             }
         }
@@ -318,11 +328,18 @@ class LicenseManager: ObservableObject {
                 }
             } catch {
                 await MainActor.run {
-                    // Don't immediately invalidate on network errors
-                    if case LicenseError.networkError = error {
+                    // During beta period, always give beta access when validation fails
+                    if isInBetaPeriod {
+                        logger.info("License validation failed but beta period active, enabling beta access", metadata: [
+                            "error": error.localizedDescription,
+                            "beta_expiry": ISO8601DateFormatter().string(from: betaExpiryDate)
+                        ])
+                        enableBetaAccess()
+                    } else if case LicenseError.networkError = error {
+                        // After beta period, handle network errors gracefully
                         self.licenseStatus = .networkError
                         // Keep existing license status if we just have network issues
-                        if isInBetaPeriod || (licenseExpiry ?? Date.distantPast) > Date() {
+                        if (licenseExpiry ?? Date.distantPast) > Date() {
                             self.isLicensed = true
                         }
                     } else {
