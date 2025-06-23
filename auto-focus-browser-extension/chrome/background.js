@@ -4,8 +4,9 @@
 const CONFIG = {
   HTTP_PORT: 8942,
   HEARTBEAT_INTERVAL: 30000, // 30 seconds
-  MAX_RECONNECT_ATTEMPTS: 5,
-  RECONNECT_DELAY: 2000 // 2 seconds
+  MAX_RECONNECT_ATTEMPTS: 15, // Increased from 5 to 15
+  RECONNECT_DELAY: 2000, // 2 seconds
+  LONG_RETRY_DELAY: 60000 // 1 minute for long retries
 };
 
 let currentTabId = null;
@@ -13,6 +14,8 @@ let currentUrl = null;
 let isConnectedToApp = false;
 let reconnectAttempts = 0;
 let heartbeatInterval = null;
+let connectionErrors = [];
+let lastSuccessfulConnection = null;
 
 // Initialize extension
 chrome.runtime.onInstalled.addListener((details) => {
@@ -48,9 +51,11 @@ function cleanup() {
 
 // Connect to Auto-Focus HTTP server
 async function connectToApp() {
-  console.log(`Connecting to Auto-Focus app... (attempt ${reconnectAttempts + 1})`);
+  const attemptNumber = reconnectAttempts + 1;
+  console.log(`🔄 Connecting to Auto-Focus app... (attempt ${attemptNumber}/${CONFIG.MAX_RECONNECT_ATTEMPTS})`);
   
   try {
+    const connectionStart = Date.now();
     const response = await fetch(`http://localhost:${CONFIG.HTTP_PORT}/browser`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -58,37 +63,62 @@ async function connectToApp() {
         command: 'handshake',
         version: chrome.runtime.getManifest().version,
         extensionId: chrome.runtime.id,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        connectionErrors: connectionErrors.slice(-5), // Send last 5 errors for diagnostics
+        lastSuccessfulConnection: lastSuccessfulConnection
       }),
-      signal: AbortSignal.timeout(5000) // 5 second timeout
+      signal: AbortSignal.timeout(8000) // Increased to 8 second timeout
     });
+
+    const connectionTime = Date.now() - connectionStart;
 
     if (response.ok) {
       const result = await response.json();
       if (result.command === 'handshake_response') {
         isConnectedToApp = true;
         reconnectAttempts = 0;
-        console.log('✅ Connected to Auto-Focus app');
+        lastSuccessfulConnection = Date.now();
+        connectionErrors = []; // Clear errors on successful connection
+        
+        console.log(`✅ Connected to Auto-Focus app (${connectionTime}ms)`);
+        console.log('📊 Connection established - app version:', result.appVersion);
+        
         startHeartbeat();
         return;
       }
     }
 
-    throw new Error(`Handshake failed: ${response.status}`);
+    throw new Error(`Handshake failed: HTTP ${response.status} ${response.statusText}`);
   } catch (error) {
-    console.error('Failed to connect to Auto-Focus app:', error);
+    const errorInfo = {
+      timestamp: Date.now(),
+      attempt: attemptNumber,
+      error: error.message,
+      type: error.name || 'ConnectionError'
+    };
+    
+    connectionErrors.push(errorInfo);
+    if (connectionErrors.length > 10) {
+      connectionErrors = connectionErrors.slice(-10); // Keep only last 10 errors
+    }
+    
+    console.error(`❌ Connection attempt ${attemptNumber} failed:`, error.message);
     isConnectedToApp = false;
     
     if (reconnectAttempts < CONFIG.MAX_RECONNECT_ATTEMPTS) {
       reconnectAttempts++;
-      const delay = CONFIG.RECONNECT_DELAY * Math.pow(2, reconnectAttempts - 1);
-      console.log(`Retrying connection in ${delay}ms...`);
+      const delay = Math.min(
+        CONFIG.RECONNECT_DELAY * Math.pow(1.5, reconnectAttempts - 1), // Gentler exponential backoff
+        30000 // Cap at 30 seconds
+      );
+      console.log(`⏳ Retrying connection in ${Math.round(delay/1000)}s... (${CONFIG.MAX_RECONNECT_ATTEMPTS - reconnectAttempts} attempts remaining)`);
       setTimeout(connectToApp, delay);
     } else {
-      console.error('Max reconnection attempts reached');
+      console.error(`❌ Max reconnection attempts (${CONFIG.MAX_RECONNECT_ATTEMPTS}) reached`);
+      console.log('🔄 Will retry connection in 1 minute...');
       reconnectAttempts = 0;
-      // Try again in 5 minutes
-      setTimeout(connectToApp, 300000);
+      // Try again in 1 minute instead of 5
+      setTimeout(connectToApp, CONFIG.LONG_RETRY_DELAY);
     }
   }
 }
@@ -99,32 +129,61 @@ function startHeartbeat() {
     clearInterval(heartbeatInterval);
   }
   
+  let consecutiveHeartbeatFailures = 0;
+  
   heartbeatInterval = setInterval(async () => {
     if (!isConnectedToApp) return;
     
     try {
+      const heartbeatStart = Date.now();
       const response = await fetch(`http://localhost:${CONFIG.HTTP_PORT}/browser`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           command: 'heartbeat',
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          consecutiveFailures: consecutiveHeartbeatFailures,
+          connectionHealth: {
+            state: 'connected',
+            consecutiveFailures: consecutiveHeartbeatFailures,
+            lastError: connectionErrors.length > 0 ? connectionErrors[connectionErrors.length - 1] : null
+          }
         }),
-        signal: AbortSignal.timeout(10000)
+        signal: AbortSignal.timeout(12000) // Increased timeout for heartbeat
       });
       
-      if (!response.ok) {
-        throw new Error(`Heartbeat failed: ${response.status}`);
+      const heartbeatTime = Date.now() - heartbeatStart;
+      
+      if (response.ok) {
+        consecutiveHeartbeatFailures = 0;
+        console.log(`💓 Heartbeat OK (${heartbeatTime}ms)`);
+      } else {
+        throw new Error(`HTTP ${response.status} ${response.statusText}`);
       }
     } catch (error) {
-      console.error('Heartbeat failed, connection lost:', error);
-      isConnectedToApp = false;
-      clearInterval(heartbeatInterval);
-      heartbeatInterval = null;
+      consecutiveHeartbeatFailures++;
+      console.error(`💔 Heartbeat failed (${consecutiveHeartbeatFailures}):`, error.message);
       
-      // Try to reconnect
-      reconnectAttempts = 0;
-      connectToApp();
+      // Only disconnect after 3 consecutive failures to avoid false positives
+      if (consecutiveHeartbeatFailures >= 3) {
+        console.error('❌ Connection lost after 3 consecutive heartbeat failures');
+        isConnectedToApp = false;
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+        
+        // Add error to tracking
+        connectionErrors.push({
+          timestamp: Date.now(),
+          error: `Heartbeat failed: ${error.message}`,
+          type: 'HeartbeatFailure',
+          consecutiveFailures: consecutiveHeartbeatFailures
+        });
+        
+        // Try to reconnect
+        reconnectAttempts = 0;
+        console.log('🔄 Attempting to reconnect...');
+        connectToApp();
+      }
     }
   }, CONFIG.HEARTBEAT_INTERVAL);
 }
@@ -276,8 +335,33 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     case 'getCurrentState':
       sendResponse({
         currentUrl,
-        isConnectedToApp
+        isConnectedToApp,
+        reconnectAttempts,
+        lastSuccessfulConnection,
+        connectionErrors: connectionErrors.slice(-3) // Last 3 errors for popup
       });
+      break;
+    case 'getConnectionDiagnostics':
+      sendResponse({
+        connectionStatus: isConnectedToApp ? 'connected' : 'disconnected',
+        reconnectAttempts,
+        maxReconnectAttempts: CONFIG.MAX_RECONNECT_ATTEMPTS,
+        lastSuccessfulConnection,
+        connectionErrors,
+        heartbeatInterval: heartbeatInterval ? 'active' : 'inactive',
+        extensionVersion: chrome.runtime.getManifest().version
+      });
+      break;
+    case 'forceReconnect':
+      console.log('🔄 Manual reconnection requested from popup');
+      reconnectAttempts = 0;
+      isConnectedToApp = false;
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+      }
+      connectToApp();
+      sendResponse({ status: 'reconnecting' });
       break;
     default:
       sendResponse({ error: 'Unknown action' });
