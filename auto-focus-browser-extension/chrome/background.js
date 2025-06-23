@@ -83,6 +83,8 @@ async function connectToApp() {
         console.log(`✅ Connected to Auto-Focus app (${connectionTime}ms)`);
         console.log('📊 Connection established - app version:', result.appVersion);
         
+        // Validate connection with a test message before declaring success
+        await validateConnection();
         startHeartbeat();
         return;
       }
@@ -186,6 +188,44 @@ function startHeartbeat() {
       }
     }
   }, CONFIG.HEARTBEAT_INTERVAL);
+}
+
+// Validate bidirectional connection after handshake
+async function validateConnection() {
+  try {
+    console.log('🔍 Validating bidirectional connection...');
+    
+    const response = await fetch(`http://localhost:${CONFIG.HTTP_PORT}/browser`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        command: 'connection_test',
+        timestamp: Date.now(),
+        extensionId: chrome.runtime.id,
+        testData: 'validation_ping'
+      }),
+      signal: AbortSignal.timeout(5000)
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      if (result.command === 'connection_test_response' && result.status === 'ok') {
+        console.log('✅ Connection validation successful');
+        return true;
+      }
+    }
+    
+    throw new Error('Connection validation failed');
+  } catch (error) {
+    console.error('❌ Connection validation failed:', error.message);
+    // Don't fail the connection completely, but log for diagnostics
+    connectionErrors.push({
+      timestamp: Date.now(),
+      error: `Validation failed: ${error.message}`,
+      type: 'ValidationFailure'
+    });
+    return false;
+  }
 }
 
 // Start monitoring tab changes

@@ -138,6 +138,9 @@ class HTTPServer: ObservableObject {
         case "add_focus_url":
             handleAddFocusURL(message, connection: connection)
 
+        case "connection_test":
+            handleConnectionTest(message, connection: connection)
+
         default:
             sendResponse("HTTP/1.1 400 Bad Request\r\n\r\n", to: connection)
         }
@@ -413,5 +416,22 @@ class HTTPServer: ObservableObject {
         }
 
         return recommendations
+    }
+    
+    private func handleConnectionTest(_ message: [String: Any], connection: NWConnection) {
+        let extensionId = message["extensionId"] as? String ?? "unknown"
+        let testData = message["testData"] as? String ?? ""
+        
+        print("HTTPServer: Connection test from extension \(extensionId) with data: \(testData)")
+        
+        let response = [
+            "command": "connection_test_response",
+            "status": "ok",
+            "timestamp": Date().timeIntervalSince1970,
+            "testData": testData,
+            "serverStatus": "healthy"
+        ] as [String: Any]
+        
+        sendJSONResponse(response, to: connection)
     }
 }

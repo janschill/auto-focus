@@ -60,6 +60,8 @@ class BrowserManager: ObservableObject, BrowserManaging {
 
     // Suppress focus activation temporarily after adding a URL
     private var suppressFocusActivationUntil: Date?
+    private var connectionTimeoutTimer: Timer?
+    private let connectionTimeoutInterval: TimeInterval = 90.0 // 90 seconds
 
     init(userDefaultsManager: any PersistenceManaging, licenseManager: LicenseManager = LicenseManager()) {
         self.userDefaultsManager = userDefaultsManager
@@ -163,6 +165,16 @@ class BrowserManager: ObservableObject, BrowserManaging {
     }
 
     func updateFromExtension(tabInfo: BrowserTabInfo, isFocus: Bool) {
+        // Ensure we're connected when receiving updates
+        if !isExtensionConnected {
+            print("BrowserManager: ✅ Extension connection restored via tab update")
+            isExtensionConnected = true
+            delegate?.browserManager(self, didChangeConnectionState: true)
+        }
+        
+        // Reset connection timeout timer since we got an update
+        resetConnectionTimeoutTimer()
+        
         let previousFocusState = self.isBrowserInFocus
         self.currentBrowserTab = tabInfo
 
@@ -178,7 +190,6 @@ class BrowserManager: ObservableObject, BrowserManaging {
         if self.isBrowserInFocus != effectiveIsFocus {
             print("BrowserManager: Focus state changing from \(self.isBrowserInFocus) to \(effectiveIsFocus)")
             self.isBrowserInFocus = effectiveIsFocus
-            self.isExtensionConnected = true
 
             // Immediately notify delegate of focus state change
             self.delegate?.browserManager(self, didChangeFocusState: effectiveIsFocus)
@@ -296,6 +307,23 @@ class BrowserManager: ObservableObject, BrowserManaging {
     func addPresetURLs(_ presets: [FocusURL]) {
         for preset in presets where !focusURLs.contains(where: { $0.domain == preset.domain }) {
             addFocusURL(preset)
+        }
+    }
+    
+    // MARK: - Connection Timeout Management
+    
+    private func resetConnectionTimeoutTimer() {
+        connectionTimeoutTimer?.invalidate()
+        connectionTimeoutTimer = Timer.scheduledTimer(withTimeInterval: connectionTimeoutInterval, repeats: false) { [weak self] _ in
+            self?.handleConnectionTimeout()
+        }
+    }
+    
+    private func handleConnectionTimeout() {
+        if isExtensionConnected {
+            print("BrowserManager: ⚠️ Connection timeout - no updates from extension for \(connectionTimeoutInterval) seconds")
+            isExtensionConnected = false
+            delegate?.browserManager(self, didChangeConnectionState: false)
         }
     }
 }
