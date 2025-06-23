@@ -64,7 +64,11 @@ function setupEventListeners() {
 
 // Update UI with current state
 function updateUI(state) {
-  updateConnectionStatus(state.isConnectedToApp);
+  updateConnectionStatus(state.isConnectedToApp, {
+    reconnectAttempts: state.reconnectAttempts || 0,
+    maxReconnectAttempts: 15,
+    connectionErrors: state.connectionErrors || []
+  });
   updateCurrentUrl(state.currentUrl);
 }
 
@@ -102,7 +106,7 @@ function updateCurrentUrl(url) {
 }
 
 // Update connection status
-function updateConnectionStatus(isConnected) {
+function updateConnectionStatus(isConnected, diagnostics = null) {
   const connectionStatus = document.getElementById('connectionStatus');
   const connectionDot = connectionStatus?.querySelector('.connection-dot');
   const connectionText = connectionStatus?.querySelector('.connection-text');
@@ -126,11 +130,21 @@ function updateConnectionStatus(isConnected) {
     statusDot?.classList.add('error');
     
     if (connectionText) {
-      connectionText.textContent = 'Auto-Focus app not running';
+      if (diagnostics?.reconnectAttempts > 0) {
+        connectionText.textContent = `Reconnecting... (${diagnostics.reconnectAttempts}/${diagnostics.maxReconnectAttempts})`;
+      } else {
+        connectionText.textContent = 'Auto-Focus app not running';
+      }
     }
     if (statusText) {
       statusText.textContent = 'Disconnected';
     }
+  }
+  
+  // Add diagnostics info if available
+  if (diagnostics?.connectionErrors?.length > 0) {
+    const lastError = diagnostics.connectionErrors[diagnostics.connectionErrors.length - 1];
+    console.log('Last connection error:', lastError);
   }
 }
 

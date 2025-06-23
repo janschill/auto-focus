@@ -62,6 +62,8 @@ class BrowserManager: ObservableObject, BrowserManaging {
     private var suppressFocusActivationUntil: Date?
     private var connectionTimeoutTimer: Timer?
     private let connectionTimeoutInterval: TimeInterval = 90.0 // 90 seconds
+    private var serverHealthTimer: Timer?
+    private let serverHealthCheckInterval: TimeInterval = 300.0 // 5 minutes
 
     init(userDefaultsManager: any PersistenceManaging, licenseManager: LicenseManager = LicenseManager()) {
         self.userDefaultsManager = userDefaultsManager
@@ -136,6 +138,9 @@ class BrowserManager: ObservableObject, BrowserManaging {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             self.verifyServerStartup()
         }
+        
+        // Start periodic health checks
+        startServerHealthMonitoring()
     }
     
     private func verifyServerStartup() {
@@ -325,5 +330,33 @@ class BrowserManager: ObservableObject, BrowserManaging {
             isExtensionConnected = false
             delegate?.browserManager(self, didChangeConnectionState: false)
         }
+    }
+    
+    // MARK: - Server Health Monitoring
+    
+    private func startServerHealthMonitoring() {
+        serverHealthTimer = Timer.scheduledTimer(withTimeInterval: serverHealthCheckInterval, repeats: true) { [weak self] _ in
+            self?.performServerHealthCheck()
+        }
+    }
+    
+    private func performServerHealthCheck() {
+        print("BrowserManager: 🏥 Performing server health check...")
+        
+        let task = URLSession.shared.dataTask(with: URLRequest(url: URL(string: "http://localhost:8942/browser")!)) { [weak self] _, response, error in
+            DispatchQueue.main.async {
+                if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 404 {
+                    print("BrowserManager: ✅ Server health check passed")
+                } else {
+                    print("BrowserManager: ❌ Server health check failed - \(error?.localizedDescription ?? "unknown error")")
+                    print("BrowserManager: 🔄 Attempting to restart server...")
+                    self?.httpServer.stop()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        self?.httpServer.start()
+                    }
+                }
+            }
+        }
+        task.resume()
     }
 }

@@ -29,12 +29,23 @@ chrome.runtime.onStartup.addListener(() => {
 });
 
 chrome.runtime.onSuspend.addListener(() => {
-  console.log('Extension suspending - cleaning up');
+  console.log('🛑 Extension suspending - cleaning up and saving state');
+  
+  // Save current state before suspension
+  saveStateBeforeSuspension();
   cleanup();
+});
+
+chrome.runtime.onSuspendCanceled.addListener(() => {
+  console.log('✅ Extension suspension cancelled - resuming operations');
+  initializeExtension();
 });
 
 async function initializeExtension() {
   try {
+    // Restore state from previous session if available
+    await restoreStateAfterWakeup();
+    
     await connectToApp();
     startTabMonitoring();
   } catch (error) {
@@ -46,6 +57,54 @@ function cleanup() {
   if (heartbeatInterval) {
     clearInterval(heartbeatInterval);
     heartbeatInterval = null;
+  }
+}
+
+// Save state before service worker suspension
+async function saveStateBeforeSuspension() {
+  try {
+    await chrome.storage.local.set({
+      'af_connection_state': {
+        isConnectedToApp,
+        currentUrl,
+        lastSuccessfulConnection,
+        connectionErrors: connectionErrors.slice(-5),
+        timestamp: Date.now()
+      }
+    });
+    console.log('💾 State saved before suspension');
+  } catch (error) {
+    console.error('Failed to save state before suspension:', error);
+  }
+}
+
+// Restore state after service worker wake-up
+async function restoreStateAfterWakeup() {
+  try {
+    const result = await chrome.storage.local.get('af_connection_state');
+    if (result.af_connection_state) {
+      const state = result.af_connection_state;
+      const timeSinceSave = Date.now() - state.timestamp;
+      
+      console.log(`🔄 Restoring state from ${Math.round(timeSinceSave/1000)}s ago`);
+      
+      // Only restore if the state is recent (less than 5 minutes)
+      if (timeSinceSave < 300000) {
+        currentUrl = state.currentUrl;
+        lastSuccessfulConnection = state.lastSuccessfulConnection;
+        connectionErrors = state.connectionErrors || [];
+        
+        // Don't restore connection status - always try to reconnect
+        isConnectedToApp = false;
+        reconnectAttempts = 0;
+        
+        console.log('✅ State restored successfully');
+      } else {
+        console.log('⚠️ Saved state too old, starting fresh');
+      }
+    }
+  } catch (error) {
+    console.error('Failed to restore state:', error);
   }
 }
 
