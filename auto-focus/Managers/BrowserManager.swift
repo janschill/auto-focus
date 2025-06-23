@@ -66,7 +66,11 @@ class BrowserManager: ObservableObject, BrowserManaging {
         self.licenseManager = licenseManager
 
         loadFocusURLs()
-        startHTTPServer()
+        
+        // Delay server startup to ensure app is fully initialized
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            self.startHTTPServer()
+        }
     }
 
 
@@ -122,9 +126,40 @@ class BrowserManager: ObservableObject, BrowserManaging {
     // MARK: - HTTP Server
 
     private func startHTTPServer() {
-        print("BrowserManager: Starting HTTP server for browser extension")
+        print("BrowserManager: Starting HTTP server for browser extension...")
         httpServer.setBrowserManager(self)
         httpServer.start()
+        
+        // Verify server started successfully after a brief delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.verifyServerStartup()
+        }
+    }
+    
+    private func verifyServerStartup() {
+        // Simple verification by checking if we can create a connection to our port
+        // This helps detect if the server actually started successfully
+        let task = URLSession.shared.dataTask(with: URLRequest(url: URL(string: "http://localhost:8942/browser")!)) { _, response, error in
+            DispatchQueue.main.async {
+                if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 404 {
+                    // 404 is expected for GET request to /browser endpoint, means server is running
+                    print("BrowserManager: ✅ HTTP server verified as running")
+                    self.isExtensionConnected = false // Reset connection state
+                } else {
+                    print("BrowserManager: ❌ HTTP server verification failed - \(error?.localizedDescription ?? "unknown error")")
+                    self.retryServerStartup()
+                }
+            }
+        }
+        task.resume()
+    }
+    
+    private func retryServerStartup() {
+        print("BrowserManager: Retrying HTTP server startup in 2 seconds...")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            self.httpServer.stop()
+            self.startHTTPServer()
+        }
     }
 
     func updateFromExtension(tabInfo: BrowserTabInfo, isFocus: Bool) {

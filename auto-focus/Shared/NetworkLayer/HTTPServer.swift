@@ -5,6 +5,8 @@ class HTTPServer: ObservableObject {
     private var listener: NWListener?
     private let port: UInt16 = 8942
     private weak var browserManager: BrowserManager?
+    private var startupRetryCount = 0
+    private let maxStartupRetries = 3
 
     func setBrowserManager(_ manager: BrowserManager) {
         self.browserManager = manager
@@ -12,15 +14,26 @@ class HTTPServer: ObservableObject {
 
     func start() {
         do {
+            // Clean up any existing listener first
+            if listener != nil {
+                stop()
+            }
+            
             listener = try NWListener(using: .tcp, on: NWEndpoint.Port(rawValue: port)!)
             listener?.stateUpdateHandler = { state in
                 switch state {
                 case .ready:
-                    print("HTTPServer: Listening on port \(self.port)")
+                    print("HTTPServer: ✅ Successfully listening on port \(self.port)")
+                    self.startupRetryCount = 0 // Reset retry count on success
                 case .failed(let error):
-                    print("HTTPServer: Failed to start - \(error)")
+                    print("HTTPServer: ❌ Failed to start - \(error.localizedDescription)")
+                    self.handleStartupFailure(error)
+                case .waiting(let error):
+                    print("HTTPServer: ⏳ Waiting to start - \(error.localizedDescription)")
+                case .cancelled:
+                    print("HTTPServer: Server cancelled")
                 default:
-                    break
+                    print("HTTPServer: State changed to \(state)")
                 }
             }
 
@@ -29,8 +42,26 @@ class HTTPServer: ObservableObject {
             }
 
             listener?.start(queue: .global())
+            print("HTTPServer: Starting server on port \(port)...")
         } catch {
-            print("HTTPServer: Failed to create listener - \(error)")
+            print("HTTPServer: ❌ Failed to create listener - \(error.localizedDescription)")
+            handleStartupFailure(error)
+        }
+    }
+    
+    private func handleStartupFailure(_ error: Error) {
+        startupRetryCount += 1
+        
+        if startupRetryCount <= maxStartupRetries {
+            let delay = Double(startupRetryCount) * 2.0 // 2, 4, 6 second delays
+            print("HTTPServer: Retrying startup in \(delay) seconds (attempt \(startupRetryCount)/\(maxStartupRetries))")
+            
+            DispatchQueue.global().asyncAfter(deadline: .now() + delay) {
+                self.start()
+            }
+        } else {
+            print("HTTPServer: ❌ Max startup retries (\(maxStartupRetries)) exceeded. Server failed to start.")
+            startupRetryCount = 0 // Reset for potential future attempts
         }
     }
 
