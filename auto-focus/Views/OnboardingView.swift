@@ -68,7 +68,7 @@ struct OnboardingView: View {
         .onAppear {
             hasInstalledShortcut = focusManager.isShortcutInstalled
             hasAddedApps = !focusManager.focusApps.isEmpty
-            hasSetupBrowser = focusManager.isExtensionConnected || !focusManager.focusURLs.isEmpty
+            hasSetupBrowser = !focusManager.focusURLs.isEmpty
         }
     }
 
@@ -503,9 +503,7 @@ struct BrowserIntegrationStepView: View {
     }
 
     private var browserStatusText: String {
-        if focusManager.isExtensionConnected {
-            return "Extension connected • \(focusManager.focusURLs.count) website(s) configured"
-        } else if !focusManager.focusURLs.isEmpty {
+        if !focusManager.focusURLs.isEmpty {
             return "\(focusManager.focusURLs.count) website(s) configured"
         } else {
             return "Ready to configure"
@@ -550,7 +548,7 @@ struct CompleteStepView: View {
             VStack(spacing: 16) {
                 CompletionRow(icon: "checkmark.circle.fill", text: "Shortcut installed", isComplete: focusManager.isShortcutInstalled)
                 CompletionRow(icon: "checkmark.circle.fill", text: "Focus apps configured", isComplete: !focusManager.focusApps.isEmpty)
-                CompletionRow(icon: "checkmark.circle.fill", text: "Browser integration ready", isComplete: focusManager.isExtensionConnected || !focusManager.focusURLs.isEmpty)
+                CompletionRow(icon: "checkmark.circle.fill", text: "Browser integration ready", isComplete: !focusManager.focusURLs.isEmpty)
 
                 Divider()
                     .padding(.vertical, 8)
@@ -985,7 +983,7 @@ struct OnboardingBrowserConfigSheet: View {
         }
         .onDisappear {
             // Update status when sheet closes
-            hasSetupBrowser = focusManager.isExtensionConnected || !focusManager.focusURLs.isEmpty
+            hasSetupBrowser = !focusManager.focusURLs.isEmpty
         }
     }
 }

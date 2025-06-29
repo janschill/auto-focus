@@ -89,33 +89,22 @@ private struct HeaderView: View {
 // }
 
 private struct ExtensionInstallationView: View {
-    @EnvironmentObject var focusManager: FocusManager
-
     var body: some View {
         GroupBox {
             VStack {
                 HStack {
-                    Text("Extension Installation")
+                    Text("Chrome Extension")
                         .frame(width: 150, alignment: .leading)
 
                     Spacer()
 
-                    if focusManager.isExtensionConnected {
-                        Text("✓ Installed")
-                            .foregroundColor(.green)
-                    } else {
-                        Text("⚠️ Not installed")
-                            .foregroundColor(.red)
-                    }
-
                     Button("Install Extension") {
                         openExtensionInstallation()
                     }
-                    .disabled(focusManager.isExtensionConnected)
                 }
 
                 HStack {
-                    Text("Auto-Focus will install a Chrome extension to monitor and track focus time on websites. The extension communicates with the app to coordinate focus sessions.")
+                    Text("Install the Chrome extension to monitor and track focus time on websites. The extension communicates with the app to coordinate focus sessions.")
                         .font(.callout)
                         .fontDesign(.default)
                         .fontWeight(.regular)
@@ -130,7 +119,7 @@ private struct ExtensionInstallationView: View {
     }
 
     private func openExtensionInstallation() {
-        if let url = URL(string: "https://chrome.google.com/webstore/detail/auto-focus/") {
+        if let url = URL(string: "https://chromewebstore.google.com/detail/ncmjhohihnjjmkfpcibbafakmlbfifih") {
             NSWorkspace.shared.open(url)
         }
     }
