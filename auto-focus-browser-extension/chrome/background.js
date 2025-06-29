@@ -1,26 +1,29 @@
 // Auto-Focus Browser Extension - Background Service Worker
-// Simplified version focused on core functionality
+// Fixed version with proper Manifest V3 service worker handling
 
 const CONFIG = {
   HTTP_PORT: 8942,
-  HEARTBEAT_INTERVAL: 30000, // 30 seconds
-  MAX_RECONNECT_ATTEMPTS: 15, // Increased from 5 to 15
-  RECONNECT_DELAY: 2000, // 2 seconds
-  LONG_RETRY_DELAY: 60000 // 1 minute for long retries
+  HEARTBEAT_INTERVAL: 30, // 30 seconds (as alarm)
+  MAX_RECONNECT_ATTEMPTS: 5,
+  RECONNECT_DELAY: 2000,
+  LONG_RETRY_DELAY: 60000
 };
 
-let currentTabId = null;
-let currentUrl = null;
+// Global state (will be lost when service worker suspends)
 let isConnectedToApp = false;
 let reconnectAttempts = 0;
-let heartbeatInterval = null;
 let connectionErrors = [];
 let lastSuccessfulConnection = null;
+let initializationInProgress = false;
 
 // Initialize extension
 chrome.runtime.onInstalled.addListener((details) => {
   console.log('Auto-Focus extension installed/updated:', details.reason);
   initializeExtension();
+  
+  // Set up alarms for periodic tasks
+  chrome.alarms.create('heartbeat', { periodInMinutes: 0.5 }); // 30 seconds
+  chrome.alarms.create('connectionCheck', { periodInMinutes: 1 }); // 1 minute
 });
 
 chrome.runtime.onStartup.addListener(() => {
@@ -28,262 +31,250 @@ chrome.runtime.onStartup.addListener(() => {
   initializeExtension();
 });
 
-chrome.runtime.onSuspend.addListener(() => {
-  console.log('🛑 Extension suspending - cleaning up and saving state');
+// Handle alarms for periodic tasks
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  console.log('Alarm triggered:', alarm.name);
   
-  // Save current state before suspension
-  saveStateBeforeSuspension();
-  cleanup();
+  if (alarm.name === 'heartbeat') {
+    await performHeartbeat();
+  } else if (alarm.name === 'connectionCheck') {
+    await checkConnection();
+  } else if (alarm.name === 'retryConnection') {
+    console.log('Retrying connection from alarm...');
+    reconnectAttempts = 0;
+    await connectToApp();
+  }
 });
 
-chrome.runtime.onSuspendCanceled.addListener(() => {
-  console.log('✅ Extension suspension cancelled - resuming operations');
-  initializeExtension();
-});
+// Keep service worker alive during critical operations
+async function keepAlive(operation) {
+  const keepAliveInterval = setInterval(() => {
+    chrome.runtime.getPlatformInfo(() => {
+      // This keeps the service worker alive
+    });
+  }, 20000); // Every 20 seconds
+  
+  try {
+    return await operation();
+  } finally {
+    clearInterval(keepAliveInterval);
+  }
+}
 
 async function initializeExtension() {
+  if (initializationInProgress) {
+    console.log('Initialization already in progress, skipping...');
+    return;
+  }
+  
+  initializationInProgress = true;
+  
   try {
-    // Restore state from previous session if available
-    await restoreStateAfterWakeup();
+    // Restore connection state
+    await restoreConnectionState();
     
+    // Start connection
     await connectToApp();
+    
+    // Start monitoring tabs
     startTabMonitoring();
   } catch (error) {
     console.error('Failed to initialize extension:', error);
+  } finally {
+    initializationInProgress = false;
   }
 }
 
-function cleanup() {
-  if (heartbeatInterval) {
-    clearInterval(heartbeatInterval);
-    heartbeatInterval = null;
-  }
-}
-
-// Save state before service worker suspension
-async function saveStateBeforeSuspension() {
+// Save connection state before service worker suspends
+async function saveConnectionState() {
   try {
     await chrome.storage.local.set({
       'af_connection_state': {
         isConnectedToApp,
-        currentUrl,
         lastSuccessfulConnection,
         connectionErrors: connectionErrors.slice(-5),
         timestamp: Date.now()
       }
     });
-    console.log('💾 State saved before suspension');
+    console.log('Connection state saved');
   } catch (error) {
-    console.error('Failed to save state before suspension:', error);
+    console.error('Failed to save connection state:', error);
   }
 }
 
-// Restore state after service worker wake-up
-async function restoreStateAfterWakeup() {
+// Restore connection state
+async function restoreConnectionState() {
   try {
     const result = await chrome.storage.local.get('af_connection_state');
     if (result.af_connection_state) {
       const state = result.af_connection_state;
       const timeSinceSave = Date.now() - state.timestamp;
       
-      console.log(`🔄 Restoring state from ${Math.round(timeSinceSave/1000)}s ago`);
+      console.log(`Restoring state from ${Math.round(timeSinceSave/1000)}s ago`);
       
-      // Only restore if the state is recent (less than 5 minutes)
-      if (timeSinceSave < 300000) {
-        currentUrl = state.currentUrl;
-        lastSuccessfulConnection = state.lastSuccessfulConnection;
-        connectionErrors = state.connectionErrors || [];
-        
-        // Don't restore connection status - always try to reconnect
-        isConnectedToApp = false;
-        reconnectAttempts = 0;
-        
-        console.log('✅ State restored successfully');
-      } else {
-        console.log('⚠️ Saved state too old, starting fresh');
-      }
+      // Restore state
+      lastSuccessfulConnection = state.lastSuccessfulConnection;
+      connectionErrors = state.connectionErrors || [];
+      
+      // Always try to reconnect after restoration
+      isConnectedToApp = false;
+      reconnectAttempts = 0;
     }
   } catch (error) {
-    console.error('Failed to restore state:', error);
+    console.error('Failed to restore connection state:', error);
   }
 }
 
 // Connect to Auto-Focus HTTP server
 async function connectToApp() {
-  const attemptNumber = reconnectAttempts + 1;
-  console.log(`🔄 Connecting to Auto-Focus app... (attempt ${attemptNumber}/${CONFIG.MAX_RECONNECT_ATTEMPTS})`);
-  
-  try {
-    const connectionStart = Date.now();
-    const response = await fetch(`http://localhost:${CONFIG.HTTP_PORT}/browser`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        command: 'handshake',
-        version: chrome.runtime.getManifest().version,
-        extensionId: chrome.runtime.id,
-        timestamp: Date.now(),
-        connectionErrors: connectionErrors.slice(-5), // Send last 5 errors for diagnostics
-        lastSuccessfulConnection: lastSuccessfulConnection
-      }),
-      signal: AbortSignal.timeout(8000) // Increased to 8 second timeout
-    });
-
-    const connectionTime = Date.now() - connectionStart;
-
-    if (response.ok) {
-      const result = await response.json();
-      if (result.command === 'handshake_response') {
-        isConnectedToApp = true;
-        reconnectAttempts = 0;
-        lastSuccessfulConnection = Date.now();
-        connectionErrors = []; // Clear errors on successful connection
-        
-        console.log(`✅ Connected to Auto-Focus app (${connectionTime}ms)`);
-        console.log('📊 Connection established - app version:', result.appVersion);
-        
-        // Validate connection with a test message before declaring success
-        await validateConnection();
-        startHeartbeat();
-        return;
-      }
-    }
-
-    throw new Error(`Handshake failed: HTTP ${response.status} ${response.statusText}`);
-  } catch (error) {
-    const errorInfo = {
-      timestamp: Date.now(),
-      attempt: attemptNumber,
-      error: error.message,
-      type: error.name || 'ConnectionError'
-    };
-    
-    connectionErrors.push(errorInfo);
-    if (connectionErrors.length > 10) {
-      connectionErrors = connectionErrors.slice(-10); // Keep only last 10 errors
-    }
-    
-    console.error(`❌ Connection attempt ${attemptNumber} failed:`, error.message);
-    isConnectedToApp = false;
-    
-    if (reconnectAttempts < CONFIG.MAX_RECONNECT_ATTEMPTS) {
-      reconnectAttempts++;
-      const delay = Math.min(
-        CONFIG.RECONNECT_DELAY * Math.pow(1.5, reconnectAttempts - 1), // Gentler exponential backoff
-        30000 // Cap at 30 seconds
-      );
-      console.log(`⏳ Retrying connection in ${Math.round(delay/1000)}s... (${CONFIG.MAX_RECONNECT_ATTEMPTS - reconnectAttempts} attempts remaining)`);
-      setTimeout(connectToApp, delay);
-    } else {
-      console.error(`❌ Max reconnection attempts (${CONFIG.MAX_RECONNECT_ATTEMPTS}) reached`);
-      console.log('🔄 Will retry connection in 1 minute...');
-      reconnectAttempts = 0;
-      // Try again in 1 minute instead of 5
-      setTimeout(connectToApp, CONFIG.LONG_RETRY_DELAY);
-    }
-  }
-}
-
-// Start heartbeat to maintain connection
-function startHeartbeat() {
-  if (heartbeatInterval) {
-    clearInterval(heartbeatInterval);
-  }
-  
-  let consecutiveHeartbeatFailures = 0;
-  
-  heartbeatInterval = setInterval(async () => {
-    if (!isConnectedToApp) return;
+  return keepAlive(async () => {
+    const attemptNumber = reconnectAttempts + 1;
+    console.log(`🔄 Connecting to Auto-Focus app... (attempt ${attemptNumber}/${CONFIG.MAX_RECONNECT_ATTEMPTS})`);
     
     try {
-      const heartbeatStart = Date.now();
+      const connectionStart = Date.now();
       const response = await fetch(`http://localhost:${CONFIG.HTTP_PORT}/browser`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          command: 'heartbeat',
+          command: 'handshake',
+          version: chrome.runtime.getManifest().version,
+          extensionId: chrome.runtime.id,
           timestamp: Date.now(),
-          consecutiveFailures: consecutiveHeartbeatFailures,
-          connectionHealth: {
-            state: 'connected',
-            consecutiveFailures: consecutiveHeartbeatFailures,
-            lastError: connectionErrors.length > 0 ? connectionErrors[connectionErrors.length - 1] : null
-          }
+          connectionErrors: connectionErrors.slice(-5),
+          lastSuccessfulConnection: lastSuccessfulConnection
         }),
-        signal: AbortSignal.timeout(12000) // Increased timeout for heartbeat
+        signal: AbortSignal.timeout(8000) // 8 second timeout
       });
-      
-      const heartbeatTime = Date.now() - heartbeatStart;
-      
+
+      const connectionTime = Date.now() - connectionStart;
+
       if (response.ok) {
-        consecutiveHeartbeatFailures = 0;
-        console.log(`💓 Heartbeat OK (${heartbeatTime}ms)`);
-      } else {
-        throw new Error(`HTTP ${response.status} ${response.statusText}`);
+        const result = await response.json();
+        if (result.command === 'handshake_response') {
+          isConnectedToApp = true;
+          reconnectAttempts = 0;
+          lastSuccessfulConnection = Date.now();
+          connectionErrors = [];
+          
+          console.log(`✅ Connected to Auto-Focus app (${connectionTime}ms)`);
+          console.log('📊 Connection established - app version:', result.appVersion);
+          
+          // Save successful connection state
+          await saveConnectionState();
+          
+          // Send current tab info
+          const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+          if (tabs.length > 0) {
+            await handleTabChange(tabs[0].id);
+          }
+          
+          return;
+        }
       }
+
+      throw new Error(`Handshake failed: HTTP ${response.status} ${response.statusText}`);
     } catch (error) {
-      consecutiveHeartbeatFailures++;
-      console.error(`💔 Heartbeat failed (${consecutiveHeartbeatFailures}):`, error.message);
+      const errorInfo = {
+        timestamp: Date.now(),
+        attempt: attemptNumber,
+        error: error.message,
+        type: error.name || 'ConnectionError'
+      };
       
-      // Only disconnect after 3 consecutive failures to avoid false positives
-      if (consecutiveHeartbeatFailures >= 3) {
-        console.error('❌ Connection lost after 3 consecutive heartbeat failures');
-        isConnectedToApp = false;
-        clearInterval(heartbeatInterval);
-        heartbeatInterval = null;
-        
-        // Add error to tracking
-        connectionErrors.push({
-          timestamp: Date.now(),
-          error: `Heartbeat failed: ${error.message}`,
-          type: 'HeartbeatFailure',
-          consecutiveFailures: consecutiveHeartbeatFailures
-        });
-        
-        // Try to reconnect
+      connectionErrors.push(errorInfo);
+      if (connectionErrors.length > 10) {
+        connectionErrors = connectionErrors.slice(-10);
+      }
+      
+      console.error(`❌ Connection attempt ${attemptNumber} failed:`, error.message);
+      isConnectedToApp = false;
+      
+      // Save failed state
+      await saveConnectionState();
+      
+      if (reconnectAttempts < CONFIG.MAX_RECONNECT_ATTEMPTS) {
+        reconnectAttempts++;
+        const delay = Math.min(
+          CONFIG.RECONNECT_DELAY * Math.pow(1.5, reconnectAttempts - 1),
+          30000
+        );
+        console.log(`⏳ Retrying connection in ${Math.round(delay/1000)}s... (${CONFIG.MAX_RECONNECT_ATTEMPTS - reconnectAttempts} attempts remaining)`);
+        setTimeout(() => connectToApp(), delay);
+      } else {
+        console.error(`❌ Max reconnection attempts (${CONFIG.MAX_RECONNECT_ATTEMPTS}) reached`);
+        console.log('🔄 Will retry connection in 1 minute...');
         reconnectAttempts = 0;
-        console.log('🔄 Attempting to reconnect...');
-        connectToApp();
+        chrome.alarms.create('retryConnection', { delayInMinutes: 1 });
       }
     }
-  }, CONFIG.HEARTBEAT_INTERVAL);
+  });
 }
 
-// Validate bidirectional connection after handshake
-async function validateConnection() {
-  try {
-    console.log('🔍 Validating bidirectional connection...');
+// Check connection status
+async function checkConnection() {
+  const state = await chrome.storage.local.get('af_connection_state');
+  if (state.af_connection_state) {
+    const timeSinceLastSuccess = Date.now() - (state.af_connection_state.lastSuccessfulConnection || 0);
     
+    // If no successful connection in last 2 minutes, try to reconnect
+    if (timeSinceLastSuccess > 120000) {
+      console.log('No recent successful connection, attempting to reconnect...');
+      isConnectedToApp = false;
+      reconnectAttempts = 0;
+      await connectToApp();
+    }
+  } else {
+    // No saved state, try to connect
+    await connectToApp();
+  }
+}
+
+// Perform heartbeat
+async function performHeartbeat() {
+  // Load current connection state
+  const state = await chrome.storage.local.get('af_connection_state');
+  if (!state.af_connection_state?.isConnectedToApp) {
+    console.log('Not connected, skipping heartbeat');
+    return;
+  }
+  
+  try {
+    const heartbeatStart = Date.now();
     const response = await fetch(`http://localhost:${CONFIG.HTTP_PORT}/browser`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        command: 'connection_test',
+        command: 'heartbeat',
         timestamp: Date.now(),
         extensionId: chrome.runtime.id,
-        testData: 'validation_ping'
+        connectionHealth: {
+          state: 'connected',
+          consecutiveFailures: 0,
+          lastError: connectionErrors.length > 0 ? connectionErrors[connectionErrors.length - 1] : null
+        }
       }),
-      signal: AbortSignal.timeout(5000)
+      signal: AbortSignal.timeout(12000)
     });
-
-    if (response.ok) {
-      const result = await response.json();
-      if (result.command === 'connection_test_response' && result.status === 'ok') {
-        console.log('✅ Connection validation successful');
-        return true;
-      }
-    }
     
-    throw new Error('Connection validation failed');
+    const heartbeatTime = Date.now() - heartbeatStart;
+    
+    if (response.ok) {
+      console.log(`💓 Heartbeat OK (${heartbeatTime}ms)`);
+      isConnectedToApp = true;
+      lastSuccessfulConnection = Date.now();
+      await saveConnectionState();
+    } else {
+      throw new Error(`HTTP ${response.status} ${response.statusText}`);
+    }
   } catch (error) {
-    console.error('❌ Connection validation failed:', error.message);
-    // Don't fail the connection completely, but log for diagnostics
-    connectionErrors.push({
-      timestamp: Date.now(),
-      error: `Validation failed: ${error.message}`,
-      type: 'ValidationFailure'
-    });
-    return false;
+    console.error('💔 Heartbeat failed:', error.message);
+    isConnectedToApp = false;
+    await saveConnectionState();
+    
+    // Try to reconnect
+    reconnectAttempts = 0;
+    await connectToApp();
   }
 }
 
@@ -308,20 +299,8 @@ function startTabMonitoring() {
       if (tabs.length > 0) {
         await handleTabChange(tabs[0].id);
       }
-    } else {
-      // Chrome lost focus
-      sendToApp({
-        command: 'browser_lost_focus',
-        timestamp: Date.now()
-      });
     }
-  });
-
-  // Get current active tab on startup
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    if (tabs.length > 0) {
-      handleTabChange(tabs[0].id);
-    }
+    // Don't notify when Chrome loses focus - let the app determine focus state
   });
 }
 
@@ -333,13 +312,10 @@ async function handleTabChange(tabId) {
     if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
       return; // Ignore chrome internal pages
     }
-
-    currentTabId = tabId;
-    currentUrl = tab.url;
     
-    sendToApp({
+    await sendToApp({
       command: 'tab_changed',
-      url: currentUrl,
+      url: tab.url,
       title: tab.title || '',
       timestamp: Date.now()
     });
@@ -350,9 +326,18 @@ async function handleTabChange(tabId) {
 
 // Send message to Auto-Focus app
 async function sendToApp(message) {
-  if (!isConnectedToApp) {
-    console.log('Not connected to app, cannot send message');
-    return;
+  // Check connection state from storage
+  const state = await chrome.storage.local.get('af_connection_state');
+  if (!state.af_connection_state?.isConnectedToApp && message.command !== 'handshake') {
+    console.log('Not connected to app, attempting to connect first');
+    await connectToApp();
+    
+    // Re-check after connection attempt
+    const newState = await chrome.storage.local.get('af_connection_state');
+    if (!newState.af_connection_state?.isConnectedToApp) {
+      console.log('Still not connected, cannot send message');
+      return;
+    }
   }
 
   try {
@@ -369,12 +354,21 @@ async function sendToApp(message) {
     if (response.ok) {
       const result = await response.json();
       handleAppMessage(result);
+      
+      // Update last successful connection
+      lastSuccessfulConnection = Date.now();
+      await saveConnectionState();
     } else {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      throw new Error(`HTTP ${response.status} ${response.statusText}`);
     }
   } catch (error) {
     console.error('Error sending to Auto-Focus app:', error);
-    // Don't immediately disconnect on message failures
+    
+    // Mark as disconnected if send fails
+    if (message.command !== 'handshake') {
+      isConnectedToApp = false;
+      await saveConnectionState();
+    }
   }
 }
 
@@ -389,9 +383,6 @@ function handleAppMessage(message) {
       break;
     case 'focus_session_ended':
       updateIcon('inactive');
-      break;
-    default:
-      // Handle other message types if needed
       break;
   }
 }
@@ -430,39 +421,43 @@ function updateIcon(state) {
 
 // API for popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  switch (request.action) {
-    case 'getCurrentState':
-      sendResponse({
-        currentUrl,
-        isConnectedToApp,
-        reconnectAttempts,
-        lastSuccessfulConnection,
-        connectionErrors: connectionErrors.slice(-3) // Last 3 errors for popup
-      });
-      break;
-    case 'getConnectionDiagnostics':
-      sendResponse({
-        connectionStatus: isConnectedToApp ? 'connected' : 'disconnected',
-        reconnectAttempts,
-        maxReconnectAttempts: CONFIG.MAX_RECONNECT_ATTEMPTS,
-        lastSuccessfulConnection,
-        connectionErrors,
-        heartbeatInterval: heartbeatInterval ? 'active' : 'inactive',
-        extensionVersion: chrome.runtime.getManifest().version
-      });
-      break;
-    case 'forceReconnect':
-      console.log('🔄 Manual reconnection requested from popup');
-      reconnectAttempts = 0;
-      isConnectedToApp = false;
-      if (heartbeatInterval) {
-        clearInterval(heartbeatInterval);
-        heartbeatInterval = null;
-      }
-      connectToApp();
-      sendResponse({ status: 'reconnecting' });
-      break;
-    default:
-      sendResponse({ error: 'Unknown action' });
-  }
+  (async () => {
+    switch (request.action) {
+      case 'getCurrentState':
+        const state = await chrome.storage.local.get('af_connection_state');
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        sendResponse({
+          currentUrl: tabs[0]?.url,
+          isConnectedToApp: state.af_connection_state?.isConnectedToApp || false,
+          reconnectAttempts,
+          lastSuccessfulConnection: state.af_connection_state?.lastSuccessfulConnection,
+          connectionErrors: state.af_connection_state?.connectionErrors || []
+        });
+        break;
+        
+      case 'getConnectionDiagnostics':
+        const diagnosticState = await chrome.storage.local.get('af_connection_state');
+        sendResponse({
+          connectionStatus: diagnosticState.af_connection_state?.isConnectedToApp ? 'connected' : 'disconnected',
+          reconnectAttempts,
+          maxReconnectAttempts: CONFIG.MAX_RECONNECT_ATTEMPTS,
+          lastSuccessfulConnection: diagnosticState.af_connection_state?.lastSuccessfulConnection,
+          connectionErrors: diagnosticState.af_connection_state?.connectionErrors || [],
+          extensionVersion: chrome.runtime.getManifest().version
+        });
+        break;
+        
+      case 'forceReconnect':
+        console.log('🔄 Manual reconnection requested from popup');
+        reconnectAttempts = 0;
+        isConnectedToApp = false;
+        await connectToApp();
+        sendResponse({ status: 'reconnecting' });
+        break;
+        
+      default:
+        sendResponse({ error: 'Unknown action' });
+    }
+  })();
+  return true; // Keep message channel open for async response
 });
