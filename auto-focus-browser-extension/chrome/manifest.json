@@ -1,23 +1,19 @@
 {
   "manifest_version": 3,
   "name": "Auto-Focus Browser Integration",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Integrate browser tabs with Auto-Focus for enhanced productivity tracking",
-  
   "permissions": [
     "tabs",
     "storage",
     "alarms"
   ],
-  
   "host_permissions": [
     "http://localhost:8942/*"
   ],
-  
   "background": {
     "service_worker": "background.js"
   },
-  
   "action": {
     "default_popup": "popup/popup.html",
     "default_title": "Auto-Focus",
@@ -28,7 +24,6 @@
       "128": "icons/icon128.png"
     }
   },
-  
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
