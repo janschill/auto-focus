@@ -15,6 +15,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Set up debugging
         CoreSVGDebugger.setupDebugging()
         
+        // Register Slack OAuth URL scheme
+        SlackOAuthManager.registerURLScheme()
+        
         // Start as a menu bar app with no dock icon
         NSApp.setActivationPolicy(.accessory)
 
@@ -68,5 +71,68 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidReceiveMemoryWarning(_ application: NSApplication) {
         // Clear image cache on memory warnings
         SafeImageLoader.clearCache()
+    }
+    
+    // MARK: - URL Scheme Handling
+    
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls {
+            handleURLScheme(url)
+        }
+    }
+    
+    private func handleURLScheme(_ url: URL) {
+        print("AppDelegate: Received URL scheme: \(url)")
+        
+        guard url.scheme == "autofocus" else {
+            print("AppDelegate: Unknown URL scheme: \(url.scheme ?? "none")")
+            return
+        }
+        
+        if url.host == "slack" {
+            handleSlackCallback(url)
+        } else {
+            print("AppDelegate: Unknown autofocus host: \(url.host ?? "none")")
+        }
+    }
+    
+    private func handleSlackCallback(_ url: URL) {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            print("AppDelegate: Failed to parse Slack callback URL")
+            return
+        }
+        
+        let path = components.path
+        
+        // Parse query parameters
+        let params = components.queryItems?.reduce(into: [String: String]()) { result, item in
+            if let value = item.value {
+                result[item.name] = value
+            }
+        } ?? [:]
+        
+        print("AppDelegate: Slack callback - path: \(path), params: \(params.keys.joined(separator: ", "))")
+        
+        // Route based on path
+        switch path {
+        case "/oauth/success":
+            print("AppDelegate: Slack OAuth success")
+            NotificationCenter.default.post(
+                name: Notification.Name("SlackOAuthCallback"),
+                object: nil,
+                userInfo: params
+            )
+            
+        case "/oauth/error":
+            print("AppDelegate: Slack OAuth error: \(params["error"] ?? "unknown")")
+            NotificationCenter.default.post(
+                name: Notification.Name("SlackOAuthCallback"),
+                object: nil,
+                userInfo: params
+            )
+            
+        default:
+            print("AppDelegate: Unknown Slack callback path: \(path)")
+        }
     }
 }

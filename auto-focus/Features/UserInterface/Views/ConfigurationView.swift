@@ -315,8 +315,86 @@ struct ConfigurationView: View {
             GeneralSettingsView()
             ThresholdsView()
             FocusApplicationsView()
+            SlackIntegrationSectionView()
         }
         .padding()
+    }
+}
+
+struct SlackIntegrationSectionView: View {
+    @EnvironmentObject var focusManager: FocusManager
+    
+    private var slackManager: SlackIntegrationManager {
+        return focusManager.slackIntegration
+    }
+    
+    var body: some View {
+        GroupBox(label: Text("Slack Integration").font(.headline)) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Automatically update your Slack status and enable Do Not Disturb during focus sessions.")
+                    .font(.callout)
+                    .foregroundColor(.secondary)
+                
+                HStack {
+                    Text("Status:")
+                        .frame(width: 100, alignment: .leading)
+                    
+                    Text(slackManager.getConnectionStatusText())
+                        .foregroundColor(slackManager.isConnected ? .green : .secondary)
+                    
+                    Spacer()
+                    
+                    if slackManager.isConnected {
+                        Button("Configure") {
+                            openSlackConfiguration()
+                        }
+                    } else {
+                        Button("Connect Slack") {
+                            slackManager.connectWorkspace()
+                        }
+                        .disabled(slackManager.oauthManager.isAuthenticating)
+                    }
+                }
+                
+                if slackManager.oauthManager.isAuthenticating {
+                    HStack {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .blue))
+                            .scaleEffect(0.8)
+                        Text("Connecting to Slack...")
+                            .font(.callout)
+                            .foregroundColor(.blue)
+                    }
+                }
+                
+                if let error = slackManager.oauthManager.authError {
+                    HStack {
+                        Image(systemName: "exclamationmark.triangle")
+                            .foregroundColor(.orange)
+                        Text(error.localizedDescription)
+                            .font(.callout)
+                            .foregroundColor(.orange)
+                    }
+                }
+            }
+            .padding(.horizontal, 5)
+            .padding(.vertical)
+        }
+        .frame(maxWidth: .infinity)
+    }
+    
+    private func openSlackConfiguration() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 600, height: 700),
+            styleMask: [.titled, .closable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        
+        window.title = "Slack Configuration"
+        window.contentView = NSHostingView(rootView: SlackConfigurationView(slackManager: slackManager))
+        window.center()
+        window.makeKeyAndOrderFront(nil)
     }
 }
 

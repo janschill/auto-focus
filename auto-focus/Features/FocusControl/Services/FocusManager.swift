@@ -25,6 +25,7 @@ class FocusManager: ObservableObject {
     private let focusModeController: any FocusModeControlling
     private let browserManager: any BrowserManaging
     private let licenseManager: LicenseManager
+    private let slackIntegrationManager: SlackIntegrationManager
 
     @Published var timeSpent: TimeInterval = 0
     @Published var isFocusAppActive = false
@@ -61,6 +62,11 @@ class FocusManager: ObservableObject {
 
     private var freeAppLimit: Int = AppConfiguration.freeAppLimit
     @Published var isPremiumUser: Bool = false
+    
+    // MARK: - Slack Integration Access
+    var slackIntegration: SlackIntegrationManager {
+        return slackIntegrationManager
+    }
 
     private var timeTrackingTimer: Timer?
     private let checkInterval: TimeInterval = AppConfiguration.checkInterval
@@ -138,6 +144,7 @@ class FocusManager: ObservableObject {
         self.bufferManager = bufferManager ?? BufferManager()
         self.focusModeController = focusModeController ?? FocusModeManager()
         self.browserManager = browserManager ?? BrowserManager(userDefaultsManager: userDefaultsManager)
+        self.slackIntegrationManager = SlackIntegrationManager(userDefaultsManager: userDefaultsManager)
 
         loadFocusApps()
         // Load UserDefault values using UserDefaultsManager
@@ -219,6 +226,11 @@ class FocusManager: ObservableObject {
             print("activating focus mode")
             isInFocusMode = true
             focusModeController.setFocusMode(enabled: true)
+            
+            // Trigger Slack integration
+            Task {
+                await slackIntegrationManager.enableFocusMode()
+            }
         }
     }
 
@@ -252,11 +264,19 @@ class FocusManager: ObservableObject {
     }
 
     private func resetFocusState() {
+        let wasInFocusMode = isInFocusMode
         isFocusAppActive = false
         timeSpent = 0
         isInFocusMode = false
         timeTrackingTimer?.invalidate()
         timeTrackingTimer = nil
+        
+        // Trigger Slack integration if we were in focus mode
+        if wasInFocusMode {
+            Task {
+                await slackIntegrationManager.disableFocusMode()
+            }
+        }
     }
 
     func checkShortcutExists() -> Bool {
@@ -603,11 +623,14 @@ extension FocusManager: BufferManagerDelegate {
 
     func bufferManagerDidTimeout(_ manager: any BufferManaging) {
         // Buffer timed out - end session and exit focus mode
+        let wasInFocusMode = isInFocusMode
         sessionManager.endSession()
         resetFocusState()
         if !isNotificationsEnabled {
             focusModeController.setFocusMode(enabled: false)
         }
+        
+        // Note: resetFocusState() already handles Slack integration if wasInFocusMode
     }
 }
 
