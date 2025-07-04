@@ -357,13 +357,21 @@ struct SlackIntegrationSectionView: View {
                 }
                 
                 if slackManager.oauthManager.isAuthenticating {
-                    HStack {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .blue))
-                            .scaleEffect(0.8)
-                        Text("Connecting to Slack...")
-                            .font(.callout)
-                            .foregroundColor(.blue)
+                    VStack(spacing: 8) {
+                        HStack {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .blue))
+                                .scaleEffect(0.8)
+                            Text("Connecting to Slack...")
+                                .font(.callout)
+                                .foregroundColor(.blue)
+                        }
+                        
+                        Button("Cancel") {
+                            slackManager.oauthManager.cancelAuthentication()
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
                     }
                 }
                 

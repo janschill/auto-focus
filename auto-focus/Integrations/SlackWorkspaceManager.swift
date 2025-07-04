@@ -27,6 +27,8 @@ class SlackWorkspaceManager: ObservableObject {
         saveWorkspaces()
         
         print("SlackWorkspaceManager: Added workspace \(workspace.name) (\(workspace.id))")
+        print("SlackWorkspaceManager: Token length: \(workspace.accessToken.count)")
+        print("SlackWorkspaceManager: Total workspaces: \(connectedWorkspaces.count)")
     }
     
     func removeWorkspace(_ workspace: SlackWorkspace) {
@@ -107,6 +109,7 @@ class SlackWorkspaceManager: ObservableObject {
             let waitTime = rateLimiter.timeUntilNextRequest()
             print("SlackWorkspaceManager: Rate limited, waiting \(waitTime) seconds")
             try? await Task.sleep(nanoseconds: UInt64(waitTime * 1_000_000_000))
+            return
         }
         
         await withTaskGroup(of: Void.self) { group in
@@ -166,6 +169,7 @@ class SlackWorkspaceManager: ObservableObject {
             print("SlackWorkspaceManager: Set status for \(workspace.name): \(statusText)")
         } catch {
             print("SlackWorkspaceManager: Failed to set status for \(workspace.name): \(error)")
+            print("SlackWorkspaceManager: Workspace token: \(workspace.accessToken.prefix(10))...")
             await handleWorkspaceError(workspace: workspace, error: error)
         }
     }
@@ -245,24 +249,27 @@ class SlackWorkspaceManager: ObservableObject {
     
     private func loadWorkspaces() {
         guard let workspaceMetadata = UserDefaults.standard.array(forKey: userDefaultsKey) as? [[String: Any]] else {
+            print("SlackWorkspaceManager: No workspace metadata found in UserDefaults")
             return
         }
         
+        print("SlackWorkspaceManager: Loading \(workspaceMetadata.count) workspaces from UserDefaults")
         var loadedWorkspaces: [SlackWorkspace] = []
         
         for metadata in workspaceMetadata {
-            guard let id = metadata["id"] as? String,
+            guard let workspaceId = metadata["id"] as? String,
                   let name = metadata["name"] as? String,
                   let userId = metadata["userId"] as? String,
                   let userDisplayName = metadata["userDisplayName"] as? String,
                   let scopes = metadata["scopes"] as? [String],
                   let connectedAtTimestamp = metadata["connectedAt"] as? TimeInterval,
-                  let token = loadTokenFromKeychain(workspaceId: id) else {
+                  let token = loadTokenFromKeychain(workspaceId: workspaceId) else {
+                print("SlackWorkspaceManager: Failed to load token for workspace \(metadata["id"] as? String ?? "unknown")")
                 continue
             }
             
             let workspace = SlackWorkspace(
-                id: id,
+                id: workspaceId,
                 name: name,
                 accessToken: token,
                 userId: userId,

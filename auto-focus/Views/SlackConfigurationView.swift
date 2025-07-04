@@ -121,14 +121,22 @@ private struct NotConnectedView: View {
                 .disabled(slackManager.oauthManager.isAuthenticating)
                 
                 if slackManager.oauthManager.isAuthenticating {
-                    HStack {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .blue))
-                            .scaleEffect(0.8)
-                        Text("Connecting to Slack...")
+                    VStack(spacing: 12) {
+                        HStack {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .blue))
+                                .scaleEffect(0.8)
+                            Text("Connecting to Slack...")
+                        }
+                        .font(.callout)
+                        .foregroundColor(.blue)
+                        
+                        Button("Cancel") {
+                            slackManager.oauthManager.cancelAuthentication()
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
                     }
-                    .font(.callout)
-                    .foregroundColor(.blue)
                 }
                 
                 if let error = slackManager.oauthManager.authError {

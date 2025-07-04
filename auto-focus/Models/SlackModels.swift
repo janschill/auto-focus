@@ -22,6 +22,25 @@ struct SlackWorkspace: Codable, Identifiable, Hashable {
 
 // MARK: - Slack API Models
 
+struct SlackTokenResponse: Codable {
+    let ok: Bool
+    let accessToken: String
+    let tokenType: String
+    let scope: String
+    let authedUser: AuthedUser
+    let team: Team
+    let error: String?
+    
+    struct AuthedUser: Codable {
+        let id: String
+    }
+    
+    struct Team: Codable {
+        let id: String
+        let name: String
+    }
+}
+
 struct SlackOAuthResponse: Codable {
     let ok: Bool
     let accessToken: String
@@ -96,7 +115,7 @@ struct SlackDNDResponse: Codable {
 
 // MARK: - Slack Integration Settings
 
-struct SlackIntegrationSettings: Codable {
+struct SlackIntegrationSettings: Codable, Equatable {
     var isEnabled: Bool = false
     var focusStatusText: String = "🧠 In deep focus mode"
     var focusStatusEmoji: String = ":brain:"

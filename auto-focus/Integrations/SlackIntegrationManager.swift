@@ -189,6 +189,8 @@ class SlackIntegrationManager: ObservableObject {
 
 extension SlackIntegrationManager: SlackOAuthManagerDelegate {
     func slackOAuthManager(_ manager: SlackOAuthManager, didCompleteAuthWithWorkspace workspace: SlackWorkspace) {
+        print("SlackIntegrationManager: OAuth completed for workspace \(workspace.name)")
+        
         // Add workspace to manager
         workspaceManager.addWorkspace(workspace)
         
@@ -196,10 +198,16 @@ extension SlackIntegrationManager: SlackOAuthManagerDelegate {
         settings.connectedWorkspaces = workspaceManager.connectedWorkspaces
         saveSettings()
         
+        // Force UI update
+        DispatchQueue.main.async {
+            self.objectWillChange.send()
+        }
+        
         // Notify delegate
         delegate?.slackIntegrationManager(self, didUpdateConnectionStatus: isConnected)
         
         print("SlackIntegrationManager: Successfully connected workspace \(workspace.name)")
+        print("SlackIntegrationManager: Now connected to \(self.connectedWorkspaceCount) workspaces")
     }
     
     func slackOAuthManager(_ manager: SlackOAuthManager, didFailWithError error: SlackIntegrationError) {

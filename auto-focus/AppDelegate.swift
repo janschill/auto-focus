@@ -83,6 +83,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     private func handleURLScheme(_ url: URL) {
         print("AppDelegate: Received URL scheme: \(url)")
+        print("AppDelegate: Full URL string: \(url.absoluteString)")
         
         guard url.scheme == "autofocus" else {
             print("AppDelegate: Unknown URL scheme: \(url.scheme ?? "none")")

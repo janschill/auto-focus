@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 
 protocol SlackOAuthManagerDelegate: AnyObject {
     func slackOAuthManager(_ manager: SlackOAuthManager, didCompleteAuthWithWorkspace workspace: SlackWorkspace)
@@ -9,6 +10,7 @@ class SlackOAuthManager: ObservableObject {
     weak var delegate: SlackOAuthManagerDelegate?
     
     private var currentState: String?
+    private var authTimeoutTask: Task<Void, Never>?
     
     @Published var isAuthenticating = false
     @Published var authError: SlackIntegrationError?
@@ -31,6 +33,9 @@ class SlackOAuthManager: ObservableObject {
             handleAuthError(.invalidResponse)
             return
         }
+        
+        // Start timeout timer (3 minutes)
+        startAuthTimeout()
         
         // Open browser for OAuth
         NSWorkspace.shared.open(authURL)
@@ -69,6 +74,8 @@ class SlackOAuthManager: ObservableObject {
             return
         }
         
+        print("SlackOAuth: Received callback with parameters: \(userInfo)")
+        
         DispatchQueue.main.async {
             if userInfo.keys.contains("error") {
                 self.handleOAuthError(userInfo)
@@ -79,13 +86,15 @@ class SlackOAuthManager: ObservableObject {
     }
     
     private func handleOAuthSuccess(_ params: [String: String]) {
-        guard let accessToken = params["access_token"],
-              let teamId = params["team_id"],
-              let teamName = params["team_name"],
-              let userId = params["user_id"],
-              let scope = params["scope"],
-              let state = params["state"] else {
-            print("SlackOAuth: Missing required parameters in success callback")
+        guard let accessToken = params["access_token"], !accessToken.isEmpty,
+              let teamId = params["team_id"], !teamId.isEmpty,
+              let teamName = params["team_name"], !teamName.isEmpty,
+              let userId = params["user_id"], !userId.isEmpty,
+              let scope = params["scope"], !scope.isEmpty,
+              let state = params["state"], !state.isEmpty else {
+            print("SlackOAuth: Missing or empty required parameters in success callback")
+            print("SlackOAuth: access_token: '\(params["access_token"] ?? "missing")'")
+            print("SlackOAuth: scope: '\(params["scope"] ?? "missing")'")
             handleAuthError(.invalidResponse)
             return
         }
@@ -110,16 +119,17 @@ class SlackOAuthManager: ObservableObject {
             connectedAt: Date()
         )
         
-        // Fetch user display name
-        Task {
-            await self.fetchUserDisplayName(for: workspace)
-        }
-        
-        // Complete OAuth flow
+        // Complete OAuth flow immediately
+        cancelAuthTimeout()
         isAuthenticating = false
         authError = nil
         currentState = nil
         delegate?.slackOAuthManager(self, didCompleteAuthWithWorkspace: workspace)
+        
+        // Fetch user display name asynchronously
+        Task {
+            await self.fetchUserDisplayName(for: workspace)
+        }
     }
     
     private func handleOAuthError(_ params: [String: String]) {
@@ -141,6 +151,7 @@ class SlackOAuthManager: ObservableObject {
     
     private func handleAuthError(_ error: SlackIntegrationError) {
         print("SlackOAuth: Authentication failed: \(error.localizedDescription)")
+        cancelAuthTimeout()
         isAuthenticating = false
         authError = error
         currentState = nil
@@ -176,7 +187,34 @@ class SlackOAuthManager: ObservableObject {
         }
     }
     
+    // MARK: - Cancel and Timeout Handling
+    
+    func cancelAuthentication() {
+        print("SlackOAuth: Authentication cancelled by user")
+        handleAuthError(.authenticationFailed)
+    }
+    
+    private func startAuthTimeout() {
+        authTimeoutTask = Task {
+            // Wait 3 minutes for OAuth completion
+            try? await Task.sleep(nanoseconds: 180_000_000_000)
+            
+            if !Task.isCancelled && isAuthenticating {
+                DispatchQueue.main.async {
+                    print("SlackOAuth: Authentication timed out")
+                    self.handleAuthError(.authenticationFailed)
+                }
+            }
+        }
+    }
+    
+    private func cancelAuthTimeout() {
+        authTimeoutTask?.cancel()
+        authTimeoutTask = nil
+    }
+    
     deinit {
+        cancelAuthTimeout()
         NotificationCenter.default.removeObserver(self)
     }
 }

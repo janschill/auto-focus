@@ -22,7 +22,7 @@ class SlackAPIClient {
             "profile": profile
         ]
         
-        try await makeAPIRequest(
+        try await makeAPIRequestVoid(
             url: SlackAppConfig.profileSetURL,
             method: "POST",
             body: requestBody
@@ -40,7 +40,7 @@ class SlackAPIClient {
             "profile": profile
         ]
         
-        try await makeAPIRequest(
+        try await makeAPIRequestVoid(
             url: SlackAppConfig.profileSetURL,
             method: "POST",
             body: requestBody
@@ -54,7 +54,7 @@ class SlackAPIClient {
             "num_minutes": durationMinutes
         ]
         
-        try await makeAPIRequest(
+        try await makeAPIRequestVoid(
             url: SlackAppConfig.dndSetSnoozeURL,
             method: "POST",
             body: requestBody
@@ -62,7 +62,7 @@ class SlackAPIClient {
     }
     
     func disableDND() async throws {
-        try await makeAPIRequest(
+        try await makeAPIRequestVoid(
             url: SlackAppConfig.dndEndSnoozeURL,
             method: "POST",
             body: [:]
@@ -105,6 +105,9 @@ class SlackAPIClient {
         request.setValue("Bearer \(workspace.accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
+        print("SlackAPIClient: Making API call to \(url)")
+        print("SlackAPIClient: Using token: \(workspace.accessToken.prefix(10))...")
+        
         if let body = body {
             do {
                 request.httpBody = try JSONSerialization.data(withJSONObject: body)
@@ -142,6 +145,73 @@ class SlackAPIClient {
             // Parse JSON response
             let decoder = JSONDecoder()
             return try decoder.decode(T.self, from: data)
+            
+        } catch {
+            if error is SlackIntegrationError {
+                throw error
+            }
+            throw SlackIntegrationError.networkError(error)
+        }
+    }
+    
+    // MARK: - Void API Request (for operations that don't return data)
+    
+    private func makeAPIRequestVoid(
+        url: String,
+        method: String,
+        body: [String: Any]?
+    ) async throws {
+        guard let requestURL = URL(string: url) else {
+            throw SlackIntegrationError.invalidResponse
+        }
+        
+        var request = URLRequest(url: requestURL)
+        request.httpMethod = method
+        request.setValue("Bearer \(workspace.accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        print("SlackAPIClient: Making API call to \(url)")
+        print("SlackAPIClient: Using token: \(workspace.accessToken.prefix(10))...")
+        
+        if let body = body {
+            do {
+                request.httpBody = try JSONSerialization.data(withJSONObject: body)
+            } catch {
+                throw SlackIntegrationError.networkError(error)
+            }
+        }
+        
+        do {
+            let (data, response) = try await urlSession.data(for: request)
+            
+            // Check HTTP status code
+            if let httpResponse = response as? HTTPURLResponse {
+                switch httpResponse.statusCode {
+                case 200...299:
+                    // Success - check Slack API response for any errors
+                    if let responseData = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let ok = responseData["ok"] as? Bool,
+                       !ok,
+                       let error = responseData["error"] as? String {
+                        throw SlackIntegrationError.apiError(SlackAPIError(
+                            ok: false,
+                            error: error,
+                            detail: responseData["detail"] as? String
+                        ))
+                    }
+                    return // Success
+                case 429:
+                    throw SlackIntegrationError.rateLimitExceeded
+                case 401:
+                    throw SlackIntegrationError.tokenExpired(workspace.id)
+                default:
+                    throw SlackIntegrationError.apiError(SlackAPIError(
+                        ok: false,
+                        error: "HTTP \(httpResponse.statusCode)",
+                        detail: nil
+                    ))
+                }
+            }
             
         } catch {
             if error is SlackIntegrationError {
