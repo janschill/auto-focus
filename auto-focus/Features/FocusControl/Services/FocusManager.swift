@@ -59,6 +59,35 @@ class FocusManager: ObservableObject {
     @Published var isExtensionConnected: Bool = false
     @Published var extensionHealth: ExtensionHealth?
     @Published var connectionQuality: ConnectionQuality = .unknown
+    @Published var isSystemDNDEnabled: Bool = true {
+        didSet {
+            userDefaultsManager.setBool(isSystemDNDEnabled, forKey: UserDefaultsManager.Keys.isSystemDNDEnabled)
+        }
+    }
+    @Published var isFocusAppsEnabled: Bool = true {
+        didSet {
+            userDefaultsManager.setBool(isFocusAppsEnabled, forKey: UserDefaultsManager.Keys.isFocusAppsEnabled)
+            if !isFocusAppsEnabled && isFocusAppActive {
+                // If focus apps is disabled while a focus app is active, reset focus state
+                isFocusAppActive = false
+                if !isInOverallFocus && isInFocusMode {
+                    resetFocusState()
+                }
+            }
+        }
+    }
+    @Published var isBrowserEnabled: Bool = true {
+        didSet {
+            userDefaultsManager.setBool(isBrowserEnabled, forKey: UserDefaultsManager.Keys.isBrowserEnabled)
+            if !isBrowserEnabled && isBrowserInFocus {
+                // If browser is disabled while browser is in focus, reset browser focus state
+                isBrowserInFocus = false
+                if !isInOverallFocus && isInFocusMode {
+                    resetFocusState()
+                }
+            }
+        }
+    }
 
     private var freeAppLimit: Int = AppConfiguration.freeAppLimit
     @Published var isPremiumUser: Bool = false
@@ -154,6 +183,23 @@ class FocusManager: ObservableObject {
         if focusLossBuffer == 0 { focusLossBuffer = AppConfiguration.defaultBufferTime }
         isPaused = userDefaultsManager.getBool(forKey: UserDefaultsManager.Keys.isPaused)
         hasCompletedOnboarding = userDefaultsManager.getBool(forKey: UserDefaultsManager.Keys.hasCompletedOnboarding)
+        isSystemDNDEnabled = userDefaultsManager.getBool(forKey: UserDefaultsManager.Keys.isSystemDNDEnabled)
+        if UserDefaults.standard.object(forKey: UserDefaultsManager.Keys.isSystemDNDEnabled) == nil {
+            // Default to true for new installations
+            isSystemDNDEnabled = true
+        }
+        
+        isFocusAppsEnabled = userDefaultsManager.getBool(forKey: UserDefaultsManager.Keys.isFocusAppsEnabled)
+        if UserDefaults.standard.object(forKey: UserDefaultsManager.Keys.isFocusAppsEnabled) == nil {
+            // Default to true for new installations
+            isFocusAppsEnabled = true
+        }
+        
+        isBrowserEnabled = userDefaultsManager.getBool(forKey: UserDefaultsManager.Keys.isBrowserEnabled)
+        if UserDefaults.standard.object(forKey: UserDefaultsManager.Keys.isBrowserEnabled) == nil {
+            // Default to true for new installations
+            isBrowserEnabled = true
+        }
 
         // Set up delegates and start monitoring
         self.appMonitor.delegate = self
@@ -177,7 +223,7 @@ class FocusManager: ObservableObject {
             if isFocusAppActive {
                 sessionManager.endSession()
                 resetFocusState()
-                if !isNotificationsEnabled {
+                if !isNotificationsEnabled && isSystemDNDEnabled {
                     focusModeController.setFocusMode(enabled: false)
                 }
             }
@@ -225,7 +271,11 @@ class FocusManager: ObservableObject {
         if shouldEnterFocusMode {
             print("activating focus mode")
             isInFocusMode = true
-            focusModeController.setFocusMode(enabled: true)
+            
+            // Enable system Do Not Disturb only if enabled
+            if isSystemDNDEnabled {
+                focusModeController.setFocusMode(enabled: true)
+            }
             
             // Trigger Slack integration
             Task {
@@ -241,12 +291,14 @@ class FocusManager: ObservableObject {
     }
 
     private var shouldEnterFocusMode: Bool {
-        return isNotificationsEnabled && timeSpent >= (focusThreshold * AppConfiguration.timeMultiplier) && !isInFocusMode
+        return isNotificationsEnabled && timeSpent >= (focusThreshold * AppConfiguration.timeMultiplier) && !isInFocusMode && isInOverallFocus
     }
 
-    // Overall focus state considering both apps and browser URLs
+    // Overall focus state considering both apps and browser URLs - but only if integrations are enabled
     var isInOverallFocus: Bool {
-        return isFocusAppActive || isBrowserInFocus
+        let focusAppActive = isFocusAppsEnabled && isFocusAppActive
+        let browserActive = isBrowserEnabled && isBrowserInFocus
+        return focusAppActive || browserActive
     }
 
     private func handleNonFocusAppInFront() {
@@ -257,7 +309,7 @@ class FocusManager: ObservableObject {
             bufferManager.startBuffer(duration: focusLossBuffer)
         } else {
             resetFocusState()
-            if !isNotificationsEnabled {
+            if !isNotificationsEnabled && isSystemDNDEnabled {
                 focusModeController.setFocusMode(enabled: false)
             }
         }
@@ -626,7 +678,7 @@ extension FocusManager: BufferManagerDelegate {
         let wasInFocusMode = isInFocusMode
         sessionManager.endSession()
         resetFocusState()
-        if !isNotificationsEnabled {
+        if !isNotificationsEnabled && isSystemDNDEnabled {
             focusModeController.setFocusMode(enabled: false)
         }
         
@@ -637,7 +689,7 @@ extension FocusManager: BufferManagerDelegate {
 // MARK: - AppMonitorDelegate
 extension FocusManager: AppMonitorDelegate {
     func appMonitor(_ monitor: any AppMonitoring, didDetectFocusApp isActive: Bool) {
-        guard !isPaused else { return }
+        guard !isPaused && isFocusAppsEnabled else { return }
 
         if isActive {
             handleFocusAppInFront()
@@ -661,7 +713,7 @@ extension FocusManager: AppMonitorDelegate {
     }
 
     func appMonitor(_ monitor: any AppMonitoring, didChangeToApp bundleIdentifier: String?) {
-        guard !isPaused else { return }
+        guard !isPaused && isFocusAppsEnabled else { return }
 
         let isBrowserApp = bundleIdentifier == "com.google.Chrome" ||
                           bundleIdentifier == "com.apple.Safari" ||
@@ -732,11 +784,13 @@ extension FocusManager: BrowserManagerDelegate {
         batchUpdate {
             self.isBrowserInFocus = isFocus
 
-            // Handle browser focus like app focus
-            if isFocus {
-                self.handleBrowserFocusActivated()
-            } else {
-                self.handleBrowserFocusDeactivated()
+            // Handle browser focus only if browser integration is enabled
+            if self.isBrowserEnabled {
+                if isFocus {
+                    self.handleBrowserFocusActivated()
+                } else {
+                    self.handleBrowserFocusDeactivated()
+                }
             }
         }
     }
@@ -796,7 +850,7 @@ extension FocusManager: BrowserManagerDelegate {
         } else {
             print("FocusManager: Resetting focus state after browser focus loss")
             resetFocusState()
-            if !isNotificationsEnabled {
+            if !isNotificationsEnabled && isSystemDNDEnabled {
                 focusModeController.setFocusMode(enabled: false)
             }
         }

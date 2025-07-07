@@ -8,6 +8,9 @@ class UserDefaultsManager: PersistenceManaging {
         static let focusLossBuffer = "focusLossBuffer"
         static let isPaused = "isPaused"
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
+        static let isSystemDNDEnabled = "isSystemDNDEnabled"
+        static let isFocusAppsEnabled = "isFocusAppsEnabled"
+        static let isBrowserEnabled = "isBrowserEnabled"
     }
 
     func save<T: Codable>(_ value: T, forKey key: String) {

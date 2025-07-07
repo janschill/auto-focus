@@ -14,12 +14,17 @@ struct BrowserConfigView: View {
         VStack(spacing: 10) {
             HeaderView()
 
-            ExtensionInstallationView()
+            EnablementToggleView()
 
-            FocusURLsManagementView(selectedURLId: $selectedURLId, showingAddURLOptions: $showingAddURLOptions)
+            if focusManager.isBrowserEnabled {
+                ExtensionInstallationView()
+
+                FocusURLsManagementView(selectedURLId: $selectedURLId, showingAddURLOptions: $showingAddURLOptions)
+            }
 
             Spacer()
         }
+        .frame(maxWidth: .infinity)
         .padding()
         .sheet(isPresented: $showingAddURLOptions) {
             AddURLOptionsSheet(
@@ -55,6 +60,49 @@ private struct HeaderView: View {
                     .multilineTextAlignment(.center)
             }
             .padding(.horizontal, 40)
+            .padding(.vertical)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+private struct EnablementToggleView: View {
+    @EnvironmentObject var focusManager: FocusManager
+    
+    var body: some View {
+        GroupBox {
+            VStack {
+                HStack {
+                    Text("Enable Browser Integration")
+                        .frame(width: 250, alignment: .leading)
+                        .fontWeight(.medium)
+                    
+                    Spacer()
+                    
+                    Toggle("", isOn: Binding(
+                        get: { focusManager.isBrowserEnabled },
+                        set: { newValue in
+                            focusManager.isBrowserEnabled = newValue
+                        }
+                    ))
+                    .toggleStyle(SwitchToggleStyle())
+                    .labelsHidden()
+                    .scaleEffect(0.8)
+                    .padding(.trailing, 5)
+                }
+                
+                if !focusManager.isBrowserEnabled {
+                    HStack {
+                        Text("Enable this integration to automatically trigger focus mode when using your designated focus websites and web applications.")
+                            .font(.callout)
+                            .fontDesign(.default)
+                            .fontWeight(.regular)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            .padding(.horizontal, 5)
             .padding(.vertical)
         }
         .frame(maxWidth: .infinity)

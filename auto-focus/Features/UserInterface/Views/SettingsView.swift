@@ -10,31 +10,46 @@ struct SettingsView: View {
         TabView(selection: $selectedTab) {
             ConfigurationView()
                 .tabItem {
-                    Label("Configuration", systemImage: "gear")
+                    Label("General", systemImage: "gear")
                 }
                 .tag(0)
+                .environmentObject(licenseManager)
+
+            FocusAppsView()
+                .tabItem {
+                    Label("Focus Apps", systemImage: "app.badge")
+                }
+                .tag(1)
+                .environmentObject(focusManager)
                 .environmentObject(licenseManager)
 
             BrowserConfigView()
                 .tabItem {
                     Label("Browser", systemImage: "globe")
                 }
-                .tag(1)
+                .tag(2)
                 .environmentObject(focusManager)
                 .environmentObject(licenseManager)
 
-            InsightsView(selectedTab: .constant(2))
+            SlackView()
+                .tabItem {
+                    Label("Slack", systemImage: "bubble.left.and.bubble.right")
+                }
+                .tag(3)
+                .environmentObject(focusManager)
+
+            InsightsView(selectedTab: .constant(4))
                 .tabItem {
                     Label("Insights", systemImage: "chart.bar")
                 }
-                .tag(2)
+                .tag(4)
                 .environmentObject(licenseManager)
 
-            DataView(selectedTab: .constant(3))
+            DataView(selectedTab: .constant(5))
                 .tabItem {
                     Label("Data", systemImage: "externaldrive")
                 }
-                .tag(3)
+                .tag(5)
                 .environmentObject(focusManager)
                 .environmentObject(licenseManager)
 
@@ -42,7 +57,7 @@ struct SettingsView: View {
                 .tabItem {
                     Label("Auto-Focus+", systemImage: "star.circle.fill")
                 }
-                .tag(4)
+                .tag(6)
                 .environmentObject(licenseManager)
 
             if focusManager.canShowDebugOptions {
@@ -50,7 +65,7 @@ struct SettingsView: View {
                     .tabItem {
                         Label("Debug", systemImage: "ladybug")
                     }
-                    .tag(5)
+                    .tag(7)
                     .environmentObject(focusManager)
                     .environmentObject(licenseManager)
             }

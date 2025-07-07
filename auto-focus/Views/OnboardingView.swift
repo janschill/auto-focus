@@ -6,8 +6,9 @@ enum OnboardingStep: Int, CaseIterable {
     case installShortcut = 2
     case addFocusApps = 3
     case browserIntegration = 4
-    case license = 5
-    case complete = 6
+    case slackIntegration = 5
+    case license = 6
+    case complete = 7
 
     var title: String {
         switch self {
@@ -21,6 +22,8 @@ enum OnboardingStep: Int, CaseIterable {
             return "Add Focus Apps"
         case .browserIntegration:
             return "Browser Integration"
+        case .slackIntegration:
+            return "Slack Integration"
         case .license:
             return "Get Auto-Focus+"
         case .complete:
@@ -36,11 +39,25 @@ struct OnboardingView: View {
     @State private var hasInstalledShortcut: Bool = false
     @State private var hasAddedApps: Bool = false
     @State private var hasSetupBrowser: Bool = false
+    @State private var hasSetupSlack: Bool = false
+    
+    // Helper to determine which steps are available
+    private var availableSteps: [OnboardingStep] {
+        var steps: [OnboardingStep] = [.welcome, .howItWorks]
+        
+        // Add shortcut step only if system DND is enabled
+        if focusManager.isSystemDNDEnabled {
+            steps.append(.installShortcut)
+        }
+        
+        steps.append(contentsOf: [.addFocusApps, .browserIntegration, .slackIntegration, .license, .complete])
+        return steps
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             // Progress indicator
-            ProgressIndicatorView(currentStep: currentStep)
+            ProgressIndicatorView(currentStep: currentStep, availableSteps: availableSteps)
                 .padding(.top, 20)
                 .padding(.bottom, 30)
 
@@ -59,7 +76,8 @@ struct OnboardingView: View {
                 currentStep: $currentStep,
                 hasInstalledShortcut: $hasInstalledShortcut,
                 hasAddedApps: $hasAddedApps,
-                hasSetupBrowser: $hasSetupBrowser
+                hasSetupBrowser: $hasSetupBrowser,
+                hasSetupSlack: $hasSetupSlack
             )
             .padding(.horizontal, 40)
             .padding(.bottom, 30)
@@ -69,6 +87,7 @@ struct OnboardingView: View {
             hasInstalledShortcut = focusManager.isShortcutInstalled
             hasAddedApps = !focusManager.focusApps.isEmpty
             hasSetupBrowser = !focusManager.focusURLs.isEmpty
+            hasSetupSlack = focusManager.slackIntegration.connectedWorkspaceCount > 0
         }
     }
 
@@ -85,6 +104,8 @@ struct OnboardingView: View {
             AddFocusAppsStepView(hasAddedApps: $hasAddedApps)
         case .browserIntegration:
             BrowserIntegrationStepView(hasSetupBrowser: $hasSetupBrowser)
+        case .slackIntegration:
+            SlackIntegrationStepView(hasSetupSlack: $hasSetupSlack)
         case .license:
             LicenseOnboardingStepView()
         case .complete:
@@ -95,18 +116,19 @@ struct OnboardingView: View {
 
 struct ProgressIndicatorView: View {
     let currentStep: OnboardingStep
+    let availableSteps: [OnboardingStep]
 
     var body: some View {
         HStack(spacing: 20) {
-            ForEach(OnboardingStep.allCases, id: \.rawValue) { step in
+            ForEach(Array(availableSteps.enumerated()), id: \.offset) { index, step in
                 HStack(spacing: 8) {
                     Circle()
-                        .fill(step.rawValue <= currentStep.rawValue ? Color.accentColor : Color.gray.opacity(0.3))
+                        .fill(availableSteps.firstIndex(of: step) ?? 0 <= availableSteps.firstIndex(of: currentStep) ?? 0 ? Color.accentColor : Color.gray.opacity(0.3))
                         .frame(width: 12, height: 12)
 
-                    if step != OnboardingStep.allCases.last {
+                    if index < availableSteps.count - 1 {
                         Rectangle()
-                            .fill(step.rawValue < currentStep.rawValue ? Color.accentColor : Color.gray.opacity(0.3))
+                            .fill(index < availableSteps.firstIndex(of: currentStep) ?? 0 ? Color.accentColor : Color.gray.opacity(0.3))
                             .frame(width: 40, height: 2)
                     }
                 }
@@ -138,6 +160,7 @@ struct WelcomeStepView: View {
                 FeatureRow(icon: "app.badge", text: "Automatically detects focus apps")
                 FeatureRow(icon: "globe", text: "Track focus time on websites")
                 FeatureRow(icon: "bell.slash", text: "Blocks notifications during focus")
+                FeatureRow(icon: "bubble.left.and.bubble.right", text: "Slack status and DND sync")
                 FeatureRow(icon: "chart.bar", text: "Tracks your focus sessions")
                 FeatureRow(icon: "timer", text: "Customizable focus thresholds")
             }
@@ -176,7 +199,7 @@ struct HowItWorksStepView: View {
                     .font(.largeTitle)
                     .fontWeight(.bold)
 
-                Text("Auto-Focus monitors your computer usage and automatically enters focus mode when you're working in your designated focus applications.")
+                Text("Auto-Focus monitors your computer usage and automatically enters focus mode when you're working in your designated focus applications or websites. Each integration can be enabled or disabled independently.")
                     .font(.title3)
                     .multilineTextAlignment(.center)
                     .foregroundColor(.secondary)
@@ -244,7 +267,7 @@ struct InstallShortcutStepView: View {
                     .font(.largeTitle)
                     .fontWeight(.bold)
 
-                Text("Auto-Focus needs to install a system shortcut to control Do Not Disturb mode. This is essential for blocking notifications during focus sessions.")
+                Text("Auto-Focus will install a system shortcut to control macOS Do Not Disturb mode. This is required for blocking system notifications during focus sessions.")
                     .font(.title3)
                     .multilineTextAlignment(.center)
                     .foregroundColor(.secondary)
@@ -307,7 +330,7 @@ struct AddFocusAppsStepView: View {
                     .font(.largeTitle)
                     .fontWeight(.bold)
 
-                Text("Choose the applications where you do your most focused work. Auto-Focus will monitor these apps and activate focus mode when you use them.")
+                Text("Choose the applications where you do your most focused work. Auto-Focus will monitor these apps and activate focus mode when you use them. You can configure focus apps in the dedicated Focus Apps tab.")
                     .font(.title3)
                     .multilineTextAlignment(.center)
                     .foregroundColor(.secondary)
@@ -402,99 +425,128 @@ struct BrowserIntegrationStepView: View {
     @EnvironmentObject var licenseManager: LicenseManager
     @Binding var hasSetupBrowser: Bool
     @State private var showingBrowserConfig = false
+    @State private var hasInstalledExtension = false
 
     var body: some View {
         VStack(spacing: 24) {
-            Image(systemName: hasSetupBrowser ? "checkmark.circle.fill" : "globe")
+            Image(systemName: hasSetupBrowser && hasInstalledExtension ? "checkmark.circle.fill" : "globe")
                 .font(.system(size: 60))
-                .foregroundColor(hasSetupBrowser ? .green : .accentColor)
+                .foregroundColor(hasSetupBrowser && hasInstalledExtension ? .green : .accentColor)
 
             VStack(spacing: 16) {
                 Text("Browser Integration")
                     .font(.largeTitle)
                     .fontWeight(.bold)
 
-                Text("Track focus time on websites like GitHub, Notion, Google Docs, and more. Auto-Focus can monitor your browser tabs and activate focus mode when you're on designated websites.")
+                Text("Track focus time on websites like GitHub, Notion, Google Docs, and more. Install the browser extension and configure your focus websites.")
                     .font(.title3)
                     .multilineTextAlignment(.center)
                     .foregroundColor(.secondary)
             }
 
-            VStack(spacing: 16) {
-                HStack {
-                    Image(systemName: hasSetupBrowser ? "checkmark.circle.fill" : "circle")
-                        .foregroundColor(hasSetupBrowser ? .green : .gray)
-
-                    Text(hasSetupBrowser ? browserStatusText : "Browser integration not set up")
-                        .font(.headline)
-                        .foregroundColor(hasSetupBrowser ? .green : .primary)
-
-                    Spacer()
-                }
-
-                if !focusManager.focusURLs.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        ForEach(focusManager.focusURLs.prefix(3)) { url in
-                            HStack {
-                                Image(systemName: "globe")
-                                    .foregroundColor(.accentColor)
-                                Text(url.name)
-                                    .font(.body)
-                                Spacer()
-                            }
-                        }
-
-                        if focusManager.focusURLs.count > 3 {
-                            Text("... and \(focusManager.focusURLs.count - 3) more")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .padding(.leading, 24)
-                        }
-                    }
-                    .padding(.top, 8)
-                }
-
-                Button(hasSetupBrowser ? "Configure Websites" : "Set Up Browser Integration") {
-                    showingBrowserConfig = true
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-
-                VStack(spacing: 12) {
-                    if !licenseManager.isLicensed {
+            VStack(spacing: 20) {
+                // Extension installation status
+                GroupBox {
+                    VStack(spacing: 12) {
                         HStack {
-                            Image(systemName: "info.circle")
-                                .foregroundColor(.blue)
-                            Text("Free tier: 3 focus websites • Auto-Focus+ unlocks unlimited websites")
-                                .font(.caption)
-                                .foregroundColor(.blue)
+                            Image(systemName: hasInstalledExtension ? "checkmark.circle.fill" : "circle")
+                                .foregroundColor(hasInstalledExtension ? .green : .gray)
+                            
+                            Text(hasInstalledExtension ? "Chrome extension installed" : "Chrome extension not installed")
+                                .font(.headline)
+                                .foregroundColor(hasInstalledExtension ? .green : .primary)
+                            
+                            Spacer()
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(Color.blue.opacity(0.1))
-                        .cornerRadius(8)
-                    }
-
-                    VStack(spacing: 8) {
-                        Text("Popular focus websites:")
+                        
+                        if !hasInstalledExtension {
+                            Button("Install Extension") {
+                                if let url = URL(string: "https://chromewebstore.google.com/detail/ncmjhohihnjjmkfpcibbafakmlbfifih") {
+                                    NSWorkspace.shared.open(url)
+                                    // Give user time to install before marking as complete
+                                    Task {
+                                        try await Task.sleep(nanoseconds: 5_000_000_000) // 5 seconds
+                                        await MainActor.run {
+                                            hasInstalledExtension = true
+                                        }
+                                    }
+                                }
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.regular)
+                        }
+                        
+                        Text("The extension enables Auto-Focus to monitor your browser tabs and track time on focus websites.")
                             .font(.caption)
-                            .fontWeight(.semibold)
                             .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding()
+                }
+                
+                // Website configuration status
+                GroupBox {
+                    VStack(spacing: 12) {
+                        HStack {
+                            Image(systemName: hasSetupBrowser ? "checkmark.circle.fill" : "circle")
+                                .foregroundColor(hasSetupBrowser ? .green : .gray)
 
-                        HStack(spacing: 12) {
-                            RecommendedWebsiteTag(name: "GitHub")
-                            RecommendedWebsiteTag(name: "Notion")
-                            RecommendedWebsiteTag(name: "Google Docs")
-                            RecommendedWebsiteTag(name: "Figma")
+                            Text(hasSetupBrowser ? browserStatusText : "No focus websites configured")
+                                .font(.headline)
+                                .foregroundColor(hasSetupBrowser ? .green : .primary)
+
+                            Spacer()
+                        }
+
+                        if !focusManager.focusURLs.isEmpty {
+                            VStack(alignment: .leading, spacing: 8) {
+                                ForEach(focusManager.focusURLs.prefix(3)) { url in
+                                    HStack {
+                                        Image(systemName: "globe")
+                                            .foregroundColor(.accentColor)
+                                        Text(url.name)
+                                            .font(.body)
+                                        Spacer()
+                                    }
+                                }
+
+                                if focusManager.focusURLs.count > 3 {
+                                    Text("... and \(focusManager.focusURLs.count - 3) more")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .padding(.leading, 24)
+                                }
+                            }
+                            .padding(.top, 8)
+                        }
+
+                        Button(hasSetupBrowser ? "Configure More Websites" : "Configure Focus Websites") {
+                            showingBrowserConfig = true
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.regular)
+
+                        if !licenseManager.isLicensed {
+                            HStack {
+                                Image(systemName: "info.circle")
+                                    .foregroundColor(.blue)
+                                Text("Free tier: 3 focus websites • Auto-Focus+ unlocks unlimited websites")
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(Color.blue.opacity(0.1))
+                            .cornerRadius(8)
                         }
                     }
-                    .padding(.top, 8)
+                    .padding()
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 20)
-            .background(Color(.controlBackgroundColor))
-            .cornerRadius(12)
+        }
+        .onAppear {
+            // Check if extension is connected
+            hasInstalledExtension = focusManager.isExtensionConnected
         }
         .sheet(isPresented: $showingBrowserConfig) {
             OnboardingBrowserConfigSheet(hasSetupBrowser: $hasSetupBrowser)
@@ -525,6 +577,121 @@ struct RecommendedWebsiteTag: View {
     }
 }
 
+struct SlackIntegrationStepView: View {
+    @EnvironmentObject var focusManager: FocusManager
+    @Binding var hasSetupSlack: Bool
+    @State private var showingSlackSetup = false
+    
+    var body: some View {
+        VStack(spacing: 24) {
+            Image(systemName: hasSetupSlack ? "checkmark.circle.fill" : "bubble.left.and.bubble.right")
+                .font(.system(size: 60))
+                .foregroundColor(hasSetupSlack ? .green : .accentColor)
+            
+            VStack(spacing: 16) {
+                Text("Slack Integration")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                
+                Text("Connect your Slack workspace to automatically update your status and enable Do Not Disturb during focus sessions. Keep your team informed while you focus.")
+                    .font(.title3)
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.secondary)
+            }
+            
+            VStack(spacing: 16) {
+                HStack {
+                    Image(systemName: hasSetupSlack ? "checkmark.circle.fill" : "circle")
+                        .foregroundColor(hasSetupSlack ? .green : .gray)
+                    
+                    Text(hasSetupSlack ? slackStatusText : "No Slack workspace connected")
+                        .font(.headline)
+                        .foregroundColor(hasSetupSlack ? .green : .primary)
+                    
+                    Spacer()
+                }
+                
+                if hasSetupSlack {
+                    VStack(alignment: .leading, spacing: 8) {
+                        let workspaces = focusManager.slackIntegration.workspaceManager.connectedWorkspaces
+                        ForEach(workspaces.prefix(3)) { workspace in
+                            HStack {
+                                Image(systemName: "building.2")
+                                    .foregroundColor(.accentColor)
+                                Text(workspace.name)
+                                    .font(.body)
+                                Spacer()
+                            }
+                        }
+                        
+                        if workspaces.count > 3 {
+                            Text("... and \(workspaces.count - 3) more")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .padding(.leading, 24)
+                        }
+                    }
+                    .padding(.top, 8)
+                }
+                
+                Button(hasSetupSlack ? "Manage Workspaces" : "Connect Slack") {
+                    showingSlackSetup = true
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                
+                VStack(spacing: 12) {
+                    Text("Slack integration features:")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.secondary)
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        SlackFeatureRow(icon: "pencil.circle", text: "Custom focus status")
+                        SlackFeatureRow(icon: "bell.slash", text: "Auto-enable Do Not Disturb")
+                        SlackFeatureRow(icon: "building.2", text: "Multiple workspace support")
+                        SlackFeatureRow(icon: "arrow.triangle.2.circlepath", text: "Automatic status clearing")
+                    }
+                }
+                .padding(.top, 8)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 20)
+            .background(Color(.controlBackgroundColor))
+            .cornerRadius(12)
+        }
+        .sheet(isPresented: $showingSlackSetup) {
+            OnboardingSlackSetupSheet(hasSetupSlack: $hasSetupSlack)
+                .frame(minWidth: 600, minHeight: 500)
+        }
+    }
+    
+    private var slackStatusText: String {
+        let count = focusManager.slackIntegration.connectedWorkspaceCount
+        if count == 1 {
+            return "1 workspace connected"
+        } else {
+            return "\(count) workspaces connected"
+        }
+    }
+}
+
+struct SlackFeatureRow: View {
+    let icon: String
+    let text: String
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .foregroundColor(.accentColor)
+                .frame(width: 16)
+            Text(text)
+                .font(.caption)
+                .foregroundColor(.primary)
+        }
+    }
+}
+
 struct CompleteStepView: View {
     @EnvironmentObject var focusManager: FocusManager
 
@@ -546,9 +713,13 @@ struct CompleteStepView: View {
             }
 
             VStack(spacing: 16) {
-                CompletionRow(icon: "checkmark.circle.fill", text: "Shortcut installed", isComplete: focusManager.isShortcutInstalled)
+                if focusManager.isSystemDNDEnabled {
+                    CompletionRow(icon: "checkmark.circle.fill", text: "Shortcut installed", isComplete: focusManager.isShortcutInstalled)
+                }
                 CompletionRow(icon: "checkmark.circle.fill", text: "Focus apps configured", isComplete: !focusManager.focusApps.isEmpty)
-                CompletionRow(icon: "checkmark.circle.fill", text: "Browser integration ready", isComplete: !focusManager.focusURLs.isEmpty)
+                CompletionRow(icon: "checkmark.circle.fill", text: "Browser extension installed", isComplete: focusManager.isExtensionConnected)
+                CompletionRow(icon: "checkmark.circle.fill", text: "Focus websites configured", isComplete: !focusManager.focusURLs.isEmpty)
+                CompletionRow(icon: "checkmark.circle.fill", text: "Slack integration connected", isComplete: focusManager.slackIntegration.connectedWorkspaceCount > 0)
 
                 Divider()
                     .padding(.vertical, 8)
@@ -558,9 +729,9 @@ struct CompleteStepView: View {
                         .font(.headline)
                         .fontWeight(.semibold)
 
-                    NextStepRow(icon: "globe", text: "Set up browser extension for website tracking")
-                    NextStepRow(icon: "gearshape", text: "Adjust settings in Configuration tab")
-                    NextStepRow(icon: "chart.bar", text: "View your focus insights")
+                    NextStepRow(icon: "gearshape", text: "Fine-tune your settings in the General tab")
+                    NextStepRow(icon: "chart.bar", text: "View your focus insights in the Insights tab")
+                    NextStepRow(icon: "star.circle", text: "Explore premium features in Auto-Focus+ tab")
                     NextStepRow(icon: "brain.head.profile", text: "Start focusing!")
                 }
             }
@@ -615,6 +786,20 @@ struct NavigationButtonsView: View {
     @Binding var hasInstalledShortcut: Bool
     @Binding var hasAddedApps: Bool
     @Binding var hasSetupBrowser: Bool
+    @Binding var hasSetupSlack: Bool
+    
+    // Helper to determine which steps are available
+    private var availableSteps: [OnboardingStep] {
+        var steps: [OnboardingStep] = [.welcome, .howItWorks]
+        
+        // Add shortcut step only if system DND is enabled
+        if focusManager.isSystemDNDEnabled {
+            steps.append(.installShortcut)
+        }
+        
+        steps.append(contentsOf: [.addFocusApps, .browserIntegration, .slackIntegration, .license, .complete])
+        return steps
+    }
 
     private var canProceed: Bool {
         switch currentStep {
@@ -624,6 +809,8 @@ struct NavigationButtonsView: View {
             return hasAddedApps
         case .browserIntegration:
             return true // Optional step, can always proceed
+        case .slackIntegration:
+            return true // Optional step, can always proceed
         default:
             return true
         }
@@ -632,14 +819,19 @@ struct NavigationButtonsView: View {
     private var isLastStep: Bool {
         currentStep == .complete
     }
+    
+    private var currentStepIndex: Int {
+        availableSteps.firstIndex(of: currentStep) ?? 0
+    }
 
     var body: some View {
         HStack {
             if currentStep != .welcome {
                 Button("Back") {
                     withAnimation(.easeInOut(duration: 0.3)) {
-                        if currentStep.rawValue > 0 {
-                            currentStep = OnboardingStep(rawValue: currentStep.rawValue - 1) ?? .welcome
+                        let currentIndex = currentStepIndex
+                        if currentIndex > 0 {
+                            currentStep = availableSteps[currentIndex - 1]
                         }
                     }
                 }
@@ -653,8 +845,9 @@ struct NavigationButtonsView: View {
                     focusManager.completeOnboarding()
                 } else {
                     withAnimation(.easeInOut(duration: 0.3)) {
-                        if currentStep.rawValue < OnboardingStep.allCases.count - 1 {
-                            currentStep = OnboardingStep(rawValue: currentStep.rawValue + 1) ?? .complete
+                        let currentIndex = currentStepIndex
+                        if currentIndex < availableSteps.count - 1 {
+                            currentStep = availableSteps[currentIndex + 1]
                         }
                     }
                 }
@@ -1157,6 +1350,130 @@ struct OnboardingPresetRow: View {
             .buttonStyle(.plain)
             .disabled(!canSelect)
             .opacity(canSelect ? 1.0 : 0.6)
+        }
+    }
+}
+
+struct OnboardingSlackSetupSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var focusManager: FocusManager
+    @Binding var hasSetupSlack: Bool
+    
+    private var slackManager: SlackIntegrationManager {
+        return focusManager.slackIntegration
+    }
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                if slackManager.connectedWorkspaceCount == 0 {
+                    // Empty state
+                    VStack(spacing: 24) {
+                        Image(systemName: "bubble.left.and.bubble.right")
+                            .font(.system(size: 60))
+                            .foregroundColor(.accentColor)
+                        
+                        VStack(spacing: 16) {
+                            Text("Connect Your Slack Workspace")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                            
+                            Text("Authorize Auto-Focus to update your Slack status and enable Do Not Disturb during focus sessions.")
+                                .font(.body)
+                                .multilineTextAlignment(.center)
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal, 40)
+                        }
+                        
+                        Button {
+                            slackManager.connectWorkspace()
+                        } label: {
+                            HStack {
+                                Image(systemName: "plus.circle.fill")
+                                Text("Connect Slack Workspace")
+                            }
+                            .fontWeight(.medium)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        .disabled(slackManager.oauthManager.isAuthenticating)
+                    }
+                } else {
+                    // Connected workspaces
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Connected Workspaces")
+                            .font(.headline)
+                        
+                        ForEach(slackManager.workspaceManager.connectedWorkspaces) { workspace in
+                            HStack {
+                                Image(systemName: "building.2")
+                                    .foregroundColor(.blue)
+                                    .frame(width: 24, height: 24)
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(workspace.name)
+                                        .font(.headline)
+                                    
+                                    Text("Connected as \(workspace.userDisplayName)")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                
+                                Spacer()
+                            }
+                            .padding(.vertical, 8)
+                            .padding(.horizontal)
+                            .background(Color(.controlBackgroundColor))
+                            .cornerRadius(8)
+                        }
+                        
+                        Button {
+                            slackManager.connectWorkspace()
+                        } label: {
+                            HStack {
+                                Image(systemName: "plus.circle")
+                                Text("Add Another Workspace")
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(slackManager.oauthManager.isAuthenticating)
+                    }
+                    .padding()
+                }
+                
+                // OAuth loading state
+                if slackManager.oauthManager.isAuthenticating {
+                    VStack(spacing: 8) {
+                        HStack {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .blue))
+                                .scaleEffect(0.8)
+                            Text("Connecting to Slack...")
+                                .font(.callout)
+                                .foregroundColor(.blue)
+                        }
+                        
+                        Button("Cancel") {
+                            slackManager.oauthManager.cancelAuthentication()
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
+                    .padding(.top, 8)
+                }
+                
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Slack Integration")
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        hasSetupSlack = slackManager.connectedWorkspaceCount > 0
+                        dismiss()
+                    }
+                }
+            }
         }
     }
 }
