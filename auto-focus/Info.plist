@@ -10,5 +10,7 @@
     <true/>
     <key>LSUIElement</key>
     <true/>
+    <key>HMAC_SECRET</key>
+    <string>$(HMAC_SECRET)</string>
 </dict>
 </plist>

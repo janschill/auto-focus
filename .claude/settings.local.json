@@ -4,7 +4,8 @@
       "Bash(rmdir:*)",
       "Bash(true)",
       "Bash(cp:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   }

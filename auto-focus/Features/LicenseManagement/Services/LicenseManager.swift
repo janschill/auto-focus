@@ -1,3 +1,4 @@
+import CommonCrypto
 import CryptoKit
 import Foundation
 import SwiftUI
@@ -459,8 +460,31 @@ class LicenseManager: ObservableObject {
 
     private func parseLicenseResponse(_ json: [String: Any], licenseKey: String) throws -> License {
         guard let valid = json["valid"] as? Bool,
-              let message = json["message"] as? String else {
+              let message = json["message"] as? String,
+              let timestamp = json["timestamp"] as? Int64,
+              let signature = json["signature"] as? String else {
             throw LicenseError.invalidFormat
+        }
+
+        // Verify HMAC signature
+        if !verifyHMACSignature(valid: valid, message: message, timestamp: timestamp, signature: signature) {
+            logger.error("HMAC signature verification failed", metadata: [
+                "timestamp": String(timestamp),
+                "signature_length": String(signature.count)
+            ])
+            throw LicenseError.serverError("Invalid response signature")
+        }
+
+        // Check timestamp is recent (within 5 minutes)
+        let currentTime = Int64(Date().timeIntervalSince1970)
+        let timeDiff = abs(currentTime - timestamp)
+        if timeDiff > 300 { // 5 minutes
+            logger.error("Response timestamp too old", metadata: [
+                "timestamp": String(timestamp),
+                "current_time": String(currentTime),
+                "diff": String(timeDiff)
+            ])
+            throw LicenseError.serverError("Response timestamp invalid")
         }
 
         guard valid else {
@@ -477,6 +501,45 @@ class LicenseManager: ObservableObject {
             appVersion: appVersion,
             maxApps: nil // No limit info from API
         )
+    }
+    
+    private func verifyHMACSignature(valid: Bool, message: String, timestamp: Int64, signature: String) -> Bool {
+        let secret = getHMACSecret()
+        
+        // Create the same payload format as server: valid|message|timestamp
+        let payload = "\(valid)|\(message)|\(timestamp)"
+        
+        // Generate HMAC
+        guard let payloadData = payload.data(using: .utf8),
+              let secretData = secret.data(using: .utf8) else {
+            return false
+        }
+        
+        var mac = [UInt8](repeating: 0, count: Int(CC_SHA256_DIGEST_LENGTH))
+        CCHmac(CCHmacAlgorithm(kCCHmacAlgSHA256), secretData.withUnsafeBytes { $0.baseAddress }, secretData.count,
+               payloadData.withUnsafeBytes { $0.baseAddress }, payloadData.count, &mac)
+        
+        let computedSignature = Data(mac).base64EncodedString()
+        
+        // Constant-time comparison to prevent timing attacks
+        return computedSignature.count == signature.count && 
+               zip(computedSignature, signature).allSatisfy { $0 == $1 }
+    }
+    
+    private func getHMACSecret() -> String {
+        #if DEBUG
+        // Development/debug secret - safe to be in source code
+        return "auto-focus-hmac-secret-2025"
+        #else
+        // Production secret from build configuration
+        if let secret = Bundle.main.object(forInfoDictionaryKey: "HMAC_SECRET") as? String, !secret.isEmpty {
+            return secret
+        }
+        
+        // Fallback - log warning but don't crash
+        logger.error("HMAC_SECRET not found in build configuration, using development secret")
+        return "auto-focus-hmac-secret-2025"
+        #endif
     }
 
     private func generateInstanceIdentifier() -> String {

@@ -31,7 +31,13 @@ swift-package-update:
 # Xcode build targets
 build:
 	@echo "Building $(PROJECT_NAME) for $(CONFIGURATION)..."
-	xcodebuild -scheme $(SCHEME) -configuration $(CONFIGURATION) -derivedDataPath $(BUILD_DIR) build
+	@if [ -f ".hmac_secret" ]; then \
+		echo "✅ Loading HMAC secret from .hmac_secret file"; \
+		xcodebuild -scheme $(SCHEME) -configuration $(CONFIGURATION) -derivedDataPath $(BUILD_DIR) build HMAC_SECRET="$$(cat .hmac_secret)"; \
+	else \
+		echo "⚠️  .hmac_secret file not found - using development secret"; \
+		xcodebuild -scheme $(SCHEME) -configuration $(CONFIGURATION) -derivedDataPath $(BUILD_DIR) build; \
+	fi
 
 clean:
 	@echo "Cleaning build artifacts..."
@@ -54,7 +60,14 @@ deep-clean: clean
 # Archive and signing
 archive-mac:
 	@echo "Creating archive for $(PROJECT_NAME)..."
-	xcodebuild -scheme $(SCHEME) -configuration $(CONFIGURATION) -archivePath $(ARCHIVE_PATH) archive
+	@if [ -f ".hmac_secret" ]; then \
+		echo "✅ Loading HMAC secret from .hmac_secret file"; \
+		HMAC_SECRET=$$(cat .hmac_secret) xcodebuild -scheme $(SCHEME) -configuration $(CONFIGURATION) -archivePath $(ARCHIVE_PATH) archive HMAC_SECRET="$$(cat .hmac_secret)"; \
+	else \
+		echo "⚠️  .hmac_secret file not found - using development secret"; \
+		echo "   Run: ./scripts/setup-production-secret.sh to create it"; \
+		xcodebuild -scheme $(SCHEME) -configuration $(CONFIGURATION) -archivePath $(ARCHIVE_PATH) archive; \
+	fi
 
 # Code signing verification
 codesign-check:
