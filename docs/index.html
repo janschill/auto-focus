@@ -593,7 +593,22 @@
                         </svg>
                         Buy Auto-Focus+
                     </button>
+
+                    <!-- Staging Checkout Button (for testing only) -->
+                    <button
+                        class="bg-orange-500 hover:bg-orange-600 text-white w-full py-3 rounded-xl text-sm font-semibold inline-flex items-center justify-center gap-2 mt-3"
+                        id="staging-checkout-button"
+                        role="link"
+                        type="button"
+                        style="display: none;">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                        </svg>
+                        🧪 TEST CHECKOUT (Staging)
+                    </button>
+
                     <div id="error-message" class="text-red-600 mt-2 text-center"></div>
+                    <div id="staging-error-message" class="text-red-600 mt-2 text-center"></div>
                 </div>
             </div>
 
@@ -623,20 +638,87 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        var stripe = Stripe('pk_live_51RJsTJHG3jEF4MbtWkI32NWB3j69lMvPnwlAhH81xKsWwko0vNrj9rTZzsvzaUzmSYqMbSnTGrS7Xs24ymwIoqay008AuEGDQG');
+        // Configuration
+        const config = {
+            production: {
+                stripe: Stripe('pk_live_51RJsTJHG3jEF4MbtWkI32NWB3j69lMvPnwlAhH81xKsWwko0vNrj9rTZzsvzaUzmSYqMbSnTGrS7Xs24ymwIoqay008AuEGDQG'),
+                priceId: 'price_1RclfYHG3jEF4Mbtk53ComY9',
+                successUrl: 'https://auto-focus.app/success',
+                cancelUrl: 'https://auto-focus.app/canceled'
+            },
+            staging: {
+                stripe: Stripe('pk_test_51RJsTSQnG2sk4c6Rt00Ew1IrNguokLwQkvBcpTwVLsM92rYoQeqBW56MkrE2nZoIRacFMxCf9y9uv2UrxXUN0Cum00tPXy1cEW'),
+                priceId: 'price_1RYAKiQnG2sk4c6RQTPMZ6HT',
+                successUrl: 'https://auto-focus.app/success?env=staging',
+                cancelUrl: 'https://auto-focus.app/canceled?env=staging',
+                apiUrl: 'https://staging.auto-focus.app/api/'
+            }
+        };
 
-        var checkoutButton = document.getElementById('checkout-button-price_1RclfYHG3jEF4Mbtk53ComY9');
-        if (checkoutButton) {
-            checkoutButton.addEventListener('click', function () {
-                stripe.redirectToCheckout({
-                    lineItems: [{price: 'price_1RclfYHG3jEF4Mbtk53ComY9', quantity: 1}],
+        // Show staging button if URL contains ?staging=1 or if on localhost
+        const showStaging = window.location.search.includes('staging=1') ||
+                           window.location.hostname === 'localhost' ||
+                           window.location.hostname === '127.0.0.1';
+
+        if (showStaging) {
+            const stagingButton = document.getElementById('staging-checkout-button');
+            if (stagingButton) {
+                stagingButton.style.display = 'flex';
+
+                // Add staging indicator to page
+                const title = document.querySelector('h1');
+                if (title) {
+                    const stagingBadge = document.createElement('div');
+                    stagingBadge.innerHTML = '🧪 STAGING MODE - Test payments enabled';
+                    stagingBadge.className = 'bg-orange-100 border border-orange-300 text-orange-800 px-4 py-2 rounded-lg text-sm font-medium text-center mb-4';
+                    title.parentNode.insertBefore(stagingBadge, title.nextSibling);
+                }
+            }
+        }
+
+        // Production checkout
+        const productionButton = document.getElementById('checkout-button-price_1RclfYHG3jEF4Mbtk53ComY9');
+        if (productionButton) {
+            productionButton.addEventListener('click', function () {
+                const prod = config.production;
+                prod.stripe.redirectToCheckout({
+                    lineItems: [{price: prod.priceId, quantity: 1}],
                     mode: 'payment',
-                    successUrl: 'https://auto-focus.app/success',
-                    cancelUrl: 'https://auto-focus.app/canceled',
+                    successUrl: prod.successUrl,
+                    cancelUrl: prod.cancelUrl,
                 })
                 .then(function (result) {
                     if (result.error) {
-                        var displayError = document.getElementById('error-message');
+                        const displayError = document.getElementById('error-message');
+                        displayError.textContent = result.error.message;
+                    }
+                });
+            });
+        }
+
+        // Staging checkout
+        const stagingButton = document.getElementById('staging-checkout-button');
+        if (stagingButton) {
+            stagingButton.addEventListener('click', function () {
+                const staging = config.staging;
+
+                // Check if staging is properly configured
+                if (staging.priceId.includes('price_1RYAKiQnG2sk4c6RQTPMZ6HT') ||
+                    staging.stripe._keyMode === 'live') {
+                    const displayError = document.getElementById('staging-error-message');
+                    displayError.textContent = 'Staging not configured. Please set up test Stripe keys and price ID.';
+                    return;
+                }
+
+                staging.stripe.redirectToCheckout({
+                    lineItems: [{price: staging.priceId, quantity: 1}],
+                    mode: 'payment',
+                    successUrl: staging.successUrl,
+                    cancelUrl: staging.cancelUrl,
+                })
+                .then(function (result) {
+                    if (result.error) {
+                        const displayError = document.getElementById('staging-error-message');
                         displayError.textContent = result.error.message;
                     }
                 });
