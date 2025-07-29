@@ -703,7 +703,7 @@
                 const staging = config.staging;
 
                 // Check if staging is properly configured
-                if (staging.priceId.includes('price_1RYAKiQnG2sk4c6RQTPMZ6HT') ||
+                if (staging.priceId === 'price_1RYAKiQnG2sk4c6RQTPMZ6HT' ||
                     staging.stripe._keyMode === 'live') {
                     const displayError = document.getElementById('staging-error-message');
                     displayError.textContent = 'Staging not configured. Please set up test Stripe keys and price ID.';
