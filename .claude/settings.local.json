@@ -3,7 +3,8 @@
     "allow": [
       "Bash(rmdir:*)",
       "Bash(true)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(find:*)"
     ],
     "deny": []
   }

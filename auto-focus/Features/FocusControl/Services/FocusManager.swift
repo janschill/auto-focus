@@ -100,6 +100,16 @@ class FocusManager: ObservableObject {
     var monthSessions: [FocusSession] {
         return sessionManager.monthSessions
     }
+    
+    // MARK: - Current App Access
+    var currentAppBundleId: String? {
+        return appMonitor.currentApp
+    }
+    
+    var currentAppInfo: AppInfo? {
+        guard let bundleId = currentAppBundleId else { return nil }
+        return focusApps.first { $0.bundleIdentifier == bundleId }
+    }
 
     var canAddMoreApps: Bool {
         if licenseManager.isLicensed {
