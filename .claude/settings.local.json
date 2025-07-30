@@ -5,7 +5,16 @@
       "Bash(true)",
       "Bash(cp:*)",
       "Bash(find:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(gh run view:*)",
+      "Bash(make lint:*)",
+      "Bash(golangci-lint run:*)",
+      "Bash(go fmt:*)",
+      "Bash(go test:*)",
+      "Bash(go build:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(gh workflow view:*)"
     ],
     "deny": []
   }

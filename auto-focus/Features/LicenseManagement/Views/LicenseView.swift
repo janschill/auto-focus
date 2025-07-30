@@ -52,9 +52,6 @@ struct LicensedView: View {
                         .padding(.bottom, 4)
 
                     VStack(alignment: .leading, spacing: 8) {
-                        LicenseInfoRow(title: "Licensed to", value: licenseManager.licenseOwner)
-                        LicenseInfoRow(title: "Email address", value: licenseManager.licenseEmail)
-
                         if let expiryDate = licenseManager.licenseExpiry {
                             LicenseInfoRow(
                                 title: "Expires",
