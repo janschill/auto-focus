@@ -1,0 +1,9 @@
+<svg width="350" height="255" viewBox="0 0 350 255" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Program">
+<rect id="Rectangle 1" width="350" height="255" rx="10" fill="#282828"/>
+<path id="Rectangle 2" d="M0 10C0 4.47715 4.47715 0 10 0H340C345.523 0 350 4.47715 350 10V31H0V10Z" fill="#5A5A5A"/>
+<circle id="Ellipse 1" cx="14.5" cy="15.5" r="4.5" fill="#DA3C3C"/>
+<circle id="Ellipse 2" cx="28.5" cy="15.5" r="4.5" fill="#DAB03C"/>
+<circle id="Ellipse 3" cx="42.5" cy="15.5" r="4.5" fill="#54B631"/>
+</g>
+</svg>
