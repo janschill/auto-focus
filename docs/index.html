@@ -151,59 +151,104 @@
                 height: 120px;
             }
         }
+
+        /* Demo Animation Styles */
+        .notification-bubble {
+            opacity: 0;
+            transform: translateX(20px);
+            transition: all 0.4s ease;
+        }
+
+        .notification-bubble.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .notification-bubble.fade-out {
+            opacity: 0;
+            transform: translateX(20px) scale(0.9);
+        }
+
+        #brain-outline, #brain-filled {
+            transition: opacity 0.3s ease;
+        }
+
+        .brain-active #brain-outline {
+            opacity: 0;
+        }
+
+        .brain-active #brain-filled {
+            opacity: 1;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .brain-active {
+            animation: pulse 2s infinite;
+        }
     </style>
 </head>
 
 <body class="gradient-bg min-h-screen">
     <div class="max-w-7xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
         <!-- Hero Section -->
-        <div class="text-center mb-20 animate-fade-in">
-            <div class="logo-container">
-                <img src="images/AppIcon.png" alt="">
+        <div class="grid lg:grid-cols-2 gap-16 items-center mb-20 animate-fade-in">
+            <div class="text-left">
+                <h1 class="font-bold tracking-tight text-gray-900 mb-8 leading-tight" style="font-size: 3.5rem;">
+                    Detects Focus.<br>
+                    <span class="primary-text">Disables Notifications</span>
+                </h1>
+
+                <p class="text-gray-600 mb-8 leading-relaxed" style="font-size: 1.25rem;">
+                    Auto-Focus runs in the background, monitoring your active application. When you focus on configured apps for a set time, it automatically enables Do Not Disturb. Switch away, and notifications return after a buffer period.
+                </p>
+
+                <div class="flex flex-col sm:flex-row items-start gap-4 mb-8">
+                    <span class="beta-badge">FREE BETA</span>
+                    <span class="text-gray-600 text-lg">Full access until August 31, 2025</span>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-4 mb-8">
+                    <a href="downloads/Auto-Focus.zip"
+                        class="primary-btn text-white px-8 py-4 rounded-xl text-lg font-semibold inline-flex items-center gap-3">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Download Free
+                    </a>
+                    <a href="#pricing"
+                        class="accent-btn text-white px-8 py-4 rounded-xl text-lg font-semibold inline-flex items-center gap-3">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Buy Auto-Focus+
+                    </a>
+                </div>
+
+                <p class="text-sm text-gray-500">
+                    macOS Sonoma and later • Native SwiftUI app • Privacy-first design
+                </p>
             </div>
-
-            <h1 class="text-5xl font-bold tracking-tight text-gray-900 sm:text-7xl mb-8 leading-tight">
-                Intelligent Focus<br>
-                <span class="primary-text">for macOS</span>
-            </h1>
-
-            <p class="text-2xl text-gray-600 max-w-3xl mx-auto mb-8 leading-relaxed">
-                Auto-Focus detects when you're in deep work and automatically manages Do Not Disturb mode.
-                Track sessions, configure apps, and boost productivity.
-            </p>
-
-            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
-                <span class="beta-badge">FREE BETA</span>
-                <span class="text-gray-600 text-lg">Full access until August 31, 2025</span>
+            
+            <div class="relative">
+                <img src="images/autofocusheader/Program.svg" alt="Auto-Focus Demo" class="w-full max-w-2xl mx-auto" id="demo-graphic">
+                
+                <!-- Animated notifications -->
+                <div class="absolute top-4 -right-8 space-y-6" id="notification-container">
+                    <img src="images/autofocusheader/Notification 1.svg" alt="Notification 1" class="notification-bubble transform scale-125" id="notif-1">
+                    <img src="images/autofocusheader/Notification 2.svg" alt="Notification 2" class="notification-bubble transform scale-125" id="notif-2">
+                    <img src="images/autofocusheader/Notification 3.svg" alt="Notification 3" class="notification-bubble transform scale-125" id="notif-3">
+                </div>
+                
+                
+                <!-- Focus mode text -->
+                <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-primary-color text-white px-4 py-2 rounded-lg font-semibold opacity-0 transition-opacity duration-300" id="focus-text">
+                    Auto-Focus Active
+                </div>
             </div>
-
-            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <a href="downloads/Auto-Focus.zip"
-                    class="primary-btn text-white px-8 py-4 rounded-xl text-lg font-semibold inline-flex items-center gap-3">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    Download Free
-                </a>
-                <a href="#pricing"
-                    class="accent-btn text-white px-8 py-4 rounded-xl text-lg font-semibold inline-flex items-center gap-3">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Buy Auto-Focus+
-                </a>
-                <a href="https://chromewebstore.google.com/detail/ncmjhohihnjjmkfpcibbafakmlbfifih" target="_blank"
-                    class="border-2 border-primary-color text-primary-color px-8 py-4 rounded-xl text-lg font-semibold inline-flex items-center gap-3 hover:bg-primary-light">
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9" />
-                    </svg>
-                    Chrome Extension
-                </a>
-            </div>
-
-            <p class="mt-6 text-sm text-gray-500">
-                macOS Sonoma and later • Native SwiftUI app • Privacy-first design
-            </p>
         </div>
 
         <!-- Screenshots Section -->
@@ -237,18 +282,25 @@
         <div class="grid lg:grid-cols-2 gap-16 items-center mb-20">
             <div>
                 <h2 class="text-4xl font-bold text-gray-900 mb-8">
-                    Built for Deep Work
+                    How It Works
                 </h2>
                 <div class="space-y-6 text-lg text-gray-600">
-                    <p>
-                        <a href="https://research.facebook.com/publications/workgraph-personal-focus-vs-interruption-for-engineers-at-meta/" target="_blank" class="primary-text font-semibold hover:underline">Research from Meta</a> shows it takes 23 minutes to regain focus after interruption. Auto-Focus protects your deep work automatically.
-                    </p>
-                    <p>
-                        Monitor your work patterns across native apps and browser tabs. When you're focused for 12 minutes (configurable), Auto-Focus enables Do Not Disturb mode seamlessly.
-                    </p>
-                    <p>
-                        Smart buffer periods prevent focus loss during quick context switches. Check documentation, review code, or grab a coffee without losing your session.
-                    </p>
+                    <div class="flex items-start gap-3">
+                        <span class="font-bold primary-text">1.</span>
+                        <p><strong>Background Monitoring:</strong> Auto-Focus continuously monitors which application is in the foreground, watching for your configured focus apps like VS Code, Xcode, or Figma.</p>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="font-bold primary-text">2.</span>
+                        <p><strong>Timer Starts:</strong> When a focus app becomes active, a timer begins. Once you've been focused for your configured threshold (default: 12 minutes), Do Not Disturb automatically activates.</p>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="font-bold primary-text">3.</span>
+                        <p><strong>Smart Buffer:</strong> Switch to Slack or Chrome briefly? No problem. The buffer time (default: 90 seconds) allows quick context switches without ending your focus session.</p>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="font-bold primary-text">4.</span>
+                        <p><strong>Session Ends:</strong> When you leave focus apps for longer than the buffer time, the session ends and notifications are re-enabled automatically.</p>
+                    </div>
                 </div>
             </div>
             <div class="hero-gradient rounded-2xl p-8 shadow-xl">
@@ -525,9 +577,6 @@
 
                 <!-- Pro Plan -->
                 <div class="feature-card border-2 border-accent-color bg-gradient-to-br from-purple-50 to-blue-50">
-                    <div class="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                        <span class="bg-accent-color text-white px-4 py-1 rounded-full text-sm font-semibold">MOST POPULAR</span>
-                    </div>
                     <div class="text-center mb-6">
                         <h3 class="text-2xl font-bold text-gray-900 mb-2">Auto-Focus+</h3>
                         <p class="text-4xl font-bold text-accent-color mb-1">
@@ -617,7 +666,7 @@
                     <span class="font-semibold">Beta Special:</span> Currently free until August 31, 2025
                 </p>
                 <p class="text-sm text-gray-500">
-                    Questions? Email us at <a href="mailto:auto-focus@janschill.de" class="primary-text hover:underline">auto-focus@janschill.de</a>
+                    Questions? Email us at <a href="mailto:help@auto-focus.app" class="primary-text hover:underline">help@auto-focus.app</a>
                 </p>
             </div>
         </div>
@@ -655,10 +704,8 @@
             }
         };
 
-        // Show staging button if URL contains ?staging=1 or if on localhost
-        const showStaging = window.location.search.includes('staging=1') ||
-                           window.location.hostname === 'localhost' ||
-                           window.location.hostname === '127.0.0.1';
+        // Show staging button if URL contains ?staging=1
+        const showStaging = window.location.search.includes('staging=1');
 
         if (showStaging) {
             const stagingButton = document.getElementById('staging-checkout-button');
@@ -716,6 +763,58 @@
                 });
             });
         }
+
+        // Demo Animation Logic
+        function startDemoAnimation() {
+            const notifications = ['notif-1', 'notif-2', 'notif-3'];
+            const focusText = document.getElementById('focus-text');
+
+            // Reset animation state
+            notifications.forEach(id => {
+                const notif = document.getElementById(id);
+                notif.classList.remove('show', 'fade-out');
+            });
+            focusText.style.opacity = '0';
+
+            // Animation sequence
+            setTimeout(() => {
+                // Step 1: Show notifications one by one (0-2s)
+                notifications.forEach((id, index) => {
+                    setTimeout(() => {
+                        document.getElementById(id).classList.add('show');
+                    }, index * 600);
+                });
+            }, 500);
+
+            setTimeout(() => {
+                // Step 2: Show focus text (3s)
+                focusText.style.opacity = '1';
+            }, 3000);
+
+            setTimeout(() => {
+                // Step 3: Fade out notifications (3.5s)
+                notifications.forEach((id, index) => {
+                    setTimeout(() => {
+                        const notif = document.getElementById(id);
+                        notif.classList.remove('show');
+                        notif.classList.add('fade-out');
+                    }, index * 200);
+                });
+            }, 3500);
+
+            setTimeout(() => {
+                // Step 4: Hide focus text and restart (7s)
+                focusText.style.opacity = '0';
+            }, 7000);
+
+            // Loop the animation
+            setTimeout(startDemoAnimation, 8000);
+        }
+
+        // Start animation when page loads
+        window.addEventListener('load', () => {
+            setTimeout(startDemoAnimation, 1000);
+        });
     });
     </script>
 </body>
