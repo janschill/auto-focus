@@ -227,29 +227,31 @@
                         Buy Auto-Focus+
                     </a>
                 </div>
-
-                <p class="text-sm text-gray-500">
-                    macOS Sonoma and later • Native SwiftUI app • Privacy-first design
-                </p>
             </div>
-            
+
             <div class="relative">
                 <img src="images/autofocusheader/Program.svg" alt="Auto-Focus Demo" class="w-full max-w-2xl mx-auto" id="demo-graphic">
-                
+
                 <!-- Animated notifications -->
                 <div class="absolute top-4 -right-8 space-y-6" id="notification-container">
                     <img src="images/autofocusheader/Notification 1.svg" alt="Notification 1" class="notification-bubble transform scale-125" id="notif-1">
                     <img src="images/autofocusheader/Notification 2.svg" alt="Notification 2" class="notification-bubble transform scale-125" id="notif-2">
                     <img src="images/autofocusheader/Notification 3.svg" alt="Notification 3" class="notification-bubble transform scale-125" id="notif-3">
                 </div>
-                
-                
-                <!-- Focus mode text -->
-                <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-primary-color text-white px-4 py-2 rounded-lg font-semibold opacity-0 transition-opacity duration-300" id="focus-text">
-                    Auto-Focus Active
+
+
+                <!-- Brain icon indicator -->
+                <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col items-center" id="brain-indicator">
+                    <div class="relative w-10 h-10 mb-1">
+                        <img src="images/autofocusheader/brain.head.profile-white.svg" alt="Auto-Focus Inactive" class="w-10 h-10" id="brain-outline">
+                        <img src="images/autofocusheader/brain.head.profile.fill-white.svg" alt="Auto-Focus Active" class="w-10 h-10 absolute top-0 left-0 opacity-0 transition-opacity duration-500" id="brain-filled">
+                    </div>
+                    <span class="text-xs font-medium text-white bg-gray-800 bg-opacity-75 px-2 py-1 rounded opacity-0 transition-opacity duration-300" id="brain-text">Auto-Focus Active</span>
                 </div>
             </div>
         </div>
+
+        <div class="section-divider"></div>
 
         <!-- Screenshots Section -->
         <div class="screenshot-container mb-20">

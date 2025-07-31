@@ -79,14 +79,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // Demo Animation Logic
     function startDemoAnimation() {
         const notifications = ['notif-1', 'notif-2', 'notif-3'];
-        const focusText = document.getElementById('focus-text');
+        const brainOutline = document.getElementById('brain-outline');
+        const brainFilled = document.getElementById('brain-filled');
+        const brainText = document.getElementById('brain-text');
 
         // Reset animation state
         notifications.forEach(id => {
             const notif = document.getElementById(id);
             notif.classList.remove('show', 'fade-out');
         });
-        focusText.style.opacity = '0';
+        brainOutline.style.opacity = '1';
+        brainFilled.style.opacity = '0';
+        brainText.style.opacity = '0';
 
         // Animation sequence
         setTimeout(() => {
@@ -99,8 +103,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 500);
 
         setTimeout(() => {
-            // Step 2: Show focus text (3s)
-            focusText.style.opacity = '1';
+            // Step 2: Activate brain (transition from outline to filled) (3s)
+            brainOutline.style.opacity = '0';
+            brainFilled.style.opacity = '1';
+            brainText.style.opacity = '1';
         }, 3000);
 
         setTimeout(() => {
@@ -115,8 +121,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 3500);
 
         setTimeout(() => {
-            // Step 4: Hide focus text and restart (7s)
-            focusText.style.opacity = '0';
+            // Step 4: Reset brain to outline and restart (7s)
+            brainOutline.style.opacity = '1';
+            brainFilled.style.opacity = '0';
+            brainText.style.opacity = '0';
         }, 7000);
 
         // Loop the animation
