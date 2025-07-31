@@ -125,8 +125,15 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .icon-container {
@@ -169,7 +176,8 @@
             transform: translateX(20px) scale(0.9);
         }
 
-        #brain-outline, #brain-filled {
+        #brain-outline,
+        #brain-filled {
             transition: opacity 0.3s ease;
         }
 
@@ -182,8 +190,15 @@
         }
 
         @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
         }
 
         .brain-active {
@@ -203,7 +218,8 @@
             transform: scale(1.05);
         }
 
-        #screenshot-title, #screenshot-description {
+        #screenshot-title,
+        #screenshot-description {
             transition: opacity 0.3s ease;
         }
     </style>
@@ -220,7 +236,9 @@
                 </h1>
 
                 <p class="text-gray-600 mb-8 leading-relaxed" style="font-size: 1.25rem;">
-                    Auto-Focus runs in the background, monitoring your active application. When you focus on configured apps for a set time, it automatically enables Do Not Disturb. Switch away, and notifications return after a buffer period.
+                    Auto-Focus runs in the background, monitoring your active application. When you focus on configured
+                    apps for a set time, it automatically enables Do Not Disturb. Switch away, and notifications return
+                    after a buffer period.
                 </p>
 
                 <div class="flex flex-col sm:flex-row items-start gap-4 mb-8">
@@ -232,14 +250,16 @@
                     <a href="downloads/Auto-Focus.zip"
                         class="primary-btn text-white px-8 py-4 rounded-xl text-lg font-semibold inline-flex items-center gap-3">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                         Download Free
                     </a>
                     <a href="#pricing"
                         class="accent-btn text-white px-8 py-4 rounded-xl text-lg font-semibold inline-flex items-center gap-3">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         Buy Auto-Focus+
                     </a>
@@ -247,23 +267,32 @@
             </div>
 
             <div class="relative">
-                <img src="images/autofocusheader/Program.svg" alt="Auto-Focus Demo" class="w-full max-w-2xl mx-auto" id="demo-graphic">
+                <img src="images/autofocusheader/Program.svg" alt="Auto-Focus Demo" class="w-full max-w-2xl mx-auto"
+                    id="demo-graphic">
 
                 <!-- Animated notifications -->
                 <div class="absolute top-4 -right-8 space-y-6" id="notification-container">
-                    <img src="images/autofocusheader/Notification 1.svg" alt="Notification 1" class="notification-bubble transform scale-125" id="notif-1">
-                    <img src="images/autofocusheader/Notification 2.svg" alt="Notification 2" class="notification-bubble transform scale-125" id="notif-2">
-                    <img src="images/autofocusheader/Notification 3.svg" alt="Notification 3" class="notification-bubble transform scale-125" id="notif-3">
+                    <img src="images/autofocusheader/Notification 1.svg" alt="Notification 1"
+                        class="notification-bubble transform scale-125" id="notif-1">
+                    <img src="images/autofocusheader/Notification 2.svg" alt="Notification 2"
+                        class="notification-bubble transform scale-125" id="notif-2">
+                    <img src="images/autofocusheader/Notification 3.svg" alt="Notification 3"
+                        class="notification-bubble transform scale-125" id="notif-3">
                 </div>
 
 
                 <!-- Brain icon indicator -->
-                <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col items-center" id="brain-indicator">
+                <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col items-center"
+                    id="brain-indicator">
                     <div class="relative w-10 h-10 mb-1">
-                        <img src="images/autofocusheader/brain.head.profile-white.svg" alt="Auto-Focus Inactive" class="w-10 h-10" id="brain-outline">
-                        <img src="images/autofocusheader/brain.head.profile.fill-white.svg" alt="Auto-Focus Active" class="w-10 h-10 absolute top-0 left-0 opacity-0 transition-opacity duration-500" id="brain-filled">
+                        <img src="images/autofocusheader/brain.head.profile-white.svg" alt="Auto-Focus Inactive"
+                            class="w-10 h-10" id="brain-outline">
+                        <img src="images/autofocusheader/brain.head.profile.fill-white.svg" alt="Auto-Focus Active"
+                            class="w-10 h-10 absolute top-0 left-0 opacity-0 transition-opacity duration-500"
+                            id="brain-filled">
                     </div>
-                    <span class="text-xs font-medium text-white bg-gray-800 bg-opacity-75 px-2 py-1 rounded opacity-0 transition-opacity duration-300" id="brain-text">Auto-Focus Active</span>
+                    <span class="text-xs font-semibold text-white opacity-0 transition-opacity duration-300"
+                        id="brain-text" style="text-shadow: 0 1px 3px rgba(0,0,0,0.8);">Auto-Focus Active</span>
                 </div>
             </div>
         </div>
@@ -275,103 +304,98 @@
             <h2 class="text-4xl font-bold text-center text-gray-900 mb-8">
                 See Auto-Focus in Action
             </h2>
-            
+
             <!-- Featured Screenshot -->
             <div class="mb-8">
-                <div class="rounded-2xl overflow-hidden shadow-2xl bg-white">
-                    <img id="featured-screenshot" src="images/auto-focus-configuration-view-2.png" alt="Auto-Focus interface" class="w-full">
+                <div class="rounded-2xl overflow-hidden shadow-2xl bg-white"
+                    style="height: 600px; display: flex; align-items: center; justify-content: center;">
+                    <img id="featured-screenshot" src="images/auto-focus-menubar-window-in-focus-2.png"
+                        alt="Active Focus Mode" class="w-full h-full object-cover bg-white">
                 </div>
                 <div class="mt-6 text-center">
-                    <h3 id="screenshot-title" class="text-2xl font-semibold text-gray-900 mb-2">Configuration</h3>
+                    <h3 id="screenshot-title" class="text-2xl font-semibold text-gray-900 mb-2">Active Focus Mode</h3>
                     <p id="screenshot-description" class="text-lg text-gray-600 max-w-2xl mx-auto">
-                        Configure your focus apps, set custom thresholds, and manage browser integration with an intuitive interface.
+                        When in focus, see your current session time and manual controls right from your menu bar.
                     </p>
                 </div>
             </div>
-            
+
             <!-- Screenshot Thumbnails -->
-            <div class="grid grid-cols-3 md:grid-cols-6 gap-3">
-                <button onclick="changeScreenshot(0)" class="screenshot-thumb group relative rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-primary-color" id="thumb-0">
-                    <img src="images/auto-focus-configuration-view-2.png" alt="Configuration" class="w-full">
-                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity"></div>
+            <div class="grid grid-cols-3 md:grid-cols-7 gap-3">
+                <button onclick="changeScreenshot(0)"
+                    class="screenshot-thumb group relative rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-primary-color"
+                    id="thumb-0"
+                    style="height: 80px; display: flex; align-items: center; justify-content: center; background: white !important;">
+                    <img src="images/auto-focus-menubar-window-in-focus-2.png" alt="Active Focus Mode"
+                        class="max-w-full max-h-full object-cover"
+                        style="background: white !important; transform: scale(1.2);">
+                    <div class="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-10 transition-opacity"
+                        style="background: rgba(0,0,0,0) !important;"></div>
                 </button>
-                
-                <button onclick="changeScreenshot(1)" class="screenshot-thumb group relative rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-transparent" id="thumb-1">
-                    <img src="images/auto-focus-insights-view-2.png" alt="Insights" class="w-full">
-                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity"></div>
+                <button onclick="changeScreenshot(1)"
+                    class="screenshot-thumb group relative rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-transparent"
+                    id="thumb-1"
+                    style="height: 80px; display: flex; align-items: center; justify-content: center; background: white !important;">
+                    <img src="images/auto-focus-menubar-window-out-of-focus-2.png" alt="Menu Bar Overview"
+                        class="max-w-full max-h-full object-cover"
+                        style="background: white !important; transform: scale(1.2);">
+                    <div class="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-10 transition-opacity"
+                        style="background: rgba(0,0,0,0) !important;"></div>
                 </button>
-                
-                <button onclick="changeScreenshot(2)" class="screenshot-thumb group relative rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-transparent" id="thumb-2">
-                    <img src="images/auto-focus-menubar-window-in-focus-2.png" alt="Menu Bar Active" class="w-full">
-                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity"></div>
+                <button onclick="changeScreenshot(2)"
+                    class="screenshot-thumb group relative rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-transparent"
+                    id="thumb-2"
+                    style="height: 80px; display: flex; align-items: center; justify-content: center; background: white !important;">
+                    <img src="images/auto-focus-configuration-view-2.png" alt="Configuration"
+                        class="max-w-full max-h-full object-cover"
+                        style="background: white !important; transform: scale(1.2);">
+                    <div class="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-10 transition-opacity"
+                        style="background: rgba(0,0,0,0) !important;"></div>
                 </button>
-                
-                <button onclick="changeScreenshot(3)" class="screenshot-thumb group relative rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-transparent" id="thumb-3">
-                    <img src="images/auto-focus-menubar-window-out-of-focus-2.png" alt="Menu Bar Idle" class="w-full">
-                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity"></div>
+                <button onclick="changeScreenshot(3)"
+                    class="screenshot-thumb group relative rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-transparent"
+                    id="thumb-3"
+                    style="height: 80px; display: flex; align-items: center; justify-content: center; background: white !important;">
+                    <img src="images/auto-focus-browser-view-2.png" alt="Browser Integration"
+                        class="max-w-full max-h-full object-cover"
+                        style="background: white !important; transform: scale(1.2);">
+                    <div class="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-10 transition-opacity"
+                        style="background: rgba(0,0,0,0) !important;"></div>
                 </button>
-                
-                <button onclick="changeScreenshot(4)" class="screenshot-thumb group relative rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-transparent" id="thumb-4">
-                    <img src="images/auto-focus-data-view.png" alt="Data View" class="w-full">
-                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity"></div>
+                <button onclick="changeScreenshot(4)"
+                    class="screenshot-thumb group relative rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-transparent"
+                    id="thumb-4"
+                    style="height: 80px; display: flex; align-items: center; justify-content: center; background: white !important;">
+                    <img src="images/auto-focus-insights-view-2.png" alt="Focus Insights"
+                        class="max-w-full max-h-full object-cover"
+                        style="background: white !important; transform: scale(1.2);">
+                    <div class="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-10 transition-opacity"
+                        style="background: rgba(0,0,0,0) !important;"></div>
                 </button>
-                
-                <button onclick="changeScreenshot(5)" class="screenshot-thumb group relative rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-transparent" id="thumb-5">
-                    <img src="images/auto-focus-browser-view.png" alt="Browser Integration" class="w-full">
-                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity"></div>
+                <button onclick="changeScreenshot(5)"
+                    class="screenshot-thumb group relative rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-transparent"
+                    id="thumb-5"
+                    style="height: 80px; display: flex; align-items: center; justify-content: center; background: white !important;">
+                    <img src="images/auto-focus-data-view-2.png" alt="Data Management"
+                        class="max-w-full max-h-full object-cover"
+                        style="background: white !important; transform: scale(1.2);">
+                    <div class="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-10 transition-opacity"
+                        style="background: rgba(0,0,0,0) !important;"></div>
+                </button>
+                <button onclick="changeScreenshot(6)"
+                    class="screenshot-thumb group relative rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-transparent"
+                    id="thumb-6"
+                    style="height: 80px; display: flex; align-items: center; justify-content: center; background: white !important;">
+                    <img src="images/auto-focus-license-view-2.png" alt="License Management"
+                        class="max-w-full max-h-full object-cover"
+                        style="background: white !important; transform: scale(1.2);">
+                    <div class="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-10 transition-opacity"
+                        style="background: rgba(0,0,0,0) !important;"></div>
                 </button>
             </div>
         </div>
 
         <div class="section-divider"></div>
-
-        <!-- How It Works Section -->
-        <div class="grid lg:grid-cols-2 gap-16 items-center mb-20">
-            <div>
-                <h2 class="text-4xl font-bold text-gray-900 mb-8">
-                    How It Works
-                </h2>
-                <div class="space-y-6 text-lg text-gray-600">
-                    <div class="flex items-start gap-3">
-                        <span class="font-bold primary-text">1.</span>
-                        <p><strong>Background Monitoring:</strong> Auto-Focus continuously monitors which application is in the foreground, watching for your configured focus apps like VS Code, Xcode, or Figma.</p>
-                    </div>
-                    <div class="flex items-start gap-3">
-                        <span class="font-bold primary-text">2.</span>
-                        <p><strong>Timer Starts:</strong> When a focus app becomes active, a timer begins. Once you've been focused for your configured threshold (default: 12 minutes), Do Not Disturb automatically activates.</p>
-                    </div>
-                    <div class="flex items-start gap-3">
-                        <span class="font-bold primary-text">3.</span>
-                        <p><strong>Smart Buffer:</strong> Switch to Slack or Chrome briefly? No problem. The buffer time (default: 90 seconds) allows quick context switches without ending your focus session.</p>
-                    </div>
-                    <div class="flex items-start gap-3">
-                        <span class="font-bold primary-text">4.</span>
-                        <p><strong>Session Ends:</strong> When you leave focus apps for longer than the buffer time, the session ends and notifications are re-enabled automatically.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="hero-gradient rounded-2xl p-8 shadow-xl">
-                <div class="text-center space-y-4">
-                    <div class="w-16 h-16 primary-light rounded-full flex items-center justify-center mx-auto">
-                        <svg class="w-8 h-8 primary-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                    </div>
-                    <h3 class="text-2xl font-bold text-gray-900">23 Minutes</h3>
-                    <p class="text-gray-600">Average time to regain focus after interruption</p>
-                    <div class="bg-white rounded-lg p-4 mt-6">
-                        <p class="text-sm font-medium text-gray-900 mb-2">Focus Protection Active</p>
-                        <div class="flex items-center justify-between text-sm text-gray-600">
-                            <span>VSCode</span>
-                            <span>47 min</span>
-                        </div>
-                        <div class="bg-gray-200 rounded-full h-2 mt-2">
-                            <div class="primary-btn h-2 rounded-full" style="width: 78%"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <!-- Features Grid -->
         <div class="mb-20">
@@ -382,7 +406,8 @@
                 <div class="feature-card text-center">
                     <div class="icon-container">
                         <svg class="w-6 h-6 primary-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
                     <h3 class="text-xl font-semibold mb-3">Automatic Detection</h3>
@@ -392,7 +417,8 @@
                 <div class="feature-card text-center">
                     <div class="icon-container">
                         <svg class="w-6 h-6 primary-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                         </svg>
                     </div>
                     <h3 class="text-xl font-semibold mb-3">Focus Analytics</h3>
@@ -402,7 +428,8 @@
                 <div class="feature-card text-center">
                     <div class="icon-container">
                         <svg class="w-6 h-6 primary-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9" />
                         </svg>
                     </div>
                     <h3 class="text-xl font-semibold mb-3">Browser Integration</h3>
@@ -412,7 +439,8 @@
                 <div class="feature-card text-center">
                     <div class="icon-container">
                         <svg class="w-6 h-6 primary-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                         </svg>
                     </div>
                     <h3 class="text-xl font-semibold mb-3">Privacy First</h3>
@@ -422,8 +450,10 @@
                 <div class="feature-card text-center">
                     <div class="icon-container">
                         <svg class="w-6 h-6 primary-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                     </div>
                     <h3 class="text-xl font-semibold mb-3">Smart Configuration</h3>
@@ -433,7 +463,8 @@
                 <div class="feature-card text-center">
                     <div class="icon-container">
                         <svg class="w-6 h-6 primary-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                         </svg>
                     </div>
                     <h3 class="text-xl font-semibold mb-3">Native macOS</h3>
@@ -449,55 +480,36 @@
             <h2 class="text-4xl font-bold text-gray-900 mb-8">
                 Ready to Protect Your Focus?
             </h2>
-            <p class="text-xl text-gray-600 mb-12 max-w-2xl mx-auto">
-                Join thousands of developers, designers, and knowledge workers taking control of their focus with Auto-Focus.
-            </p>
 
             <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
                 <a href="downloads/Auto-Focus.zip"
                     class="primary-btn text-white px-10 py-5 rounded-xl text-xl font-semibold inline-flex items-center gap-3">
                     <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     Download Free
                 </a>
                 <a href="#pricing"
                     class="accent-btn text-white px-10 py-5 rounded-xl text-xl font-semibold inline-flex items-center gap-3">
                     <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     Buy Auto-Focus+
                 </a>
                 <a href="https://chromewebstore.google.com/detail/ncmjhohihnjjmkfpcibbafakmlbfifih" target="_blank"
-                    class="border-2 border-primary-color text-primary-color px-10 py-5 rounded-xl text-xl font-semibold inline-flex items-center gap-3 hover:bg-primary-light">
+                    class="border-2 border-primary-color text-primary-color px-10 py-5 rounded-xl text-xl font-semibold inline-flex items-center gap-3 hover:bg-primary-light hover:transform hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
                     <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9" />
                     </svg>
                     Chrome Extension
                 </a>
             </div>
-
-            <div class="grid sm:grid-cols-3 gap-8 text-center text-sm text-gray-500">
-                <div class="flex items-center justify-center gap-2">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    Free version available
-                </div>
-                <div class="flex items-center justify-center gap-2">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    macOS Sonoma+
-                </div>
-                <div class="flex items-center justify-center gap-2">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    Privacy focused
-                </div>
-            </div>
         </div>
+
+        <div class="section-divider"></div>
 
         <!-- Getting Started -->
         <div class="max-w-4xl mx-auto mb-20">
@@ -506,10 +518,13 @@
             <div class="grid md:grid-cols-2 gap-8">
                 <div class="feature-card">
                     <div class="flex items-center mb-4">
-                        <div class="w-8 h-8 primary-btn text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">1</div>
+                        <div
+                            class="w-8 h-8 primary-btn text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">
+                            1</div>
                         <h3 class="text-xl font-semibold">Download & Install</h3>
                     </div>
-                    <p class="text-gray-600 mb-4">Download Auto-Focus and the required "Toggle Do Not Disturb" shortcut. Install both to get started.</p>
+                    <p class="text-gray-600 mb-4">Download Auto-Focus and the required "Toggle Do Not Disturb" shortcut.
+                        Install both to get started.</p>
                     <ul class="text-sm text-gray-600 space-y-1">
                         <li>• Extract the downloaded ZIP file</li>
                         <li>• Drag Auto-Focus to Applications</li>
@@ -519,10 +534,13 @@
 
                 <div class="feature-card">
                     <div class="flex items-center mb-4">
-                        <div class="w-8 h-8 primary-btn text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">2</div>
+                        <div
+                            class="w-8 h-8 primary-btn text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">
+                            2</div>
                         <h3 class="text-xl font-semibold">Configure Focus Apps</h3>
                     </div>
-                    <p class="text-gray-600 mb-4">Launch Auto-Focus and select which applications should trigger focus mode when you're working.</p>
+                    <p class="text-gray-600 mb-4">Launch Auto-Focus and select which applications should trigger focus
+                        mode when you're working.</p>
                     <ul class="text-sm text-gray-600 space-y-1">
                         <li>• Add your development tools</li>
                         <li>• Configure browser focus URLs</li>
@@ -532,12 +550,17 @@
 
                 <div class="feature-card">
                     <div class="flex items-center mb-4">
-                        <div class="w-8 h-8 primary-btn text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">3</div>
+                        <div
+                            class="w-8 h-8 primary-btn text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">
+                            3</div>
                         <h3 class="text-xl font-semibold">Install Browser Extension</h3>
                     </div>
-                    <p class="text-gray-600 mb-4">Install the Chrome extension from the Chrome Web Store to track focus URLs like GitHub, Linear, Figma, and other work sites.</p>
+                    <p class="text-gray-600 mb-4">Install the Chrome extension from the Chrome Web Store to track focus
+                        URLs like GitHub, Linear, Figma, and other work sites.</p>
                     <ul class="text-sm text-gray-600 space-y-1">
-                        <li>• <a href="https://chromewebstore.google.com/detail/ncmjhohihnjjmkfpcibbafakmlbfifih" target="_blank" class="primary-text hover:underline">Install from Chrome Web Store</a></li>
+                        <li>• <a href="https://chromewebstore.google.com/detail/ncmjhohihnjjmkfpcibbafakmlbfifih"
+                                target="_blank" class="primary-text hover:underline">Install from Chrome Web Store</a>
+                        </li>
                         <li>• Automatically connects to Auto-Focus</li>
                         <li>• Configure focus domains in the app</li>
                     </ul>
@@ -545,10 +568,13 @@
 
                 <div class="feature-card">
                     <div class="flex items-center mb-4">
-                        <div class="w-8 h-8 primary-btn text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">4</div>
+                        <div
+                            class="w-8 h-8 primary-btn text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">
+                            4</div>
                         <h3 class="text-xl font-semibold">Start Focusing</h3>
                     </div>
-                    <p class="text-gray-600 mb-4">Auto-Focus will now monitor your work and automatically manage Do Not Disturb mode.</p>
+                    <p class="text-gray-600 mb-4">Auto-Focus will now monitor your work and automatically manage Do Not
+                        Disturb mode.</p>
                     <ul class="text-sm text-gray-600 space-y-1">
                         <li>• Focus for 12 minutes to trigger DND</li>
                         <li>• Track sessions in the insights view</li>
@@ -576,38 +602,50 @@
 
                     <ul class="space-y-3 mb-8">
                         <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 primary-text mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            <svg class="w-5 h-5 primary-text mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 13l4 4L19 7" />
                             </svg>
                             <span class="text-gray-700">Automatic focus detection</span>
                         </li>
                         <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 primary-text mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            <svg class="w-5 h-5 primary-text mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 13l4 4L19 7" />
                             </svg>
                             <span class="text-gray-700">Do Not Disturb automation</span>
                         </li>
                         <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 primary-text mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            <svg class="w-5 h-5 primary-text mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 13l4 4L19 7" />
                             </svg>
                             <span class="text-gray-700">Up to 2 focus apps</span>
                         </li>
                         <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 primary-text mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            <svg class="w-5 h-5 primary-text mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 13l4 4L19 7" />
                             </svg>
                             <span class="text-gray-700">Basic focus insights</span>
                         </li>
                         <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 primary-text mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            <svg class="w-5 h-5 primary-text mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 13l4 4L19 7" />
                             </svg>
                             <span class="text-gray-700">Menu bar controls</span>
                         </li>
                         <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 primary-text mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            <svg class="w-5 h-5 primary-text mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 13l4 4L19 7" />
                             </svg>
                             <span class="text-gray-700">Chrome extension included</span>
                         </li>
@@ -616,7 +654,8 @@
                     <a href="downloads/Auto-Focus.zip"
                         class="primary-btn text-white w-full py-4 rounded-xl text-lg font-semibold inline-flex items-center justify-center gap-3">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                         Download Free
                     </a>
@@ -636,44 +675,58 @@
 
                     <ul class="space-y-3 mb-8">
                         <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 text-accent-color mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            <svg class="w-5 h-5 text-accent-color mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 13l4 4L19 7" />
                             </svg>
                             <span class="text-gray-700"><strong>Everything in Free</strong></span>
                         </li>
                         <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 text-accent-color mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            <svg class="w-5 h-5 text-accent-color mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 13l4 4L19 7" />
                             </svg>
                             <span class="text-gray-700"><strong>Unlimited</strong> focus apps</span>
                         </li>
                         <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 text-accent-color mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            <svg class="w-5 h-5 text-accent-color mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 13l4 4L19 7" />
                             </svg>
                             <span class="text-gray-700"><strong>Unlimited</strong> browser URLs</span>
                         </li>
                         <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 text-accent-color mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            <svg class="w-5 h-5 text-accent-color mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 13l4 4L19 7" />
                             </svg>
                             <span class="text-gray-700">Advanced analytics & trends</span>
                         </li>
                         <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 text-accent-color mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            <svg class="w-5 h-5 text-accent-color mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 13l4 4L19 7" />
                             </svg>
                             <span class="text-gray-700">Export data (CSV/JSON)</span>
                         </li>
                         <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 text-accent-color mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            <svg class="w-5 h-5 text-accent-color mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 13l4 4L19 7" />
                             </svg>
                             <span class="text-gray-700">Priority support</span>
                         </li>
                         <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 text-accent-color mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            <svg class="w-5 h-5 text-accent-color mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 13l4 4L19 7" />
                             </svg>
                             <span class="text-gray-700">Future updates included</span>
                         </li>
@@ -681,11 +734,10 @@
 
                     <button
                         class="accent-btn text-white w-full py-4 rounded-xl text-lg font-semibold inline-flex items-center justify-center gap-3"
-                        id="checkout-button-price_1RclfYHG3jEF4Mbtk53ComY9"
-                        role="link"
-                        type="button">
+                        id="checkout-button-price_1RclfYHG3jEF4Mbtk53ComY9" role="link" type="button">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                         </svg>
                         Buy Auto-Focus+
                     </button>
@@ -693,12 +745,10 @@
                     <!-- Staging Checkout Button (for testing only) -->
                     <button
                         class="bg-orange-500 hover:bg-orange-600 text-white w-full py-3 rounded-xl text-sm font-semibold inline-flex items-center justify-center gap-2 mt-3"
-                        id="staging-checkout-button"
-                        role="link"
-                        type="button"
-                        style="display: none;">
+                        id="staging-checkout-button" role="link" type="button" style="display: none;">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
                         </svg>
                         🧪 TEST CHECKOUT (Staging)
                     </button>
@@ -713,21 +763,59 @@
                     <span class="font-semibold">Beta Special:</span> Currently free until August 31, 2025
                 </p>
                 <p class="text-sm text-gray-500">
-                    Questions? Email us at <a href="mailto:help@auto-focus.app" class="primary-text hover:underline">help@auto-focus.app</a>
+                    Questions? Email us at <a href="mailto:help@auto-focus.app"
+                        class="primary-text hover:underline">help@auto-focus.app</a>
                 </p>
             </div>
         </div>
 
-        <!-- Privacy Notice -->
-        <div class="text-center mb-12">
-            <p class="text-gray-500 text-sm max-w-3xl mx-auto">
-                <strong>Privacy First:</strong> We use <a href="https://plausible.io" class="hover:underline primary-text">Plausible Analytics</a>
-                for anonymous website metrics only. Auto-Focus operates completely offline with no data collection or tracking.
-            </p>
+        <div class="section-divider"></div>
+
+        <!-- FAQ Section -->
+        <div class="max-w-4xl mx-auto mb-20">
+            <h2 class="text-4xl font-bold text-center text-gray-900 mb-16">Frequently Asked Questions</h2>
+
+            <div class="space-y-6">
+                <div class="feature-card">
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">How does Auto-Focus detect when I'm focused?</h3>
+                    <p class="text-gray-600">Auto-Focus monitors your active application and tracks how long you stay focused on configured "focus apps." When you focus for your set threshold time (default 12 minutes), it automatically enables Do Not Disturb mode.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">What happens when I switch away from a focus app?</h3>
+                    <p class="text-gray-600">When you switch to a non-focus app, Auto-Focus starts a buffer timer (default 3 minutes). If you don't return to a focus app within this time, it ends the focus session and re-enables notifications.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Does Auto-Focus work with web applications?</h3>
+                    <p class="text-gray-600">Yes! The included Chrome extension tracks focus on specific websites like GitHub, Linear, Figma, and other productivity tools. Configure focus URLs in the main app to include web-based work.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">What's the difference between Free and Auto-Focus+?</h3>
+                    <p class="text-gray-600">Auto-Focus Free limits you to 2 focus apps and basic insights. Auto-Focus+ removes all limits, adds advanced analytics, data export capabilities, and includes priority support and future updates.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Is my data private and secure?</h3>
+                    <p class="text-gray-600">Absolutely. Auto-Focus operates completely offline with no data collection, tracking, or cloud sync. All your focus data stays on your Mac, and you can export it anytime in CSV or JSON format.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">What macOS versions are supported?</h3>
+                    <p class="text-gray-600">Auto-Focus requires macOS 12.0 (Monterey) or later. It's built with SwiftUI for optimal performance and native system integration, including proper Do Not Disturb control.</p>
+                </div>
+            </div>
         </div>
 
         <footer class="text-center text-gray-500 border-t border-gray-200 pt-12">
-            <p class="text-lg font-medium text-gray-700 mb-2">You don't need more time, you need more focus.</p>
+            <p class="text-lg font-medium text-gray-700 mb-4">You don't need more time, you need more focus.</p>
+            <div class="flex flex-wrap justify-center gap-6 mb-4">
+                <a href="/privacy.html" class="text-gray-500 hover:text-primary-color transition-colors">Privacy Policy</a>
+                <a href="/terms.html" class="text-gray-500 hover:text-primary-color transition-colors">Terms of Service</a>
+                <a href="/refunds.html" class="text-gray-500 hover:text-primary-color transition-colors">Refund Policy</a>
+                <a href="mailto:help@auto-focus.app" class="text-gray-500 hover:text-primary-color transition-colors">Contact</a>
+            </div>
             <p class="text-sm">© 2025 Auto-Focus. All rights reserved.</p>
         </footer>
     </div>
