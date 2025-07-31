@@ -189,6 +189,23 @@
         .brain-active {
             animation: pulse 2s infinite;
         }
+
+        /* Screenshot Gallery Styles */
+        #featured-screenshot {
+            transition: opacity 0.3s ease;
+        }
+
+        .screenshot-thumb {
+            transition: all 0.3s ease;
+        }
+
+        .screenshot-thumb:hover {
+            transform: scale(1.05);
+        }
+
+        #screenshot-title, #screenshot-description {
+            transition: opacity 0.3s ease;
+        }
     </style>
 </head>
 
@@ -254,27 +271,55 @@
         <div class="section-divider"></div>
 
         <!-- Screenshots Section -->
-        <div class="screenshot-container mb-20">
-            <div class="screenshot-item">
-                <img src="images/auto-focus-configuration-view.png" alt="Auto-Focus configuration view" class="w-full">
-                <div class="p-4">
-                    <h3 class="font-semibold text-lg mb-2">Smart Configuration</h3>
-                    <p class="text-gray-600">Configure focus apps, thresholds, and browser integration with an intuitive interface.</p>
+        <div class="max-w-5xl mx-auto mb-20">
+            <h2 class="text-4xl font-bold text-center text-gray-900 mb-8">
+                See Auto-Focus in Action
+            </h2>
+            
+            <!-- Featured Screenshot -->
+            <div class="mb-8">
+                <div class="rounded-2xl overflow-hidden shadow-2xl bg-white">
+                    <img id="featured-screenshot" src="images/auto-focus-configuration-view-2.png" alt="Auto-Focus interface" class="w-full">
+                </div>
+                <div class="mt-6 text-center">
+                    <h3 id="screenshot-title" class="text-2xl font-semibold text-gray-900 mb-2">Configuration</h3>
+                    <p id="screenshot-description" class="text-lg text-gray-600 max-w-2xl mx-auto">
+                        Configure your focus apps, set custom thresholds, and manage browser integration with an intuitive interface.
+                    </p>
                 </div>
             </div>
-            <div class="screenshot-item">
-                <img src="images/auto-focus-insights-view.png" alt="Auto-Focus insights view" class="w-full">
-                <div class="p-4">
-                    <h3 class="font-semibold text-lg mb-2">Focus Insights</h3>
-                    <p class="text-gray-600">Track focus sessions, productivity patterns, and export data for analysis.</p>
-                </div>
-            </div>
-            <div class="screenshot-item">
-                <img src="images/auto-focus-menubar-window-in-focus.png" alt="Auto-Focus menubar in focus" class="w-full">
-                <div class="p-4">
-                    <h3 class="font-semibold text-lg mb-2">Menu Bar Control</h3>
-                    <p class="text-gray-600">Quick access to focus status, controls, and session information right from your menu bar.</p>
-                </div>
+            
+            <!-- Screenshot Thumbnails -->
+            <div class="grid grid-cols-3 md:grid-cols-6 gap-3">
+                <button onclick="changeScreenshot(0)" class="screenshot-thumb group relative rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-primary-color" id="thumb-0">
+                    <img src="images/auto-focus-configuration-view-2.png" alt="Configuration" class="w-full">
+                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity"></div>
+                </button>
+                
+                <button onclick="changeScreenshot(1)" class="screenshot-thumb group relative rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-transparent" id="thumb-1">
+                    <img src="images/auto-focus-insights-view-2.png" alt="Insights" class="w-full">
+                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity"></div>
+                </button>
+                
+                <button onclick="changeScreenshot(2)" class="screenshot-thumb group relative rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-transparent" id="thumb-2">
+                    <img src="images/auto-focus-menubar-window-in-focus-2.png" alt="Menu Bar Active" class="w-full">
+                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity"></div>
+                </button>
+                
+                <button onclick="changeScreenshot(3)" class="screenshot-thumb group relative rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-transparent" id="thumb-3">
+                    <img src="images/auto-focus-menubar-window-out-of-focus-2.png" alt="Menu Bar Idle" class="w-full">
+                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity"></div>
+                </button>
+                
+                <button onclick="changeScreenshot(4)" class="screenshot-thumb group relative rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-transparent" id="thumb-4">
+                    <img src="images/auto-focus-data-view.png" alt="Data View" class="w-full">
+                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity"></div>
+                </button>
+                
+                <button onclick="changeScreenshot(5)" class="screenshot-thumb group relative rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-transparent" id="thumb-5">
+                    <img src="images/auto-focus-browser-view.png" alt="Browser Integration" class="w-full">
+                    <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity"></div>
+                </button>
             </div>
         </div>
 
