@@ -60,16 +60,36 @@ function setupEventListeners() {
       showMessage('❌ Error: ' + error.message);
     }
   });
+
+  // Reconnect button
+  document.getElementById('reconnectButton')?.addEventListener('click', async () => {
+    try {
+      const response = await chrome.runtime.sendMessage({ action: 'forceReconnect' });
+      if (response?.status === 'reconnecting') {
+        showMessage('🔄 Attempting to reconnect...');
+        // Refresh the popup state after a short delay
+        setTimeout(() => {
+          initializePopup();
+        }, 2000);
+      }
+    } catch (error) {
+      showMessage('❌ Reconnection failed: ' + error.message);
+    }
+  });
 }
 
 // Update UI with current state
 function updateUI(state) {
   updateConnectionStatus(state.isConnectedToApp, {
     reconnectAttempts: state.reconnectAttempts || 0,
-    maxReconnectAttempts: 15,
-    connectionErrors: state.connectionErrors || []
+    maxReconnectAttempts: 8,
+    connectionErrors: state.connectionErrors || [],
+    pendingEventsCount: state.pendingEventsCount || 0,
+    serviceWorkerActive: state.serviceWorkerActive || false
   });
   updateCurrentUrl(state.currentUrl);
+  updateVersionInfo(state.extensionVersion);
+  updateDiagnostics(state);
 }
 
 // Update current tab display
@@ -110,13 +130,16 @@ function updateConnectionStatus(isConnected, diagnostics = null) {
   const connectionStatus = document.getElementById('connectionStatus');
   const connectionDot = connectionStatus?.querySelector('.connection-dot');
   const connectionText = connectionStatus?.querySelector('.connection-text');
+  const connectionDetails = document.getElementById('connectionDetails');
   const statusDot = document.querySelector('.status-dot');
   const statusText = document.querySelector('.status-text');
+  const reconnectButton = document.getElementById('reconnectButton');
   
   if (isConnected) {
     connectionDot?.classList.add('connected');
     connectionDot?.classList.remove('error');
     statusDot?.classList.remove('error');
+    reconnectButton.style.display = 'none';
     
     if (connectionText) {
       connectionText.textContent = 'Connected to Auto-Focus';
@@ -124,10 +147,14 @@ function updateConnectionStatus(isConnected, diagnostics = null) {
     if (statusText) {
       statusText.textContent = 'Ready';
     }
+    if (connectionDetails) {
+      connectionDetails.style.display = 'none';
+    }
   } else {
     connectionDot?.classList.remove('connected');
     connectionDot?.classList.add('error');
     statusDot?.classList.add('error');
+    reconnectButton.style.display = 'block';
     
     if (connectionText) {
       if (diagnostics?.reconnectAttempts > 0) {
@@ -139,12 +166,70 @@ function updateConnectionStatus(isConnected, diagnostics = null) {
     if (statusText) {
       statusText.textContent = 'Disconnected';
     }
+    
+    // Show connection details for disconnected state
+    if (connectionDetails && diagnostics) {
+      const detailText = connectionDetails.querySelector('.detail-text');
+      if (detailText) {
+        const pendingCount = diagnostics.pendingEventsCount || 0;
+        const lastError = diagnostics.connectionErrors?.slice(-1)[0];
+        
+        let details = [];
+        if (pendingCount > 0) {
+          details.push(`${pendingCount} pending events`);
+        }
+        if (lastError) {
+          const timeSince = Math.round((Date.now() - lastError.timestamp) / 1000);
+          details.push(`Last error: ${timeSince}s ago`);
+        }
+        
+        if (details.length > 0) {
+          detailText.textContent = details.join(' • ');
+          connectionDetails.style.display = 'block';
+        } else {
+          connectionDetails.style.display = 'none';
+        }
+      }
+    }
   }
   
   // Add diagnostics info if available
   if (diagnostics?.connectionErrors?.length > 0) {
     const lastError = diagnostics.connectionErrors[diagnostics.connectionErrors.length - 1];
     console.log('Last connection error:', lastError);
+  }
+}
+
+// Update version info
+function updateVersionInfo(version) {
+  const versionElement = document.getElementById('versionInfo');
+  if (versionElement && version) {
+    versionElement.textContent = `v${version}`;
+  }
+}
+
+// Update diagnostics display
+function updateDiagnostics(state) {
+  const diagnostics = document.getElementById('diagnostics');
+  const pendingEventsCount = document.getElementById('pendingEventsCount');
+  const serviceWorkerStatus = document.getElementById('serviceWorkerStatus');
+  
+  // Show diagnostics if there are issues
+  const shouldShowDiagnostics = !state.isConnectedToApp || 
+                                (state.pendingEventsCount && state.pendingEventsCount > 0) ||
+                                !state.serviceWorkerActive;
+  
+  if (diagnostics) {
+    diagnostics.style.display = shouldShowDiagnostics ? 'block' : 'none';
+  }
+  
+  if (pendingEventsCount) {
+    pendingEventsCount.textContent = state.pendingEventsCount || '0';
+  }
+  
+  if (serviceWorkerStatus) {
+    serviceWorkerStatus.textContent = state.serviceWorkerActive ? 'Active' : 'Suspended';
+    serviceWorkerStatus.style.color = state.serviceWorkerActive ? '#008000' : '#cc6600';
   }
 }
 

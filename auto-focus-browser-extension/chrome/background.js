@@ -3,10 +3,12 @@
 
 const CONFIG = {
   HTTP_PORT: 8942,
-  HEARTBEAT_INTERVAL: 30, // 30 seconds (as alarm)
-  MAX_RECONNECT_ATTEMPTS: 5,
-  RECONNECT_DELAY: 2000,
-  LONG_RETRY_DELAY: 60000
+  HEARTBEAT_INTERVAL: 20, // 20 seconds (more frequent for better connection monitoring)
+  MAX_RECONNECT_ATTEMPTS: 8, // Increased attempts
+  RECONNECT_DELAY: 1500,
+  LONG_RETRY_DELAY: 30000, // Reduced from 60s to 30s for faster recovery
+  CONNECTION_TIMEOUT: 6000, // Reduced from 8s to 6s for faster failure detection
+  HEARTBEAT_TIMEOUT: 10000 // Separate timeout for heartbeats
 };
 
 // Global state (will be lost when service worker suspends)
@@ -15,6 +17,27 @@ let reconnectAttempts = 0;
 let connectionErrors = [];
 let lastSuccessfulConnection = null;
 let initializationInProgress = false;
+let pendingTabEvents = []; // Queue for tab events when disconnected
+let isServiceWorkerActive = true;
+
+// Service worker lifecycle detection
+let lastActivityTime = Date.now();
+const ACTIVITY_UPDATE_INTERVAL = 15000; // 15 seconds
+
+// Update activity periodically to detect suspensions
+setInterval(() => {
+  const now = Date.now();
+  const timeSinceLastActivity = now - lastActivityTime;
+  
+  // If more than 25 seconds have passed, we might have been suspended
+  if (timeSinceLastActivity > 25000) {
+    console.log(`Service worker may have been suspended (${Math.round(timeSinceLastActivity/1000)}s gap)`);
+    isServiceWorkerActive = false;
+    handleServiceWorkerReactivation();
+  }
+  
+  lastActivityTime = now;
+}, ACTIVITY_UPDATE_INTERVAL);
 
 // Initialize extension
 chrome.runtime.onInstalled.addListener((details) => {
@@ -22,8 +45,9 @@ chrome.runtime.onInstalled.addListener((details) => {
   initializeExtension();
   
   // Set up alarms for periodic tasks
-  chrome.alarms.create('heartbeat', { periodInMinutes: 0.5 }); // 30 seconds
-  chrome.alarms.create('connectionCheck', { periodInMinutes: 1 }); // 1 minute
+  chrome.alarms.create('heartbeat', { periodInMinutes: CONFIG.HEARTBEAT_INTERVAL / 60 }); // Convert seconds to minutes
+  chrome.alarms.create('connectionCheck', { periodInMinutes: 0.5 }); // 30 seconds
+  chrome.alarms.create('activityTracker', { periodInMinutes: 0.25 }); // 15 seconds
 });
 
 chrome.runtime.onStartup.addListener(() => {
@@ -33,12 +57,16 @@ chrome.runtime.onStartup.addListener(() => {
 
 // Handle alarms for periodic tasks
 chrome.alarms.onAlarm.addListener(async (alarm) => {
+  lastActivityTime = Date.now(); // Update activity tracker
   console.log('Alarm triggered:', alarm.name);
   
   if (alarm.name === 'heartbeat') {
     await performHeartbeat();
   } else if (alarm.name === 'connectionCheck') {
     await checkConnection();
+  } else if (alarm.name === 'activityTracker') {
+    isServiceWorkerActive = true; // We're clearly active if alarms are firing
+    await processPendingTabEvents(); // Process any queued tab events
   } else if (alarm.name === 'retryConnection') {
     console.log('Retrying connection from alarm...');
     reconnectAttempts = 0;
@@ -70,6 +98,10 @@ async function initializeExtension() {
   initializationInProgress = true;
   
   try {
+    // Mark as active and reset activity time
+    isServiceWorkerActive = true;
+    lastActivityTime = Date.now();
+    
     // Restore connection state
     await restoreConnectionState();
     
@@ -78,11 +110,34 @@ async function initializeExtension() {
     
     // Start monitoring tabs
     startTabMonitoring();
+    
+    // Process any pending tab events from before suspension
+    await processPendingTabEvents();
   } catch (error) {
     console.error('Failed to initialize extension:', error);
   } finally {
     initializationInProgress = false;
   }
+}
+
+// Handle service worker reactivation after suspension
+async function handleServiceWorkerReactivation() {
+  console.log('🔄 Service worker reactivated, re-initializing...');
+  isServiceWorkerActive = true;
+  
+  // Re-initialize without marking as in progress (allow concurrent init)
+  await restoreConnectionState();
+  
+  // If we're supposed to be connected but aren't, try to reconnect
+  const state = await chrome.storage.local.get('af_connection_state');
+  if (state.af_connection_state?.isConnectedToApp && !isConnectedToApp) {
+    console.log('Expected to be connected but not connected, attempting reconnection');
+    reconnectAttempts = 0;
+    await connectToApp();
+  }
+  
+  // Process any pending events
+  await processPendingTabEvents();
 }
 
 // Save connection state before service worker suspends
@@ -93,7 +148,8 @@ async function saveConnectionState() {
         isConnectedToApp,
         lastSuccessfulConnection,
         connectionErrors: connectionErrors.slice(-5),
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        pendingTabEvents: pendingTabEvents.slice(-10) // Save up to 10 pending events
       }
     });
     console.log('Connection state saved');
@@ -115,6 +171,12 @@ async function restoreConnectionState() {
       // Restore state
       lastSuccessfulConnection = state.lastSuccessfulConnection;
       connectionErrors = state.connectionErrors || [];
+      
+      // Restore pending events if any
+      if (state.pendingTabEvents && state.pendingTabEvents.length > 0) {
+        pendingTabEvents = state.pendingTabEvents;
+        console.log(`Restored ${pendingTabEvents.length} pending tab events`);
+      }
       
       // Always try to reconnect after restoration
       isConnectedToApp = false;
@@ -142,9 +204,11 @@ async function connectToApp() {
           extensionId: chrome.runtime.id,
           timestamp: Date.now(),
           connectionErrors: connectionErrors.slice(-5),
-          lastSuccessfulConnection: lastSuccessfulConnection
+          lastSuccessfulConnection: lastSuccessfulConnection,
+          serviceWorkerActive: isServiceWorkerActive,
+          pendingEventsCount: pendingTabEvents.length
         }),
-        signal: AbortSignal.timeout(8000) // 8 second timeout
+        signal: AbortSignal.timeout(CONFIG.CONNECTION_TIMEOUT)
       });
 
       const connectionTime = Date.now() - connectionStart;
@@ -168,6 +232,9 @@ async function connectToApp() {
           if (tabs.length > 0) {
             await handleTabChange(tabs[0].id);
           }
+          
+          // Process any pending tab events
+          await processPendingTabEvents();
           
           return;
         }
@@ -197,15 +264,15 @@ async function connectToApp() {
         reconnectAttempts++;
         const delay = Math.min(
           CONFIG.RECONNECT_DELAY * Math.pow(1.5, reconnectAttempts - 1),
-          30000
+          15000 // Cap at 15 seconds
         );
         console.log(`⏳ Retrying connection in ${Math.round(delay/1000)}s... (${CONFIG.MAX_RECONNECT_ATTEMPTS - reconnectAttempts} attempts remaining)`);
         setTimeout(() => connectToApp(), delay);
       } else {
         console.error(`❌ Max reconnection attempts (${CONFIG.MAX_RECONNECT_ATTEMPTS}) reached`);
-        console.log('🔄 Will retry connection in 1 minute...');
+        console.log('🔄 Will retry connection in 30 seconds...');
         reconnectAttempts = 0;
-        chrome.alarms.create('retryConnection', { delayInMinutes: 1 });
+        chrome.alarms.create('retryConnection', { delayInMinutes: 0.5 }); // 30 seconds
       }
     }
   });
@@ -234,7 +301,7 @@ async function checkConnection() {
 async function performHeartbeat() {
   // Load current connection state
   const state = await chrome.storage.local.get('af_connection_state');
-  if (!state.af_connection_state?.isConnectedToApp) {
+  if (!state.af_connection_state?.isConnectedToApp && !isConnectedToApp) {
     console.log('Not connected, skipping heartbeat');
     return;
   }
@@ -248,13 +315,16 @@ async function performHeartbeat() {
         command: 'heartbeat',
         timestamp: Date.now(),
         extensionId: chrome.runtime.id,
+        serviceWorkerActive: isServiceWorkerActive,
+        pendingEventsCount: pendingTabEvents.length,
         connectionHealth: {
           state: 'connected',
           consecutiveFailures: 0,
-          lastError: connectionErrors.length > 0 ? connectionErrors[connectionErrors.length - 1] : null
+          lastError: connectionErrors.length > 0 ? connectionErrors[connectionErrors.length - 1] : null,
+          activityTime: lastActivityTime
         }
       }),
-      signal: AbortSignal.timeout(12000)
+      signal: AbortSignal.timeout(CONFIG.HEARTBEAT_TIMEOUT)
     });
     
     const heartbeatTime = Date.now() - heartbeatStart;
@@ -264,6 +334,9 @@ async function performHeartbeat() {
       isConnectedToApp = true;
       lastSuccessfulConnection = Date.now();
       await saveConnectionState();
+      
+      // Process pending events after successful heartbeat
+      await processPendingTabEvents();
     } else {
       throw new Error(`HTTP ${response.status} ${response.statusText}`);
     }
@@ -313,30 +386,90 @@ async function handleTabChange(tabId) {
       return; // Ignore chrome internal pages
     }
     
-    await sendToApp({
+    const tabEvent = {
       command: 'tab_changed',
       url: tab.url,
       title: tab.title || '',
-      timestamp: Date.now()
-    });
+      timestamp: Date.now(),
+      tabId: tabId
+    };
+    
+    // If not connected, queue the event
+    if (!isConnectedToApp) {
+      console.log('Not connected, queueing tab event:', tab.url);
+      pendingTabEvents.push(tabEvent);
+      
+      // Keep only the latest 10 events to avoid memory issues
+      if (pendingTabEvents.length > 10) {
+        pendingTabEvents = pendingTabEvents.slice(-10);
+      }
+      
+      // Save to storage
+      await saveConnectionState();
+      
+      // Try to reconnect if not already attempting
+      if (reconnectAttempts === 0) {
+        await connectToApp();
+      }
+      return;
+    }
+    
+    // Send immediately if connected
+    await sendToApp(tabEvent);
   } catch (error) {
     console.error('Error handling tab change:', error);
   }
 }
 
+// Process pending tab events when reconnected
+async function processPendingTabEvents() {
+  if (pendingTabEvents.length === 0) {
+    return;
+  }
+  
+  if (!isConnectedToApp) {
+    console.log('Cannot process pending events - not connected');
+    return;
+  }
+  
+  console.log(`Processing ${pendingTabEvents.length} pending tab events...`);
+  
+  // Process events in order
+  const eventsToProcess = [...pendingTabEvents];
+  pendingTabEvents = []; // Clear the queue
+  
+  for (const event of eventsToProcess) {
+    try {
+      await sendToApp(event);
+      console.log(`✅ Processed pending event for ${event.url}`);
+    } catch (error) {
+      console.error(`❌ Failed to process pending event for ${event.url}:`, error);
+      // Re-queue the event if it failed
+      pendingTabEvents.push(event);
+    }
+  }
+  
+  // Save updated state
+  await saveConnectionState();
+  
+  if (eventsToProcess.length > 0) {
+    console.log(`Processed ${eventsToProcess.length - pendingTabEvents.length}/${eventsToProcess.length} pending events`);
+  }
+}
+
 // Send message to Auto-Focus app
 async function sendToApp(message) {
-  // Check connection state from storage
+  // Check connection state from storage and local state
   const state = await chrome.storage.local.get('af_connection_state');
-  if (!state.af_connection_state?.isConnectedToApp && message.command !== 'handshake') {
+  if (!state.af_connection_state?.isConnectedToApp && !isConnectedToApp && message.command !== 'handshake') {
     console.log('Not connected to app, attempting to connect first');
     await connectToApp();
     
     // Re-check after connection attempt
     const newState = await chrome.storage.local.get('af_connection_state');
-    if (!newState.af_connection_state?.isConnectedToApp) {
+    if (!newState.af_connection_state?.isConnectedToApp && !isConnectedToApp) {
       console.log('Still not connected, cannot send message');
-      return;
+      throw new Error('Connection to Auto-Focus app failed');
     }
   }
 
@@ -348,7 +481,7 @@ async function sendToApp(message) {
         ...message,
         extensionId: chrome.runtime.id
       }),
-      signal: AbortSignal.timeout(8000)
+      signal: AbortSignal.timeout(CONFIG.CONNECTION_TIMEOUT)
     });
 
     if (response.ok) {
@@ -364,11 +497,22 @@ async function sendToApp(message) {
   } catch (error) {
     console.error('Error sending to Auto-Focus app:', error);
     
-    // Mark as disconnected if send fails
+    // Mark as disconnected if send fails (except for handshake)
     if (message.command !== 'handshake') {
       isConnectedToApp = false;
       await saveConnectionState();
+      
+      // Re-queue the message if it wasn't a handshake
+      if (message.command === 'tab_changed') {
+        pendingTabEvents.push(message);
+        if (pendingTabEvents.length > 10) {
+          pendingTabEvents = pendingTabEvents.slice(-10);
+        }
+        console.log('Re-queued failed tab event');
+      }
     }
+    
+    throw error; // Re-throw for caller to handle
   }
 }
 
@@ -428,22 +572,31 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
         sendResponse({
           currentUrl: tabs[0]?.url,
-          isConnectedToApp: state.af_connection_state?.isConnectedToApp || false,
+          isConnectedToApp: state.af_connection_state?.isConnectedToApp || isConnectedToApp,
           reconnectAttempts,
           lastSuccessfulConnection: state.af_connection_state?.lastSuccessfulConnection,
-          connectionErrors: state.af_connection_state?.connectionErrors || []
+          connectionErrors: state.af_connection_state?.connectionErrors || [],
+          pendingEventsCount: pendingTabEvents.length,
+          serviceWorkerActive: isServiceWorkerActive,
+          extensionVersion: chrome.runtime.getManifest().version
         });
         break;
         
       case 'getConnectionDiagnostics':
         const diagnosticState = await chrome.storage.local.get('af_connection_state');
         sendResponse({
-          connectionStatus: diagnosticState.af_connection_state?.isConnectedToApp ? 'connected' : 'disconnected',
+          connectionStatus: (diagnosticState.af_connection_state?.isConnectedToApp || isConnectedToApp) ? 'connected' : 'disconnected',
           reconnectAttempts,
           maxReconnectAttempts: CONFIG.MAX_RECONNECT_ATTEMPTS,
           lastSuccessfulConnection: diagnosticState.af_connection_state?.lastSuccessfulConnection,
           connectionErrors: diagnosticState.af_connection_state?.connectionErrors || [],
-          extensionVersion: chrome.runtime.getManifest().version
+          pendingEventsCount: pendingTabEvents.length,
+          serviceWorkerActive: isServiceWorkerActive,
+          extensionVersion: chrome.runtime.getManifest().version,
+          config: {
+            heartbeatInterval: CONFIG.HEARTBEAT_INTERVAL,
+            connectionTimeout: CONFIG.CONNECTION_TIMEOUT
+          }
         });
         break;
         
@@ -451,8 +604,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         console.log('🔄 Manual reconnection requested from popup');
         reconnectAttempts = 0;
         isConnectedToApp = false;
+        pendingTabEvents = []; // Clear pending events on manual reconnect
         await connectToApp();
         sendResponse({ status: 'reconnecting' });
+        break;
+        
+      case 'clearPendingEvents':
+        console.log('🗑️ Clearing pending events requested from popup');
+        pendingTabEvents = [];
+        await saveConnectionState();
+        sendResponse({ status: 'cleared', message: 'Pending events cleared' });
         break;
         
       default:

@@ -270,3 +270,43 @@ body {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+/* Connection Details */
+.connection-details {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.detail-text {
+  color: #888;
+  font-size: 11px;
+}
+
+/* Diagnostics */
+.diagnostics {
+  background: #f8f8f8;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.diagnostic-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.diagnostic-item:last-child {
+  margin-bottom: 0;
+}
+
+.diagnostic-label {
+  color: #666;
+}
+
+.diagnostic-value {
+  color: #333;
+  font-weight: 500;
+}

@@ -36,6 +36,21 @@
         <span class="connection-dot"></span>
         <span class="connection-text">Connecting to Auto-Focus...</span>
       </div>
+      <div class="connection-details" id="connectionDetails" style="display: none;">
+        <small class="detail-text"></small>
+      </div>
+    </div>
+    
+    <!-- Diagnostics (only shown when there are issues) -->
+    <div class="diagnostics" id="diagnostics" style="display: none;">
+      <div class="diagnostic-item">
+        <span class="diagnostic-label">Pending Events:</span>
+        <span class="diagnostic-value" id="pendingEventsCount">0</span>
+      </div>
+      <div class="diagnostic-item">
+        <span class="diagnostic-label">Service Worker:</span>
+        <span class="diagnostic-value" id="serviceWorkerStatus">Active</span>
+      </div>
     </div>
     
     <!-- Quick Actions -->
@@ -44,11 +59,15 @@
         <span class="button-icon">➕</span>
         Add Current Site
       </button>
+      <button class="action-button secondary" id="reconnectButton" style="display: none;">
+        <span class="button-icon">🔄</span>
+        Reconnect
+      </button>
     </div>
     
     <!-- Footer -->
     <div class="footer">
-      <div class="version">v1.0.0</div>
+      <div class="version" id="versionInfo">v1.2.2</div>
     </div>
   </div>
   
