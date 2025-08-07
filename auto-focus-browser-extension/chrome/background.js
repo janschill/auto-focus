@@ -55,6 +55,17 @@ chrome.runtime.onStartup.addListener(() => {
   initializeExtension();
 });
 
+// Handle service worker activation - this runs when the service worker is started
+// This is crucial for Manifest V3 where service workers can be suspended and reactivated
+self.addEventListener('activate', (event) => {
+  console.log('Service worker activated/reactivated');
+  event.waitUntil(
+    (async () => {
+      await handleServiceWorkerReactivation();
+    })()
+  );
+});
+
 // Handle alarms for periodic tasks
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   lastActivityTime = Date.now(); // Update activity tracker
