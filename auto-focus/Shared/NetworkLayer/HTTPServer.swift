@@ -292,12 +292,27 @@ class HTTPServer: ObservableObject {
     private func handleHandshakeMessage(_ message: [String: Any], connection: NWConnection) {
         let extensionVersion = message["version"] as? String ?? "unknown"
         let extensionId = message["extensionId"] as? String ?? "unknown"
+        let serviceWorkerActive = message["serviceWorkerActive"] as? Bool ?? true
+        let pendingEventsCount = message["pendingEventsCount"] as? Int ?? 0
 
         print("HTTPServer: Handshake from extension v\(extensionVersion) (ID: \(extensionId))")
+        print("HTTPServer: Service worker active: \(serviceWorkerActive), pending events: \(pendingEventsCount)")
 
         // Parse extension health data
         if let healthData = message["healthData"] as? [String: Any] {
             updateExtensionHealth(healthData, version: extensionVersion, extensionId: extensionId)
+        }
+        
+        // Log connection errors if provided
+        if let connectionErrors = message["connectionErrors"] as? [[String: Any]] {
+            print("HTTPServer: Extension reported \(connectionErrors.count) connection errors")
+            for error in connectionErrors.suffix(3) { // Log last 3 errors
+                if let errorMsg = error["error"] as? String, 
+                   let timestamp = error["timestamp"] as? Double {
+                    let timeSince = Date().timeIntervalSince1970 * 1000 - timestamp
+                    print("HTTPServer: Error \(Int(timeSince/1000))s ago: \(errorMsg)")
+                }
+            }
         }
 
         let response = [
@@ -306,13 +321,21 @@ class HTTPServer: ObservableObject {
             "version": "1.0.0",
             "appVersion": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0",
             "timestamp": Date().timeIntervalSince1970,
-            "recommendations": generateRecommendations()
+            "recommendations": generateRecommendations(),
+            "connectionAdvice": generateConnectionAdvice(serviceWorkerActive: serviceWorkerActive, pendingEvents: pendingEventsCount)
         ] as [String: Any]
 
         sendJSONResponse(response, to: connection)
     }
 
     private func handleHeartbeatMessage(_ message: [String: Any], connection: NWConnection) {
+        let serviceWorkerActive = message["serviceWorkerActive"] as? Bool ?? true
+        let pendingEventsCount = message["pendingEventsCount"] as? Int ?? 0
+        
+        if pendingEventsCount > 0 {
+            print("HTTPServer: Heartbeat - \(pendingEventsCount) pending events, SW active: \(serviceWorkerActive)")
+        }
+        
         // Update connection quality based on heartbeat data
         if let connectionHealth = message["connectionHealth"] as? [String: Any] {
             updateConnectionQuality(connectionHealth)
@@ -322,7 +345,8 @@ class HTTPServer: ObservableObject {
             "command": "heartbeat_response",
             "status": "ok",
             "timestamp": Date().timeIntervalSince1970,
-            "connectionQuality": browserManager?.connectionQuality.rawValue ?? "unknown"
+            "connectionQuality": browserManager?.connectionQuality.rawValue ?? "unknown",
+            "processPendingEvents": pendingEventsCount > 0 // Tell extension to process pending events
         ] as [String: Any]
 
         sendJSONResponse(response, to: connection)
@@ -416,6 +440,24 @@ class HTTPServer: ObservableObject {
         }
 
         return recommendations
+    }
+    
+    private func generateConnectionAdvice(serviceWorkerActive: Bool, pendingEvents: Int) -> [String] {
+        var advice: [String] = []
+        
+        if !serviceWorkerActive {
+            advice.append("Service worker was recently suspended - connection restored")
+        }
+        
+        if pendingEvents > 0 {
+            advice.append("Processing \(pendingEvents) queued tab events")
+        }
+        
+        if pendingEvents > 5 {
+            advice.append("Many pending events detected - consider restarting browser if issues persist")
+        }
+        
+        return advice
     }
     
     private func handleConnectionTest(_ message: [String: Any], connection: NWConnection) {
