@@ -2,7 +2,7 @@ import Foundation
 
 struct AppConfiguration {
     // MARK: - Focus Settings
-    static let defaultFocusThreshold: TimeInterval = 12 * 60 // 12 minutes in seconds
+    static let defaultFocusThreshold: TimeInterval = 12 // 12 minutes
     static let defaultBufferTime: TimeInterval = 2 // 2 seconds
 
     // MARK: - Timer Intervals
