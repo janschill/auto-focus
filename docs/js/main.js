@@ -4,14 +4,14 @@ document.addEventListener('DOMContentLoaded', function() {
         production: {
             stripe: Stripe('pk_live_51RJsTJHG3jEF4MbtWkI32NWB3j69lMvPnwlAhH81xKsWwko0vNrj9rTZzsvzaUzmSYqMbSnTGrS7Xs24ymwIoqay008AuEGDQG'),
             priceId: 'price_1RqXaoHG3jEF4MbtgS8HRwXE',
-            successUrl: 'https://auto-focus.app/success',
-            cancelUrl: 'https://auto-focus.app/canceled'
+            successUrl: 'https://auto-focus.app/success.html',
+            cancelUrl: 'https://auto-focus.app/canceled.html'
         },
         staging: {
             stripe: Stripe('pk_test_51RJsTSQnG2sk4c6Rt00Ew1IrNguokLwQkvBcpTwVLsM92rYoQeqBW56MkrE2nZoIRacFMxCf9y9uv2UrxXUN0Cum00tPXy1cEW'),
             priceId: 'price_1RYAKiQnG2sk4c6RQTPMZ6HT',
-            successUrl: 'https://auto-focus.app/success?env=staging',
-            cancelUrl: 'https://auto-focus.app/canceled?env=staging',
+            successUrl: 'https://auto-focus.app/success.html?env=staging',
+            cancelUrl: 'https://auto-focus.app/canceled.html?env=staging',
             apiUrl: 'https://staging.auto-focus.app/api/'
         }
     };

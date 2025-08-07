@@ -87,8 +87,8 @@
                 stripe.redirectToCheckout({
                     lineItems: [{price: 'price_1RclfYHG3jEF4Mbtk53ComY9', quantity: 1}],
                     mode: 'payment',
-                    successUrl: 'https://auto-focus.app/success',
-                    cancelUrl: 'https://auto-focus.app/canceled',
+                    successUrl: 'https://auto-focus.app/success.html',
+                    cancelUrl: 'https://auto-focus.app/canceled.html',
                 })
                 .then(function (result) {
                     if (result.error) {
