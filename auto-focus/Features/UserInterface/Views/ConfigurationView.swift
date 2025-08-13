@@ -312,6 +312,8 @@ struct ConfigurationView: View {
     var body: some View {
         VStack(spacing: 10) {
             HeaderView()
+            PermissionSetupView()
+                .environmentObject(focusManager)
             GeneralSettingsView()
             ThresholdsView()
             FocusApplicationsView()
