@@ -56,8 +56,8 @@ This guide helps you set up a staging environment to test Stripe checkout with t
    staging: {
        stripe: Stripe('pk_test_your_actual_test_key_here'),
        priceId: 'price_your_actual_test_price_id_here',
-       successUrl: 'https://auto-focus.app/success?env=staging',
-       cancelUrl: 'https://auto-focus.app/canceled?env=staging'
+       successUrl: 'https://auto-focus.app/success.html?env=staging',
+       cancelUrl: 'https://auto-focus.app/canceled.html?env=staging'
    }
    ```
 
