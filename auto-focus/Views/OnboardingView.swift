@@ -715,7 +715,7 @@ struct LicenseOnboardingStepView: View {
                         .foregroundColor(.secondary)
 
                     VStack(spacing: 12) {
-                        Link(destination: URL(string: "https://auto-focus.app/plus")!) {
+                        Link(destination: URL(string: "https://auto-focus.app/#pricing")!) {
                             HStack {
                                 Text("Get Auto-Focus+ License")
                                     .fontWeight(.medium)
