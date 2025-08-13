@@ -117,6 +117,24 @@ final class FocusManagerTests: XCTestCase {
         focusManager.isPaused = false
         XCTAssertFalse(mockPersistence.getBool(forKey: "isPaused"))
     }
+    
+    func testDefaultFocusThresholdIsCorrect() {
+        // Test that when no UserDefaults value exists, the default focus threshold is 12 minutes
+        let cleanPersistence = MockPersistenceManager()
+        let cleanFocusManager = FocusManager(
+            userDefaultsManager: cleanPersistence,
+            sessionManager: mockSessionManager,
+            appMonitor: mockAppMonitor,
+            bufferManager: mockBufferManager,
+            focusModeController: mockFocusModeManager
+        )
+        
+        // With no stored value, it should default to 12 minutes (not 720)
+        XCTAssertEqual(cleanFocusManager.focusThreshold, 12, "Default focus threshold should be 12 minutes, not 720")
+        
+        // Verify AppConfiguration constant is also 12
+        XCTAssertEqual(AppConfiguration.defaultFocusThreshold, 12, "AppConfiguration.defaultFocusThreshold should be 12 minutes")
+    }
 
 //    func testCanAddMoreAppsAndPremiumRequired() {
 //        focusManager.focusApps = [
