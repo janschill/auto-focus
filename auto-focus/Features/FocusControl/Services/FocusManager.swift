@@ -65,6 +65,9 @@ class FocusManager: ObservableObject {
     private var timeTrackingTimer: Timer?
     private let checkInterval: TimeInterval = AppConfiguration.checkInterval
     
+    // Sleep/wake detection
+    private var isSystemAsleep = false
+    
     // Batch update system to prevent publishing during view updates
     private var pendingUpdates: [() -> Void] = []
     private var updateTimer: Timer?
@@ -165,6 +168,9 @@ class FocusManager: ObservableObject {
         self.browserManager.delegate = self
         self.appMonitor.updateFocusApps(focusApps)
         self.appMonitor.startMonitoring()
+        
+        // Set up sleep/wake notifications
+        setupSleepWakeNotifications()
 
         // Sync browser state
         self.isBrowserInFocus = self.browserManager.isBrowserInFocus
@@ -224,6 +230,9 @@ class FocusManager: ObservableObject {
     }
 
     private func updateFocusSession() {
+        // Don't increment time if system is asleep
+        guard !isSystemAsleep else { return }
+        
         timeSpent += checkInterval
         if shouldEnterFocusMode {
             print("activating focus mode")
@@ -312,6 +321,49 @@ class FocusManager: ObservableObject {
         // Execute all pending updates in a batch
         for update in updates {
             update()
+        }
+    }
+    
+    // MARK: - Sleep/Wake Detection
+    
+    private func setupSleepWakeNotifications() {
+        // Listen for system sleep notifications
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.willSleepNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleSystemWillSleep()
+        }
+        
+        // Listen for system wake notifications
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleSystemDidWake()
+        }
+    }
+    
+    private func handleSystemWillSleep() {
+        isSystemAsleep = true
+        
+        // Pause the timer if it's running, but don't end the session
+        if timeTrackingTimer != nil {
+            timeTrackingTimer?.invalidate()
+            timeTrackingTimer = nil
+            print("System going to sleep - pausing time tracking")
+        }
+    }
+    
+    private func handleSystemDidWake() {
+        isSystemAsleep = false
+        
+        // Resume the timer if we have an active focus session
+        if isFocusAppActive && timeTrackingTimer == nil {
+            startTimeTracking()
+            print("System woke up - resuming time tracking")
         }
     }
 
@@ -598,6 +650,12 @@ extension FocusManager: FocusModeManagerDelegate {
         case .shortcutsAppNotInstalled:
             print("Focus mode error: Shortcuts app not installed")
         }
+    }
+    
+    deinit {
+        // Clean up notification observers
+        NSWorkspace.shared.notificationCenter.removeObserver(self)
+        timeTrackingTimer?.invalidate()
     }
 }
 
