@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MenuBarView: View {
     @EnvironmentObject var focusManager: FocusManager
+    @StateObject private var versionCheckManager = VersionCheckManager()
 
     var version: String {
     #if DEBUG
@@ -246,6 +247,28 @@ struct MenuBarView: View {
                 }
             }
 
+            // Update notification
+            if versionCheckManager.isUpdateAvailable {
+                Divider()
+                
+                HStack {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .foregroundStyle(.blue)
+                        .font(.system(size: 11))
+                    Text("Update v\(versionCheckManager.latestVersion) available")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                    
+                    Spacer()
+                    
+                    Button("Download") {
+                        versionCheckManager.openDownloadPage()
+                    }
+                    .controlSize(.mini)
+                    .buttonStyle(.borderedProminent)
+                }
+            }
+
             Divider()
 
             // Controls section
@@ -285,6 +308,9 @@ struct MenuBarView: View {
         }
         .padding(12)
         .frame(width: 290) // Slightly wider to accommodate new info
+        .onAppear {
+            versionCheckManager.checkForUpdates()
+        }
     }
 
     private func openSettings() {
