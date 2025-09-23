@@ -57,7 +57,7 @@
                 <p class="text-gray-600 mb-4">Get lifetime access to Auto-Focus+ at a special early bird price. Limited time offer for beta users!</p>
                 <button
                     style="background-color:#6772E5;color:#FFF;padding:12px 24px;border:0;border-radius:8px;font-size:1em;cursor:pointer;font-weight:600"
-                    id="checkout-button-price_1RclfYHG3jEF4Mbtk53ComY9"
+                    id="checkout-button"
                     role="link"
                     type="button">
                     Get Lifetime Access
@@ -81,11 +81,11 @@
     (function() {
         var stripe = Stripe('pk_live_51RJsTJHG3jEF4MbtWkI32NWB3j69lMvPnwlAhH81xKsWwko0vNrj9rTZzsvzaUzmSYqMbSnTGrS7Xs24ymwIoqay008AuEGDQG');
 
-        var checkoutButton = document.getElementById('checkout-button-price_1RclfYHG3jEF4Mbtk53ComY9');
+        var checkoutButton = document.getElementById('checkout-button');
         if (checkoutButton) {
             checkoutButton.addEventListener('click', function () {
                 stripe.redirectToCheckout({
-                    lineItems: [{price: 'price_1RclfYHG3jEF4Mbtk53ComY9', quantity: 1}],
+                    lineItems: [{price: 'price_1RqXaoHG3jEF4MbtgS8HRwXE', quantity: 1}],
                     mode: 'payment',
                     successUrl: 'https://auto-focus.app/success',
                     cancelUrl: 'https://auto-focus.app/canceled',

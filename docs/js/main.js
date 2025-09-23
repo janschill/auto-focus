@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const config = {
         production: {
             stripe: Stripe('pk_live_51RJsTJHG3jEF4MbtWkI32NWB3j69lMvPnwlAhH81xKsWwko0vNrj9rTZzsvzaUzmSYqMbSnTGrS7Xs24ymwIoqay008AuEGDQG'),
-            priceId: 'price_1RqXaoHG3jEF4MbtgS8HRwXE',
+            priceId: 'price_1RqXaoHG3jEF4MbtgS8HRwXE', // Multi-currency price ID
             successUrl: 'https://auto-focus.app/success',
             cancelUrl: 'https://auto-focus.app/canceled'
         },
@@ -15,6 +15,72 @@ document.addEventListener('DOMContentLoaded', function() {
             apiUrl: 'https://staging.auto-focus.app/api/'
         }
     };
+
+    // Currency detection function
+    function detectUserCurrency() {
+        // Try to get user's locale and determine currency
+        const userLocale = navigator.language || navigator.languages[0] || 'en-US';
+        const region = userLocale.split('-')[1] || userLocale.split('_')[1];
+        
+        // Map regions to currencies (based on the available Stripe prices)
+        const regionToCurrency = {
+            'DK': 'DKK',    // Denmark
+            'NO': 'NOK',    // Norway  
+            'SE': 'NOK',    // Sweden (use NOK as closest)
+            'FI': 'EUR',    // Finland
+            'DE': 'EUR',    // Germany
+            'FR': 'EUR',    // France
+            'ES': 'EUR',    // Spain
+            'IT': 'EUR',    // Italy
+            'NL': 'EUR',    // Netherlands
+            'BE': 'EUR',    // Belgium
+            'AT': 'EUR',    // Austria
+            'PT': 'EUR',    // Portugal
+            'IE': 'EUR',    // Ireland
+            'LU': 'EUR',    // Luxembourg
+        };
+        
+        // If we have a specific mapping for the region, use it
+        if (region && regionToCurrency[region]) {
+            return regionToCurrency[region];
+        }
+        
+        // Default to USD for all other regions (US, Canada, UK, Asia, etc.)
+        return 'USD';
+    }
+
+    // Get user's detected currency
+    const userCurrency = detectUserCurrency();
+    
+    // Update pricing display based on detected currency
+    function updatePricingDisplay() {
+        const priceElement = document.querySelector('.pricing-amount');
+        const currencyElement = document.querySelector('.pricing-currency');
+        
+        if (priceElement && currencyElement) {
+            switch(userCurrency) {
+                case 'DKK':
+                    priceElement.textContent = '65';
+                    currencyElement.textContent = 'DKK ';
+                    break;
+                case 'EUR':
+                    priceElement.textContent = '9';
+                    currencyElement.textContent = '€';
+                    break;
+                case 'NOK':
+                    priceElement.textContent = '99';
+                    currencyElement.textContent = 'NOK ';
+                    break;
+                default: // USD
+                    priceElement.textContent = '9';
+                    currencyElement.textContent = '$';
+                    break;
+            }
+        }
+    }
+
+    // Call pricing update
+    updatePricingDisplay();
 
     // Show staging button if URL contains ?staging=1
     const showStaging = window.location.search.includes('staging=1');
@@ -36,7 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Production checkout
-    const productionButton = document.getElementById('checkout-button-price_1RclfYHG3jEF4Mbtk53ComY9');
+    const productionButton = document.getElementById('checkout-button');
     if (productionButton) {
         productionButton.addEventListener('click', function () {
             const prod = config.production;
