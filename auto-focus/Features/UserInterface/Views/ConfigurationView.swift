@@ -87,6 +87,7 @@ private struct HeaderView: View {
 struct GeneralSettingsView: View {
     @EnvironmentObject var licenseManager: LicenseManager
     @EnvironmentObject var focusManager: FocusManager
+    @StateObject private var versionCheckManager = VersionCheckManager()
 
     var body: some View {
         GroupBox {
@@ -104,6 +105,51 @@ struct GeneralSettingsView: View {
                         Text("Free")
                     }
 
+                }
+
+                Divider().padding(.vertical, 5).contrast(0.5)
+
+                HStack {
+                    Text("Version")
+                        .frame(width: 150, alignment: .leading)
+                    Spacer()
+                    
+                    VStack(alignment: .trailing, spacing: 2) {
+                        HStack(spacing: 8) {
+                            Text(appVersion)
+                                .foregroundColor(.secondary)
+                            
+                            if versionCheckManager.isUpdateAvailable {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "arrow.up.circle.fill")
+                                        .foregroundColor(.blue)
+                                        .font(.system(size: 12))
+                                    Text("Update available")
+                                        .font(.caption)
+                                        .foregroundColor(.blue)
+                                }
+                            }
+                            
+                            if versionCheckManager.isChecking {
+                                ProgressView()
+                                    .scaleEffect(0.5)
+                                    .frame(width: 12, height: 12)
+                            }
+                        }
+                        
+                        if versionCheckManager.isUpdateAvailable {
+                            Button("Download v\(versionCheckManager.latestVersion)") {
+                                versionCheckManager.openDownloadPage()
+                            }
+                            .controlSize(.mini)
+                            .buttonStyle(.borderedProminent)
+                        } else if !versionCheckManager.isChecking {
+                            Button("Check for Updates") {
+                                versionCheckManager.checkForUpdates()
+                            }
+                            .controlSize(.mini)
+                        }
+                    }
                 }
 
                 Divider().padding(.vertical, 5).contrast(0.5)
@@ -162,6 +208,7 @@ struct GeneralSettingsView: View {
         .frame(maxWidth: .infinity)
         .onAppear {
             focusManager.refreshShortcutStatus()
+            versionCheckManager.checkForUpdates()
         }
     }
 
@@ -191,6 +238,10 @@ struct GeneralSettingsView: View {
         } else {
             return .green
         }
+    }
+    
+    private var appVersion: String {
+        return Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
     }
 }
 
