@@ -108,6 +108,29 @@ class SessionManager: ObservableObject, SessionManaging {
         focusSessions.append(contentsOf: sessions)
     }
 
+    // MARK: - Session Editing Methods
+    
+    func updateSession(_ session: FocusSession) {
+        guard let index = focusSessions.firstIndex(where: { $0.id == session.id }) else {
+            print("Warning: Trying to update session that doesn't exist")
+            return
+        }
+        
+        // Validate session data
+        guard session.startTime < session.endTime else {
+            print("Warning: Invalid session times - start must be before end")
+            return
+        }
+        
+        focusSessions[index] = session
+        print("Session updated: \(session.id)")
+    }
+    
+    func deleteSession(_ session: FocusSession) {
+        focusSessions.removeAll { $0.id == session.id }
+        print("Session deleted: \(session.id)")
+    }
+
     // MARK: - Debug Methods
 
     func addSampleSessions(_ sessions: [FocusSession]) {

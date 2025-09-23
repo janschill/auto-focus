@@ -9,6 +9,7 @@ struct DataView: View {
         VStack(spacing: 10) {
             DataHeaderView()
             DataOverviewView()
+            DataSessionManagementView()
             DataExportImportView(selectedTab: $selectedTab)
 
             Spacer()
@@ -142,6 +143,90 @@ struct DataOverviewView: View {
             .padding(.vertical)
         }
         .frame(maxWidth: .infinity)
+    }
+}
+
+struct DataSessionManagementView: View {
+    @EnvironmentObject var focusManager: FocusManager
+    @State private var showingSessionList = false
+    
+    var body: some View {
+        GroupBox(label: Text("Session Management").font(.headline)) {
+            VStack(spacing: 16) {
+                Text("View and edit your focus sessions. Correct any incorrect session entries or remove unwanted sessions.")
+                    .font(.callout)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Total Sessions")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text("\(focusManager.focusSessions.count)")
+                            .font(.title3)
+                            .fontWeight(.bold)
+                    }
+                    
+                    Spacer()
+                    
+                    if focusManager.focusSessions.count > 0 {
+                        VStack(alignment: .trailing, spacing: 4) {
+                            Text("Shortest Session")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            if let shortest = focusManager.focusSessions.min(by: { $0.duration < $1.duration }) {
+                                Text(TimeFormatter.duration(Int(shortest.duration / 60)))
+                                    .font(.title3)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(shortest.duration < 60 ? .orange : .primary)
+                            }
+                        }
+                        
+                        VStack(alignment: .trailing, spacing: 4) {
+                            Text("Longest Session")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            if let longest = focusManager.focusSessions.max(by: { $0.duration < $1.duration }) {
+                                Text(TimeFormatter.duration(Int(longest.duration / 60)))
+                                    .font(.title3)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                    }
+                }
+                
+                HStack {
+                    Spacer()
+                    
+                    Button("Manage Sessions") {
+                        showingSessionList = true
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(focusManager.focusSessions.isEmpty)
+                }
+            }
+            .padding(.horizontal, 5)
+            .padding(.vertical)
+        }
+        .frame(maxWidth: .infinity)
+        .sheet(isPresented: $showingSessionList) {
+            NavigationView {
+                SessionListView()
+                    .navigationTitle("Focus Sessions")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button("Done") {
+                                showingSessionList = false
+                            }
+                        }
+                    }
+            }
+            .frame(minWidth: 700, minHeight: 600)
+        }
     }
 }
 
