@@ -126,6 +126,31 @@ struct GeneralSettingsView: View {
                 Divider().padding(.vertical, 5).contrast(0.5)
 
                 HStack {
+                    Text("Timer Display")
+                        .frame(width: 150, alignment: .leading)
+                    Spacer()
+                    Picker("Timer Display", selection: $focusManager.timerDisplayMode) {
+                        ForEach(TimerDisplayMode.allCases, id: \.self) { mode in
+                            Text(mode.displayName).tag(mode)
+                        }
+                    }
+                    .pickerStyle(MenuPickerStyle())
+                    .frame(width: 150)
+                }
+
+                HStack {
+                    Text("Controls how the current session timer appears in the menu bar. Choose 'Hidden' to reduce distractions.")
+                        .font(.callout)
+                        .fontDesign(.default)
+                        .fontWeight(.regular)
+                        .foregroundColor(.secondary)
+
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Divider().padding(.vertical, 5).contrast(0.5)
+
+                HStack {
                     Text("Shortcut Installation")
                         .frame(width: 150, alignment: .leading)
 
