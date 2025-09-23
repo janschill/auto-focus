@@ -284,7 +284,7 @@ struct FocusApplicationsView: View {
                     } label: {
                         Image(systemName: "plus")
                     }
-                    .disabled(!licenseManager.isLicensed)
+                    .disabled(!focusManager.canAddMoreApps)
 
                     Button {
                         DispatchQueue.main.async {
