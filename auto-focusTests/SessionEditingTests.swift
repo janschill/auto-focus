@@ -167,6 +167,56 @@ final class SessionEditingTests: XCTestCase {
         let finalSession = mockSessionManager.focusSessions.first!
         XCTAssertEqual(finalSession.duration, 2100, accuracy: 1.0) // 35 minutes
     }
+    
+    // MARK: - Validation Tests
+    
+    func testUpdateSessionWithInvalidTimes() {
+        let originalSession = FocusSession(startTime: Date(), endTime: Date().addingTimeInterval(3600))
+        mockSessionManager.addSampleSessions([originalSession])
+        
+        // Try to update with end time before start time
+        var invalidSession = originalSession
+        invalidSession.endTime = originalSession.startTime.addingTimeInterval(-100)
+        
+        // Mock validation should prevent this update
+        let sessionManager = SessionManager(userDefaultsManager: MockPersistenceManager())
+        sessionManager.focusSessions = [originalSession]
+        
+        sessionManager.updateSession(invalidSession)
+        
+        // Original session should remain unchanged
+        XCTAssertEqual(sessionManager.focusSessions.first?.endTime, originalSession.endTime)
+    }
+    
+    func testUpdateSessionWithVeryShortDuration() {
+        let originalSession = FocusSession(startTime: Date(), endTime: Date().addingTimeInterval(3600))
+        let sessionManager = SessionManager(userDefaultsManager: MockPersistenceManager())
+        sessionManager.focusSessions = [originalSession]
+        
+        // Try to update with duration less than 1 second
+        var invalidSession = originalSession
+        invalidSession.endTime = originalSession.startTime.addingTimeInterval(0.5)
+        
+        sessionManager.updateSession(invalidSession)
+        
+        // Original session should remain unchanged
+        XCTAssertEqual(sessionManager.focusSessions.first?.duration, 3600, accuracy: 1.0)
+    }
+    
+    func testUpdateSessionWithVeryLongDuration() {
+        let originalSession = FocusSession(startTime: Date(), endTime: Date().addingTimeInterval(3600))
+        let sessionManager = SessionManager(userDefaultsManager: MockPersistenceManager())
+        sessionManager.focusSessions = [originalSession]
+        
+        // Try to update with duration longer than 24 hours
+        var invalidSession = originalSession
+        invalidSession.endTime = originalSession.startTime.addingTimeInterval(25 * 60 * 60)
+        
+        sessionManager.updateSession(invalidSession)
+        
+        // Original session should remain unchanged
+        XCTAssertEqual(sessionManager.focusSessions.first?.duration, 3600, accuracy: 1.0)
+    }
 }
 
 #endif
