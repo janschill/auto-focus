@@ -848,131 +848,160 @@ struct OnboardingBrowserConfigSheet: View {
     @State private var selectedURLId: UUID?
 
     var body: some View {
-        NavigationView {
-            VStack(spacing: 20) {
-                // Focus URLs Management only
-                GroupBox(label: Text("Add Focus URL").font(.headline)) {
-                    VStack(alignment: .leading, spacing: 16) {
+        VStack(spacing: 0) {
+            // Header with title and done button
+            HStack {
+                Text("Configure Websites")
+                    .font(.title2)
+                    .fontWeight(.bold)
+
+                Spacer()
+
+                Button("Done") {
+                    dismiss()
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+            .padding(.horizontal, 32)
+            .padding(.top, 24)
+            .padding(.bottom, 24)
+
+            // Content area
+            VStack(spacing: 24) {
+                // Focus URLs Management
+                VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Focus Websites")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+
                         Text("Being on any of these websites will automatically activate focus mode.")
-                            .font(.callout)
+                            .font(.subheadline)
                             .foregroundColor(.secondary)
+                    }
 
-                        // Current URLs list
-                        if !focusManager.focusURLs.isEmpty {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Current Focus URLs:")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
+                    // Current URLs list
+                    if !focusManager.focusURLs.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Current Focus URLs:")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
 
+                            VStack(spacing: 8) {
                                 ForEach(focusManager.focusURLs.prefix(5)) { url in
                                     HStack {
                                         Image(systemName: "globe")
                                             .foregroundColor(.blue)
-                                            .frame(width: 16)
+                                            .frame(width: 20, height: 20)
                                         Text(url.name)
                                             .font(.body)
                                         Spacer()
                                     }
+                                    .padding(.vertical, 4)
                                 }
 
                                 if focusManager.focusURLs.count > 5 {
                                     Text("... and \(focusManager.focusURLs.count - 5) more")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
+                                        .padding(.leading, 24)
                                 }
                             }
-                            .padding(.vertical, 8)
-                        }
-
-                        // Add URL options
-                        VStack(spacing: 12) {
-                            Button {
-                                showingPresets = true
-                            } label: {
-                                HStack {
-                                    Image(systemName: "list.bullet.rectangle")
-                                        .font(.title3)
-                                        .foregroundColor(.blue)
-
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("Choose from Presets")
-                                            .font(.headline)
-                                        Text("GitHub, Google Docs, Notion, and more")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-
-                                    Spacer()
-
-                                    Image(systemName: "chevron.right")
-                                        .foregroundColor(.secondary)
-                                }
-                                .padding()
-                                .background(Color(.controlBackgroundColor))
-                                .cornerRadius(8)
-                            }
-                            .buttonStyle(.plain)
-                            .disabled(!focusManager.canAddMoreURLs)
-
-                            Button {
-                                showingAddURL = true
-                            } label: {
-                                HStack {
-                                    Image(systemName: "plus.circle")
-                                        .font(.title3)
-                                        .foregroundColor(.green)
-
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("Add Custom URL")
-                                            .font(.headline)
-                                        Text("Enter your own domain to track")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-
-                                    Spacer()
-
-                                    Image(systemName: "chevron.right")
-                                        .foregroundColor(.secondary)
-                                }
-                                .padding()
-                                .background(Color(.controlBackgroundColor))
-                                .cornerRadius(8)
-                            }
-                            .buttonStyle(.plain)
-                            .disabled(!focusManager.canAddMoreURLs)
-                        }
-
-                        // Free tier limitation
-                        if !licenseManager.isLicensed {
-                            HStack {
-                                Image(systemName: "info.circle")
-                                    .foregroundColor(.blue)
-                                Text("Free tier: \(focusManager.focusURLs.count)/3 websites • Auto-Focus+ unlocks unlimited websites")
-                                    .font(.caption)
-                                    .foregroundColor(.blue)
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(Color.blue.opacity(0.1))
-                            .cornerRadius(8)
+                            .padding(16)
+                            .background(Color(.controlBackgroundColor))
+                            .cornerRadius(12)
                         }
                     }
-                    .padding()
+
+                    // Add URL options
+                    VStack(spacing: 16) {
+                        Button {
+                            showingPresets = true
+                        } label: {
+                            HStack(spacing: 16) {
+                                Image(systemName: "list.bullet.rectangle")
+                                    .font(.title2)
+                                    .foregroundColor(.blue)
+                                    .frame(width: 32, height: 32)
+
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("Choose from Presets")
+                                        .font(.headline)
+                                        .foregroundColor(.primary)
+
+                                    Text("GitHub, Google Docs, Notion, and more")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
+
+                                Spacer()
+
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(.secondary)
+                                    .font(.system(size: 14, weight: .medium))
+                            }
+                            .padding(20)
+                            .background(Color(.controlBackgroundColor))
+                            .cornerRadius(12)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(!focusManager.canAddMoreURLs)
+
+                        Button {
+                            showingAddURL = true
+                        } label: {
+                            HStack(spacing: 16) {
+                                Image(systemName: "plus.circle")
+                                    .font(.title2)
+                                    .foregroundColor(.green)
+                                    .frame(width: 32, height: 32)
+
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("Add Custom URL")
+                                        .font(.headline)
+                                        .foregroundColor(.primary)
+
+                                    Text("Enter your own domain to track")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
+
+                                Spacer()
+
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(.secondary)
+                                    .font(.system(size: 14, weight: .medium))
+                            }
+                            .padding(20)
+                            .background(Color(.controlBackgroundColor))
+                            .cornerRadius(12)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(!focusManager.canAddMoreURLs)
+                    }
+
+                    // Free tier limitation
+                    if !licenseManager.isLicensed {
+                        HStack(spacing: 12) {
+                            Image(systemName: "info.circle")
+                                .foregroundColor(.blue)
+                                .font(.system(size: 16))
+                            Text("Free tier: \(focusManager.focusURLs.count)/3 websites • Auto-Focus+ unlocks unlimited websites")
+                                .font(.subheadline)
+                                .foregroundColor(.blue)
+                        }
+                        .padding(16)
+                        .background(Color.blue.opacity(0.1))
+                        .cornerRadius(12)
+                    }
                 }
+                .padding(.horizontal, 32)
 
                 Spacer()
             }
-            .padding()
-            .navigationTitle("Configure Websites")
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                }
-            }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.windowBackgroundColor))
         .sheet(isPresented: $showingAddURL) {
             OnboardingAddURLSheet(newURL: $newURL, selectedCategory: $selectedCategory)
                 .frame(minWidth: 500, minHeight: 400)
