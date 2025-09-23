@@ -279,9 +279,10 @@ private struct AddURLOptionsSheet: View {
     @Binding var showingPresets: Bool
 
     var body: some View {
-        NavigationView {
-            VStack(spacing: 24) {
-                VStack(spacing: 8) {
+        VStack(spacing: 0) {
+            // Header with title and close button
+            HStack {
+                VStack(alignment: .leading, spacing: 8) {
                     Text("Add Focus URL")
                         .font(.title2)
                         .fontWeight(.bold)
@@ -289,97 +290,103 @@ private struct AddURLOptionsSheet: View {
                     Text("Choose how you want to add a new focus URL")
                         .font(.callout)
                         .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-
-                VStack(spacing: 16) {
-                    Button {
-                        dismiss()
-                        Task {
-                            try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
-                            await MainActor.run {
-                                showingPresets = true
-                            }
-                        }
-                    } label: {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                HStack {
-                                    Image(systemName: "list.bullet.rectangle")
-                                        .font(.title2)
-                                        .foregroundColor(.blue)
-
-                                    Text("Choose from Presets")
-                                        .font(.headline)
-                                        .foregroundColor(.primary)
-                                }
-
-                                Text("Select from common websites like GitHub, Google Docs, Notion, and more")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-
-                            Spacer()
-
-                            Image(systemName: "chevron.right")
-                                .foregroundColor(.secondary)
-                        }
-                        .padding()
-                        .background(Color(.controlBackgroundColor))
-                        .cornerRadius(8)
-                    }
-                    .buttonStyle(.plain)
-
-                    Button {
-                        dismiss()
-                        Task {
-                            try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
-                            await MainActor.run {
-                                showingAddURL = true
-                            }
-                        }
-                    } label: {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                HStack {
-                                    Image(systemName: "plus.circle")
-                                        .font(.title2)
-                                        .foregroundColor(.green)
-
-                                    Text("Add Custom URL")
-                                        .font(.headline)
-                                        .foregroundColor(.primary)
-                                }
-
-                                Text("Enter your own domain or URL pattern to track")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-
-                            Spacer()
-
-                            Image(systemName: "chevron.right")
-                                .foregroundColor(.secondary)
-                        }
-                        .padding()
-                        .background(Color(.controlBackgroundColor))
-                        .cornerRadius(8)
-                    }
-                    .buttonStyle(.plain)
                 }
 
                 Spacer()
-            }
-            .padding()
-            .navigationTitle("")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
+
+                Button("Cancel") {
+                    dismiss()
                 }
+                .keyboardShortcut(.cancelAction)
             }
+            .padding(.horizontal, 32)
+            .padding(.top, 24)
+            .padding(.bottom, 32)
+
+            // Content area
+            VStack(spacing: 20) {
+                Button {
+                    dismiss()
+                    Task {
+                        try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+                        await MainActor.run {
+                            showingPresets = true
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 16) {
+                        Image(systemName: "list.bullet.rectangle")
+                            .font(.title2)
+                            .foregroundColor(.blue)
+                            .frame(width: 32, height: 32)
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Choose from Presets")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+
+                            Text("Select from common websites like GitHub, Google Docs, Notion, and more")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.secondary)
+                            .font(.system(size: 14, weight: .medium))
+                    }
+                    .padding(20)
+                    .background(Color(.controlBackgroundColor))
+                    .cornerRadius(12)
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    dismiss()
+                    Task {
+                        try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+                        await MainActor.run {
+                            showingAddURL = true
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 16) {
+                        Image(systemName: "plus.circle")
+                            .font(.title2)
+                            .foregroundColor(.green)
+                            .frame(width: 32, height: 32)
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Add Custom URL")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+
+                            Text("Enter your own domain or URL pattern to track")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.secondary)
+                            .font(.system(size: 14, weight: .medium))
+                    }
+                    .padding(20)
+                    .background(Color(.controlBackgroundColor))
+                    .cornerRadius(12)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 32)
+
+            Spacer()
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.windowBackgroundColor))
     }
 }
 
