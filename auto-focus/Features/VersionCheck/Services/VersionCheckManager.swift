@@ -10,14 +10,31 @@ class VersionCheckManager: ObservableObject {
     
     private let checkInterval: TimeInterval = 24 * 60 * 60 // 24 hours
     private let githubAPIURL = "https://api.github.com/repos/janschill/auto-focus/releases/latest"
+    private let userDefaults = UserDefaults.standard
+    private let lastCheckKey = "AutoFocus_LastVersionCheck"
+    private let lastVersionKey = "AutoFocus_LastKnownVersion"
+    private let updateAvailableKey = "AutoFocus_UpdateAvailable"
     
     init() {
         currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
+        loadPersistedData()
         
         // Check for updates on initialization if enough time has passed
         if shouldCheckForUpdates() {
             checkForUpdates()
         }
+    }
+    
+    private func loadPersistedData() {
+        lastCheckDate = userDefaults.object(forKey: lastCheckKey) as? Date
+        latestVersion = userDefaults.string(forKey: lastVersionKey) ?? ""
+        isUpdateAvailable = userDefaults.bool(forKey: updateAvailableKey)
+    }
+    
+    private func persistData() {
+        userDefaults.set(lastCheckDate, forKey: lastCheckKey)
+        userDefaults.set(latestVersion, forKey: lastVersionKey)
+        userDefaults.set(isUpdateAvailable, forKey: updateAvailableKey)
     }
     
     func checkForUpdates() {
@@ -38,12 +55,16 @@ class VersionCheckManager: ObservableObject {
                       error == nil,
                       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                       let tagName = json["tag_name"] as? String else {
+                    // If check fails, don't update the UI but log the attempt
+                    self?.lastCheckDate = Date()
+                    self?.persistData()
                     return
                 }
                 
                 self?.latestVersion = tagName.replacingOccurrences(of: "v", with: "")
                 self?.lastCheckDate = Date()
                 self?.isUpdateAvailable = self?.isVersionNewer(self?.latestVersion ?? "", than: self?.currentVersion ?? "") ?? false
+                self?.persistData()
             }
         }.resume()
     }
