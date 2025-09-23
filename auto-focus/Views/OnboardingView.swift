@@ -295,6 +295,7 @@ struct InstallShortcutStepView: View {
 struct AddFocusAppsStepView: View {
     @EnvironmentObject var focusManager: FocusManager
     @Binding var hasAddedApps: Bool
+    @State private var selectedAppId: String?
 
     var body: some View {
         VStack(spacing: 24) {
@@ -327,38 +328,67 @@ struct AddFocusAppsStepView: View {
 
                 if !focusManager.focusApps.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        ForEach(focusManager.focusApps.prefix(3)) { app in
-                            HStack {
-                                Image(systemName: "app")
-                                    .foregroundColor(.accentColor)
-                                Text(app.name)
-                                    .font(.body)
-                                Spacer()
+                        // Selectable list of apps (show up to 4 for better UX)
+                        List(selection: $selectedAppId) {
+                            ForEach(focusManager.focusApps.prefix(4)) { app in
+                                HStack {
+                                    if let appIcon = SafeImageLoader.loadAppIcon(for: app.bundleIdentifier) {
+                                        Image(nsImage: appIcon)
+                                            .resizable()
+                                            .frame(width: 20, height: 20)
+                                    } else {
+                                        Image(systemName: "app")
+                                            .foregroundColor(.accentColor)
+                                            .frame(width: 20, height: 20)
+                                    }
+                                    Text(app.name)
+                                        .font(.body)
+                                    Spacer()
+                                }
+                                .tag(app.id)
                             }
                         }
+                        .listStyle(.bordered)
+                        .frame(height: min(120, CGFloat(focusManager.focusApps.prefix(4).count * 30)))
 
-                        if focusManager.focusApps.count > 3 {
-                            Text("... and \(focusManager.focusApps.count - 3) more")
+                        if focusManager.focusApps.count > 4 {
+                            Text("... and \(focusManager.focusApps.count - 4) more")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                                .padding(.leading, 24)
+                                .padding(.leading, 8)
                         }
                     }
                     .padding(.top, 8)
                 }
 
-                Button(hasAddedApps ? "Add More Apps" : "Add Focus Apps") {
-                    focusManager.selectFocusApplication()
-                    // Use Task for proper async handling
-                    Task {
-                        try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-                        await MainActor.run {
-                            hasAddedApps = !focusManager.focusApps.isEmpty
+                HStack(spacing: 12) {
+                    Button(hasAddedApps ? "Add More Apps" : "Add Focus Apps") {
+                        focusManager.selectFocusApplication()
+                        // Use Task for proper async handling
+                        Task {
+                            try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+                            await MainActor.run {
+                                hasAddedApps = !focusManager.focusApps.isEmpty
+                            }
                         }
                     }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+
+                    if hasAddedApps {
+                        Button("Remove Selected") {
+                            if let selectedId = selectedAppId {
+                                focusManager.selectedAppId = selectedId
+                                focusManager.removeSelectedApp()
+                                selectedAppId = nil
+                                hasAddedApps = !focusManager.focusApps.isEmpty
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                        .disabled(selectedAppId == nil)
+                    }
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
 
                 VStack(spacing: 8) {
                     Text("Recommended focus apps:")
