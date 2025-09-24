@@ -130,36 +130,12 @@ class LicenseManager: ObservableObject {
     }
     
     private func performPostInitializationSetup() {
-        // First check if user has a valid license that needs validation
+        // Check if user has a valid license that needs validation
         if shouldValidateLicense() {
             logger.info("License validation required on startup")
             validateLicense()
-        } else if !isLicensed && isInBetaPeriod {
-            // Only enable beta access if user doesn't have a valid license
-            logger.info("No valid license found, enabling beta access", metadata: [
-                "beta_expiry": ISO8601DateFormatter().string(from: betaExpiryDate)
-            ])
-            enableBetaAccess()
         }
-    }
-
-    private var betaExpiryDate: Date {
-        // End of August 2025
-        let components = DateComponents(year: 2025, month: 8, day: 31, hour: 23, minute: 59, second: 59)
-        return Calendar.current.date(from: components) ?? Date.distantFuture
-    }
-
-    private var isInBetaPeriod: Bool {
-        return Date() < betaExpiryDate
-    }
-
-    private func enableBetaAccess() {
-        self.licenseStatus = .valid
-        self.isLicensed = true
-        self.licenseOwner = "Beta User"
-        self.licenseEmail = "beta@auto-focus.app"
-        self.licenseExpiry = betaExpiryDate
-        self.maxAppsAllowed = -1 // Unlimited during beta
+        // Beta period has ended - users without licenses will have limited access
     }
 
     private func loadAppVersion() {
@@ -220,7 +196,7 @@ class LicenseManager: ObservableObject {
     }
 
     func hasValidLicense() -> Bool {
-        return isLicensed && (licenseStatus == .valid || isInBetaPeriod)
+        return isLicensed && licenseStatus == .valid
     }
 
     func activateLicense() {
@@ -258,17 +234,9 @@ class LicenseManager: ObservableObject {
                     self.validationError = error.localizedDescription
                     self.isActivating = false
                     
-                    // During beta period, still give beta access even if license activation fails
-                    if isInBetaPeriod {
-                        logger.info("License activation failed but beta period active, enabling beta access", metadata: [
-                            "error": error.localizedDescription,
-                            "beta_expiry": ISO8601DateFormatter().string(from: betaExpiryDate)
-                        ])
-                        enableBetaAccess()
-                    } else {
-                        self.licenseStatus = .invalid
-                        self.isLicensed = false
-                    }
+                    // License activation failed - set appropriate status
+                    self.licenseStatus = .invalid
+                    self.isLicensed = false
                 }
             }
         }
@@ -329,15 +297,9 @@ class LicenseManager: ObservableObject {
                 }
             } catch {
                 await MainActor.run {
-                    // During beta period, always give beta access when validation fails
-                    if isInBetaPeriod {
-                        logger.info("License validation failed but beta period active, enabling beta access", metadata: [
-                            "error": error.localizedDescription,
-                            "beta_expiry": ISO8601DateFormatter().string(from: betaExpiryDate)
-                        ])
-                        enableBetaAccess()
-                    } else if case LicenseError.networkError = error {
-                        // After beta period, handle network errors gracefully
+                    // Handle validation failures
+                    if case LicenseError.networkError = error {
+                        // Handle network errors gracefully
                         self.licenseStatus = .networkError
                         // Keep existing license status if we just have network issues
                         if (licenseExpiry ?? Date.distantPast) > Date() {
