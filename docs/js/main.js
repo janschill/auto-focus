@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Try to get user's locale and determine currency
         const userLocale = navigator.language || navigator.languages[0] || 'en-US';
         const region = userLocale.split('-')[1] || userLocale.split('_')[1];
+        const language = userLocale.split('-')[0] || userLocale.split('_')[0];
         
         // Map regions to currencies (based on the available Stripe prices)
         const regionToCurrency = {
@@ -40,9 +41,30 @@ document.addEventListener('DOMContentLoaded', function() {
             'LU': 'EUR',    // Luxembourg
         };
         
-        // If we have a specific mapping for the region, use it
+        // Map language codes to currencies (fallback when region is not available)
+        const languageToCurrency = {
+            'da': 'DKK',    // Danish
+            'no': 'NOK',    // Norwegian
+            'nb': 'NOK',    // Norwegian Bokmål
+            'nn': 'NOK',    // Norwegian Nynorsk
+            'sv': 'NOK',    // Swedish (use NOK as closest)
+            'fi': 'EUR',    // Finnish
+            'de': 'EUR',    // German
+            'fr': 'EUR',    // French
+            'es': 'EUR',    // Spanish
+            'it': 'EUR',    // Italian
+            'nl': 'EUR',    // Dutch
+            'pt': 'EUR',    // Portuguese
+        };
+        
+        // If we have a specific mapping for the region, use it first
         if (region && regionToCurrency[region]) {
             return regionToCurrency[region];
+        }
+        
+        // If no region, try to map based on language code
+        if (language && languageToCurrency[language]) {
+            return languageToCurrency[language];
         }
         
         // Default to USD for all other regions (US, Canada, UK, Asia, etc.)
