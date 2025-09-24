@@ -7,13 +7,17 @@
 
 import Foundation
 
-struct FocusSession: Codable, Identifiable {
+struct FocusSession: Codable, Identifiable, Equatable {
     let id: UUID
-    let startTime: Date
-    let endTime: Date
+    var startTime: Date
+    var endTime: Date
 
     var duration: TimeInterval {
         return endTime.timeIntervalSince(startTime)
+    }
+    
+    static func == (lhs: FocusSession, rhs: FocusSession) -> Bool {
+        return lhs.id == rhs.id
     }
 }
 

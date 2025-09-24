@@ -101,6 +101,16 @@ class FocusManager: ObservableObject {
         return sessionManager.monthSessions
     }
     
+    // MARK: - Session Management
+    
+    func updateSession(_ session: FocusSession) {
+        sessionManager.updateSession(session)
+    }
+    
+    func deleteSession(_ session: FocusSession) {
+        sessionManager.deleteSession(session)
+    }
+    
     // MARK: - Current App Access
     var currentAppBundleId: String? {
         return appMonitor.currentApp

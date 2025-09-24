@@ -6,7 +6,7 @@ import Foundation
 // MARK: - Mock Session Manager
 class MockSessionManager: ObservableObject, SessionManaging {
     func importSessions(_ sessions: [FocusSession]) {
-        
+        focusSessions.append(contentsOf: sessions)
     }
     
     @Published var focusSessions: [FocusSession] = []
@@ -36,6 +36,17 @@ class MockSessionManager: ObservableObject, SessionManaging {
 
     func clearAllSessions() {
         focusSessions.removeAll()
+    }
+    
+    func updateSession(_ session: FocusSession) {
+        guard let index = focusSessions.firstIndex(where: { $0.id == session.id }) else {
+            return
+        }
+        focusSessions[index] = session
+    }
+    
+    func deleteSession(_ session: FocusSession) {
+        focusSessions.removeAll { $0.id == session.id }
     }
 }
 
