@@ -679,7 +679,7 @@ struct LicenseOnboardingStepView: View {
                     .font(.largeTitle)
                     .fontWeight(.bold)
 
-                Text("Unlock unlimited focus apps, data export, and advanced insights. Currently in open beta - all features are free until August 31, 2025.")
+                Text("Unlock unlimited focus apps, data export, and advanced insights with Auto-Focus+.")
                     .font(.title3)
                     .multilineTextAlignment(.center)
                     .foregroundColor(.secondary)
@@ -705,11 +705,11 @@ struct LicenseOnboardingStepView: View {
                 .cornerRadius(12)
 
                 VStack(spacing: 16) {
-                    Text("🎉 Open Beta")
+                    Text("🚀 Get Auto-Focus+")
                         .font(.headline)
                         .fontWeight(.bold)
 
-                    Text("All premium features are currently free during our open beta period. After August 31, 2025, you'll need a license to continue using premium features.")
+                    Text("Ready to unlock all premium features? Get your Auto-Focus+ license for unlimited apps, advanced insights, and data export capabilities.")
                         .font(.body)
                         .multilineTextAlignment(.center)
                         .foregroundColor(.secondary)

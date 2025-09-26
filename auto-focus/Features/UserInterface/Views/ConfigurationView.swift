@@ -171,7 +171,7 @@ struct GeneralSettingsView: View {
 
     private var licenseStatusIcon: String {
         if isBetaLicense {
-            return "hourglass"
+            return "exclamationmark.triangle"
         } else {
             return "star.circle.fill"
         }
@@ -179,7 +179,7 @@ struct GeneralSettingsView: View {
 
     private var licenseStatusText: String {
         if isBetaLicense {
-            return "Beta"
+            return "Beta Ended"
         } else {
             return "Auto-Focus+"
         }
@@ -187,7 +187,7 @@ struct GeneralSettingsView: View {
 
     private var licenseStatusColor: Color {
         if isBetaLicense {
-            return .indigo
+            return .orange
         } else {
             return .green
         }

@@ -30,12 +30,12 @@ struct LicensedView: View {
                     }
                     .padding(.vertical, 8)
 
-                    // Show license input for expired, invalid, or beta users
+                    // Show license input for expired or invalid licenses
                     if licenseManager.licenseStatus == .expired || licenseManager.licenseStatus == .invalid || isBetaLicense {
                         Divider().padding(.vertical, 6)
 
                         if isBetaLicense {
-                            BetaUpgradeView(licenseManager: licenseManager)
+                            BetaEndedUpgradeView(licenseManager: licenseManager)
                         } else {
                             LicenseInputView(licenseManager: licenseManager)
                         }
@@ -83,11 +83,11 @@ struct LicensedView: View {
                         .padding(.bottom, 8)
                     } else if isBetaLicense {
                         VStack(spacing: 12) {
-                            Text("Upgrade to Full License")
+                            Text("Beta Ended - Upgrade Required")
                                 .font(.headline)
                                 .fontWeight(.semibold)
 
-                            Text("While you enjoy beta access, you can upgrade to a full Auto-Focus+ license for continued access after August 31, 2025.")
+                            Text("The beta period has ended. Purchase a full Auto-Focus+ license to continue using premium features.")
                                 .font(.body)
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.center)
@@ -139,7 +139,7 @@ struct LicensedView: View {
     private var statusTitle: String {
         switch licenseManager.licenseStatus {
         case .valid:
-            return isBetaLicense ? "Beta Access Active" : "Auto-Focus+ Active"
+            return isBetaLicense ? "Beta Ended - Upgrade Required" : "Auto-Focus+ Active"
         case .expired:
             return "License Expired"
         case .invalid:
@@ -155,7 +155,7 @@ struct LicensedView: View {
         switch licenseManager.licenseStatus {
         case .valid:
             if isBetaLicense {
-                return "You have beta access until August 31, 2025. All premium features are unlocked."
+                return "Beta access has ended. Please purchase a license to continue using premium features."
             } else {
                 return "Your Auto-Focus+ license is active. All premium features are unlocked."
             }
@@ -376,7 +376,7 @@ struct PremiumFeatureRow: View {
     }
 }
 
-struct BetaUpgradeView: View {
+struct BetaEndedUpgradeView: View {
     @ObservedObject var licenseManager: LicenseManager
     @State private var showingLicenseInput = false
 
@@ -384,11 +384,11 @@ struct BetaUpgradeView: View {
         VStack(spacing: 16) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("🎉 You're in Beta!")
+                    Text("🚀 Beta Has Ended")
                         .font(.headline)
                         .fontWeight(.semibold)
 
-                    Text("Enjoying Auto-Focus+? Get a license for continued access after August 31, 2025.")
+                    Text("The beta period has ended. Purchase Auto-Focus+ to continue using premium features.")
                         .font(.body)
                         .foregroundColor(.secondary)
                 }
