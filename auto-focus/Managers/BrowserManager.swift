@@ -1,3 +1,4 @@
+import AppKit
 import Combine
 import Foundation
 
@@ -70,7 +71,7 @@ class BrowserManager: ObservableObject, BrowserManaging {
         self.licenseManager = licenseManager
 
         loadFocusURLs()
-        
+
         // Delay server startup to ensure app is fully initialized
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             self.startHTTPServer()
@@ -133,16 +134,16 @@ class BrowserManager: ObservableObject, BrowserManaging {
         print("BrowserManager: Starting HTTP server for browser extension...")
         httpServer.setBrowserManager(self)
         httpServer.start()
-        
+
         // Verify server started successfully after a brief delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             self.verifyServerStartup()
         }
-        
+
         // Start periodic health checks
         startServerHealthMonitoring()
     }
-    
+
     private func verifyServerStartup() {
         // Simple verification by checking if we can create a connection to our port
         // This helps detect if the server actually started successfully
@@ -160,7 +161,7 @@ class BrowserManager: ObservableObject, BrowserManaging {
         }
         task.resume()
     }
-    
+
     private func retryServerStartup() {
         print("BrowserManager: Retrying HTTP server startup in 2 seconds...")
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
@@ -176,16 +177,29 @@ class BrowserManager: ObservableObject, BrowserManaging {
             isExtensionConnected = true
             delegate?.browserManager(self, didChangeConnectionState: true)
         }
-        
+
         // Reset connection timeout timer since we got an update
         resetConnectionTimeoutTimer()
-        
+
+        // Verify Chrome is actually the frontmost application before activating focus mode
+        // This is a double-check to prevent false positives
+        let isChromeFrontmost = isChromeBrowserFrontmost()
+
         let previousFocusState = self.isBrowserInFocus
         self.currentBrowserTab = tabInfo
 
         // Check if we should suppress focus activation
         let shouldSuppressFocus = shouldSuppressFocusActivation()
-        let effectiveIsFocus = shouldSuppressFocus ? false : isFocus
+
+        // Only activate focus if:
+        // 1. URL matches a focus domain
+        // 2. We're not suppressing activation (recently added URL)
+        // 3. Chrome is actually the frontmost app (double-check)
+        let effectiveIsFocus = isFocus && !shouldSuppressFocus && isChromeFrontmost
+
+        if isFocus && !isChromeFrontmost {
+            print("BrowserManager: Focus URL detected but Chrome is not frontmost - suppressing focus activation")
+        }
 
         if shouldSuppressFocus && isFocus {
             print("BrowserManager: Suppressing focus activation for \(tabInfo.url) (recently added as focus URL)")
@@ -214,6 +228,20 @@ class BrowserManager: ObservableObject, BrowserManaging {
         if previousFocusState != effectiveIsFocus {
             print("BrowserManager: Browser focus state updated - \(effectiveIsFocus ? "FOCUS" : "NO FOCUS") for \(tabInfo.url)")
         }
+    }
+
+    // Check if Chrome browser is currently the frontmost application
+    private func isChromeBrowserFrontmost() -> Bool {
+        guard let frontmostApp = NSWorkspace.shared.frontmostApplication else {
+            return false
+        }
+
+        let bundleId = frontmostApp.bundleIdentifier
+        // Check for common Chrome bundle identifiers
+        return bundleId == "com.google.Chrome" ||
+               bundleId == "com.google.Chrome.canary" ||
+               bundleId == "com.google.Chrome.beta" ||
+               bundleId == "com.google.Chrome.dev"
     }
 
     private func shouldSuppressFocusActivation() -> Bool {
@@ -314,16 +342,16 @@ class BrowserManager: ObservableObject, BrowserManaging {
             addFocusURL(preset)
         }
     }
-    
+
     // MARK: - Connection Timeout Management
-    
+
     private func resetConnectionTimeoutTimer() {
         connectionTimeoutTimer?.invalidate()
         connectionTimeoutTimer = Timer.scheduledTimer(withTimeInterval: connectionTimeoutInterval, repeats: false) { [weak self] _ in
             self?.handleConnectionTimeout()
         }
     }
-    
+
     private func handleConnectionTimeout() {
         if isExtensionConnected {
             print("BrowserManager: ⚠️ Connection timeout - no updates from extension for \(connectionTimeoutInterval) seconds")
@@ -331,18 +359,18 @@ class BrowserManager: ObservableObject, BrowserManaging {
             delegate?.browserManager(self, didChangeConnectionState: false)
         }
     }
-    
+
     // MARK: - Server Health Monitoring
-    
+
     private func startServerHealthMonitoring() {
         serverHealthTimer = Timer.scheduledTimer(withTimeInterval: serverHealthCheckInterval, repeats: true) { [weak self] _ in
             self?.performServerHealthCheck()
         }
     }
-    
+
     private func performServerHealthCheck() {
         print("BrowserManager: 🏥 Performing server health check...")
-        
+
         let task = URLSession.shared.dataTask(with: URLRequest(url: URL(string: "http://localhost:8942/browser")!)) { [weak self] _, response, error in
             DispatchQueue.main.async {
                 if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 404 {

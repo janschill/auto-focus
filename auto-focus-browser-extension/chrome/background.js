@@ -20,7 +20,7 @@ let initializationInProgress = false;
 chrome.runtime.onInstalled.addListener((details) => {
   console.log('Auto-Focus extension installed/updated:', details.reason);
   initializeExtension();
-  
+
   // Set up alarms for periodic tasks
   chrome.alarms.create('heartbeat', { periodInMinutes: 0.5 }); // 30 seconds
   chrome.alarms.create('connectionCheck', { periodInMinutes: 1 }); // 1 minute
@@ -34,7 +34,7 @@ chrome.runtime.onStartup.addListener(() => {
 // Handle alarms for periodic tasks
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   console.log('Alarm triggered:', alarm.name);
-  
+
   if (alarm.name === 'heartbeat') {
     await performHeartbeat();
   } else if (alarm.name === 'connectionCheck') {
@@ -53,7 +53,7 @@ async function keepAlive(operation) {
       // This keeps the service worker alive
     });
   }, 20000); // Every 20 seconds
-  
+
   try {
     return await operation();
   } finally {
@@ -66,16 +66,16 @@ async function initializeExtension() {
     console.log('Initialization already in progress, skipping...');
     return;
   }
-  
+
   initializationInProgress = true;
-  
+
   try {
     // Restore connection state
     await restoreConnectionState();
-    
+
     // Start connection
     await connectToApp();
-    
+
     // Start monitoring tabs
     startTabMonitoring();
   } catch (error) {
@@ -109,13 +109,13 @@ async function restoreConnectionState() {
     if (result.af_connection_state) {
       const state = result.af_connection_state;
       const timeSinceSave = Date.now() - state.timestamp;
-      
+
       console.log(`Restoring state from ${Math.round(timeSinceSave/1000)}s ago`);
-      
+
       // Restore state
       lastSuccessfulConnection = state.lastSuccessfulConnection;
       connectionErrors = state.connectionErrors || [];
-      
+
       // Always try to reconnect after restoration
       isConnectedToApp = false;
       reconnectAttempts = 0;
@@ -130,7 +130,7 @@ async function connectToApp() {
   return keepAlive(async () => {
     const attemptNumber = reconnectAttempts + 1;
     console.log(`🔄 Connecting to Auto-Focus app... (attempt ${attemptNumber}/${CONFIG.MAX_RECONNECT_ATTEMPTS})`);
-    
+
     try {
       const connectionStart = Date.now();
       const response = await fetch(`http://localhost:${CONFIG.HTTP_PORT}/browser`, {
@@ -156,19 +156,19 @@ async function connectToApp() {
           reconnectAttempts = 0;
           lastSuccessfulConnection = Date.now();
           connectionErrors = [];
-          
+
           console.log(`✅ Connected to Auto-Focus app (${connectionTime}ms)`);
           console.log('📊 Connection established - app version:', result.appVersion);
-          
+
           // Save successful connection state
           await saveConnectionState();
-          
+
           // Send current tab info
           const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
           if (tabs.length > 0) {
             await handleTabChange(tabs[0].id);
           }
-          
+
           return;
         }
       }
@@ -181,18 +181,18 @@ async function connectToApp() {
         error: error.message,
         type: error.name || 'ConnectionError'
       };
-      
+
       connectionErrors.push(errorInfo);
       if (connectionErrors.length > 10) {
         connectionErrors = connectionErrors.slice(-10);
       }
-      
+
       console.error(`❌ Connection attempt ${attemptNumber} failed:`, error.message);
       isConnectedToApp = false;
-      
+
       // Save failed state
       await saveConnectionState();
-      
+
       if (reconnectAttempts < CONFIG.MAX_RECONNECT_ATTEMPTS) {
         reconnectAttempts++;
         const delay = Math.min(
@@ -216,7 +216,7 @@ async function checkConnection() {
   const state = await chrome.storage.local.get('af_connection_state');
   if (state.af_connection_state) {
     const timeSinceLastSuccess = Date.now() - (state.af_connection_state.lastSuccessfulConnection || 0);
-    
+
     // If no successful connection in last 2 minutes, try to reconnect
     if (timeSinceLastSuccess > 120000) {
       console.log('No recent successful connection, attempting to reconnect...');
@@ -238,7 +238,7 @@ async function performHeartbeat() {
     console.log('Not connected, skipping heartbeat');
     return;
   }
-  
+
   try {
     const heartbeatStart = Date.now();
     const response = await fetch(`http://localhost:${CONFIG.HTTP_PORT}/browser`, {
@@ -256,9 +256,9 @@ async function performHeartbeat() {
       }),
       signal: AbortSignal.timeout(12000)
     });
-    
+
     const heartbeatTime = Date.now() - heartbeatStart;
-    
+
     if (response.ok) {
       console.log(`💓 Heartbeat OK (${heartbeatTime}ms)`);
       isConnectedToApp = true;
@@ -271,7 +271,7 @@ async function performHeartbeat() {
     console.error('💔 Heartbeat failed:', error.message);
     isConnectedToApp = false;
     await saveConnectionState();
-    
+
     // Try to reconnect
     reconnectAttempts = 0;
     await connectToApp();
@@ -295,12 +295,19 @@ function startTabMonitoring() {
   // Listen for window focus changes
   chrome.windows.onFocusChanged.addListener(async (windowId) => {
     if (windowId !== chrome.windows.WINDOW_ID_NONE) {
+      // Chrome window gained focus - send current tab info
       const tabs = await chrome.tabs.query({ active: true, windowId });
       if (tabs.length > 0) {
         await handleTabChange(tabs[0].id);
       }
+    } else {
+      // Chrome lost focus - notify the app
+      console.log('Chrome window lost focus, notifying app...');
+      await sendToApp({
+        command: 'browser_lost_focus',
+        timestamp: Date.now()
+      });
     }
-    // Don't notify when Chrome loses focus - let the app determine focus state
   });
 }
 
@@ -308,16 +315,23 @@ function startTabMonitoring() {
 async function handleTabChange(tabId) {
   try {
     const tab = await chrome.tabs.get(tabId);
-    
+
     if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
       return; // Ignore chrome internal pages
     }
-    
+
+    // Check if Chrome window is actually focused before sending tab update
+    // This helps prevent race conditions when switching apps
+    const windows = await chrome.windows.getAll();
+    const focusedWindow = windows.find(w => w.focused);
+    const isChromeFocused = focusedWindow !== undefined;
+
     await sendToApp({
       command: 'tab_changed',
       url: tab.url,
       title: tab.title || '',
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      isChromeFocused: isChromeFocused
     });
   } catch (error) {
     console.error('Error handling tab change:', error);
@@ -331,7 +345,7 @@ async function sendToApp(message) {
   if (!state.af_connection_state?.isConnectedToApp && message.command !== 'handshake') {
     console.log('Not connected to app, attempting to connect first');
     await connectToApp();
-    
+
     // Re-check after connection attempt
     const newState = await chrome.storage.local.get('af_connection_state');
     if (!newState.af_connection_state?.isConnectedToApp) {
@@ -354,7 +368,7 @@ async function sendToApp(message) {
     if (response.ok) {
       const result = await response.json();
       handleAppMessage(result);
-      
+
       // Update last successful connection
       lastSuccessfulConnection = Date.now();
       await saveConnectionState();
@@ -363,7 +377,7 @@ async function sendToApp(message) {
     }
   } catch (error) {
     console.error('Error sending to Auto-Focus app:', error);
-    
+
     // Mark as disconnected if send fails
     if (message.command !== 'handshake') {
       isConnectedToApp = false;
@@ -434,7 +448,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           connectionErrors: state.af_connection_state?.connectionErrors || []
         });
         break;
-        
+
       case 'getConnectionDiagnostics':
         const diagnosticState = await chrome.storage.local.get('af_connection_state');
         sendResponse({
@@ -446,7 +460,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           extensionVersion: chrome.runtime.getManifest().version
         });
         break;
-        
+
       case 'forceReconnect':
         console.log('🔄 Manual reconnection requested from popup');
         reconnectAttempts = 0;
@@ -454,7 +468,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         await connectToApp();
         sendResponse({ status: 'reconnecting' });
         break;
-        
+
       default:
         sendResponse({ error: 'Unknown action' });
     }
