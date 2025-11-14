@@ -185,15 +185,21 @@ jobs:
         run: |
           mkdir -p docs/downloads
 
-          # Create final distribution ZIP
+          # Rename app for distribution (remove _temp suffix)
           cd build
-          zip -r ../docs/downloads/Auto-Focus.zip auto-focus_temp.app
+          cp -R auto-focus_temp.app auto-focus.app
+
+          # Create final distribution ZIP
+          zip -r ../docs/downloads/Auto-Focus.zip auto-focus.app
+          cd ..
 
           # Verify ZIP contents
           if unzip -l docs/downloads/Auto-Focus.zip | grep -q "auto-focus.app/"; then
             echo "✅ App ZIP created successfully"
           else
             echo "❌ ERROR: ZIP does not contain auto-focus.app"
+            echo "ZIP contents:"
+            unzip -l docs/downloads/Auto-Focus.zip | head -20
             exit 1
           fi
 
