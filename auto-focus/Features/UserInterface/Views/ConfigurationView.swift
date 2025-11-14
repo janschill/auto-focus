@@ -128,14 +128,15 @@ struct GeneralSettingsView: View {
                 HStack {
                     Text("Timer Display")
                         .frame(width: 150, alignment: .leading)
-                    Spacer()
-                    Picker("Timer Display", selection: $focusManager.timerDisplayMode) {
+                    Spacer(minLength: 10)
+                    Picker("", selection: $focusManager.timerDisplayMode) {
                         ForEach(TimerDisplayMode.allCases, id: \.self) { mode in
                             Text(mode.displayName).tag(mode)
                         }
                     }
-                    .pickerStyle(MenuPickerStyle())
-                    .frame(width: 150)
+                    .pickerStyle(.segmented)
+                    .fixedSize()
+                    .padding(.trailing, 5)
                 }
 
                 HStack {
@@ -144,7 +145,6 @@ struct GeneralSettingsView: View {
                         .fontDesign(.default)
                         .fontWeight(.regular)
                         .foregroundColor(.secondary)
-
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -300,6 +300,7 @@ struct FocusApplicationsView: View {
                     .foregroundColor(.secondary)
 
                 AppsListView()
+                    .frame(minHeight: 200)
 
                 HStack {
                     Button {
@@ -335,13 +336,16 @@ struct ConfigurationView: View {
     @EnvironmentObject var licenseManager: LicenseManager
 
     var body: some View {
-        VStack(spacing: 10) {
-            HeaderView()
-            GeneralSettingsView()
-            ThresholdsView()
-            FocusApplicationsView()
+        ScrollView {
+            VStack(spacing: 10) {
+                HeaderView()
+                GeneralSettingsView()
+                ThresholdsView()
+                FocusApplicationsView()
+            }
+            .padding()
         }
-        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
