@@ -16,18 +16,28 @@ final class FocusManagerTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        mockSessionManager = MockSessionManager()
-        mockBufferManager = MockBufferManager()
-        mockAppMonitor = MockAppMonitor()
-        mockFocusModeManager = MockFocusModeManager()
-        mockPersistence = MockPersistenceManager()
-        focusManager = FocusManager(
-            userDefaultsManager: mockPersistence,
+        let mocks = MockFactory.createMockDependencies()
+        mockPersistence = mocks.persistence
+        mockSessionManager = mocks.sessionManager
+        mockAppMonitor = mocks.appMonitor
+        mockBufferManager = mocks.bufferManager
+        mockFocusModeManager = mocks.focusModeManager
+
+        focusManager = MockFactory.createFocusManager(
+            persistence: mockPersistence,
             sessionManager: mockSessionManager,
             appMonitor: mockAppMonitor,
             bufferManager: mockBufferManager,
-            focusModeController: mockFocusModeManager
+            focusModeManager: mockFocusModeManager
         )
+    }
+
+    override func tearDown() {
+        mockSessionManager.reset()
+        mockAppMonitor.reset()
+        mockBufferManager.reset()
+        mockPersistence.reset()
+        super.tearDown()
     }
 
     func testStartSession() {
@@ -76,9 +86,9 @@ final class FocusManagerTests: XCTestCase {
     }
 
     func testAddAndClearSampleSessions() {
-        let sampleSessions = [FocusSession(startTime: Date().addingTimeInterval(-120), endTime: Date())]
+        let sampleSessions = TestDataBuilder.createSessionsForDay(count: 3, duration: 120)
         focusManager.addSampleSessions(sampleSessions)
-        XCTAssertEqual(mockSessionManager.focusSessions.count, 1)
+        XCTAssertEqual(mockSessionManager.focusSessions.count, 3)
         focusManager.clearAllSessions()
         XCTAssertEqual(mockSessionManager.focusSessions.count, 0)
     }
@@ -117,21 +127,21 @@ final class FocusManagerTests: XCTestCase {
         focusManager.isPaused = false
         XCTAssertFalse(mockPersistence.getBool(forKey: "isPaused"))
     }
-    
+
     func testDefaultFocusThresholdIsCorrect() {
         // Test that when no UserDefaults value exists, the default focus threshold is 12 minutes
         let cleanPersistence = MockPersistenceManager()
-        let cleanFocusManager = FocusManager(
-            userDefaultsManager: cleanPersistence,
+        let cleanFocusManager = MockFactory.createFocusManager(
+            persistence: cleanPersistence,
             sessionManager: mockSessionManager,
             appMonitor: mockAppMonitor,
             bufferManager: mockBufferManager,
-            focusModeController: mockFocusModeManager
+            focusModeManager: mockFocusModeManager
         )
-        
+
         // With no stored value, it should default to 12 minutes (not 720)
         XCTAssertEqual(cleanFocusManager.focusThreshold, 12, "Default focus threshold should be 12 minutes, not 720")
-        
+
         // Verify AppConfiguration constant is also 12
         XCTAssertEqual(AppConfiguration.defaultFocusThreshold, 12, "AppConfiguration.defaultFocusThreshold should be 12 minutes")
     }
@@ -159,9 +169,10 @@ final class FocusManagerTests: XCTestCase {
     }
 
     func testSessionManagerAddSampleAndClear() {
-        let sessions = [FocusSession(startTime: Date().addingTimeInterval(-100), endTime: Date())]
+        let sessions = TestDataBuilder.createSessionsForDay(count: 5, duration: 3600)
         mockSessionManager.addSampleSessions(sessions)
-        XCTAssertEqual(mockSessionManager.focusSessions.count, 1)
+        XCTAssertEqual(mockSessionManager.focusSessions.count, 5)
+        XCTAssertEqual(mockSessionManager.todaysSessions.count, 5)
         mockSessionManager.clearAllSessions()
         XCTAssertEqual(mockSessionManager.focusSessions.count, 0)
     }

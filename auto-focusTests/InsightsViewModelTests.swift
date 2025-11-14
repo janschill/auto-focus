@@ -14,11 +14,18 @@ final class InsightsViewModelTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        mockSessionManager = MockSessionManager()
-        // Inject the mock session manager into a FocusManager
-        focusManager = FocusManager(sessionManager: mockSessionManager)
+        let mocks = MockFactory.createMockDependencies()
+        mockSessionManager = mocks.sessionManager
+        focusManager = MockFactory.createFocusManager(
+            sessionManager: mockSessionManager
+        )
         dataProvider = InsightsDataProvider(focusManager: focusManager)
         viewModel = InsightsViewModel(dataProvider: dataProvider)
+    }
+
+    override func tearDown() {
+        mockSessionManager.reset()
+        super.tearDown()
     }
 
     func testRelevantSessionsCount() {

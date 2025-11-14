@@ -20,9 +20,29 @@ build-swift:
 	@echo "Building Swift project..."
 	swift build -c release
 
-test-swift:
+test:
 	@echo "Running Swift tests..."
-	xcodebuild test -scheme $(SCHEME) -destination 'platform=macOS' CODE_SIGN_IDENTITY="-" CODE_SIGNING_ALLOWED=NO
+	@xcodebuild test \
+		-project $(PROJECT_NAME).xcodeproj \
+		-scheme $(SCHEME) \
+		-destination 'platform=macOS' \
+		CODE_SIGN_IDENTITY="-" \
+		CODE_SIGNING_ALLOWED=NO \
+		-only-testing:auto-focusTests || exit $$?
+
+test-swift: test
+
+test-coverage:
+	@echo "Running tests with code coverage..."
+	@xcodebuild test \
+		-project $(PROJECT_NAME).xcodeproj \
+		-scheme $(SCHEME) \
+		-destination 'platform=macOS' \
+		CODE_SIGN_IDENTITY="-" \
+		CODE_SIGNING_ALLOWED=NO \
+		-enableCodeCoverage YES \
+		-only-testing:auto-focusTests || exit $$?
+	@echo "Coverage report generated in DerivedData"
 
 swift-package-update:
 	@echo "Updating Swift packages..."
