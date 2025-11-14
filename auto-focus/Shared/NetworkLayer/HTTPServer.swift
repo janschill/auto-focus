@@ -18,7 +18,7 @@ class HTTPServer: ObservableObject {
             if listener != nil {
                 stop()
             }
-            
+
             listener = try NWListener(using: .tcp, on: NWEndpoint.Port(rawValue: port)!)
             listener?.stateUpdateHandler = { state in
                 switch state {
@@ -48,14 +48,14 @@ class HTTPServer: ObservableObject {
             handleStartupFailure(error)
         }
     }
-    
+
     private func handleStartupFailure(_ error: Error) {
         startupRetryCount += 1
-        
+
         if startupRetryCount <= maxStartupRetries {
             let delay = Double(startupRetryCount) * 2.0 // 2, 4, 6 second delays
             print("HTTPServer: Retrying startup in \(delay) seconds (attempt \(startupRetryCount)/\(maxStartupRetries))")
-            
+
             DispatchQueue.global().asyncAfter(deadline: .now() + delay) {
                 self.start()
             }
@@ -175,34 +175,37 @@ class HTTPServer: ObservableObject {
         }
 
         let forcedByFocus = message["forcedByFocus"] as? Bool ?? false
-        print("HTTPServer: Tab changed to \(url)\(forcedByFocus ? " (due to Chrome focus)" : "")")
+        let isChromeFocused = message["isChromeFocused"] as? Bool ?? true // Default to true for backward compatibility
+        print("HTTPServer: Tab changed to \(url)\(forcedByFocus ? " (due to Chrome focus)" : "") - Chrome focused: \(isChromeFocused)")
 
         // Check if URL is a focus URL using BrowserManager
         let (isFocus, matchedURL) = browserManager?.checkIfURLIsFocus(url) ?? (false, nil)
         print("HTTPServer: URL check result - isFocus: \(isFocus), matched: \(matchedURL?.name ?? "none")")
 
+        // Only activate focus mode if Chrome is actually focused
+        // This prevents false positives when Chrome is in the background
+        let effectiveIsFocus = isFocus && isChromeFocused
+
+        if isFocus && !isChromeFocused {
+            print("HTTPServer: Focus URL detected but Chrome is not frontmost - suppressing focus activation")
+        }
+
         // Update browser manager state
         let tabInfo = BrowserTabInfo(
             url: url,
             title: message["title"] as? String ?? "",
-            isFocusURL: isFocus,
+            isFocusURL: effectiveIsFocus,
             matchedFocusURL: matchedURL
         )
 
-        // If this was forced by focus change, prioritize immediate processing
-        if forcedByFocus {
-            DispatchQueue.main.async {
-                self.browserManager?.updateFromExtension(tabInfo: tabInfo, isFocus: isFocus)
-            }
-        } else {
-            DispatchQueue.main.async {
-                self.browserManager?.updateFromExtension(tabInfo: tabInfo, isFocus: isFocus)
-            }
+        // Process update on main queue
+        DispatchQueue.main.async {
+            self.browserManager?.updateFromExtension(tabInfo: tabInfo, isFocus: effectiveIsFocus)
         }
 
         let response = [
             "command": "focus_state_changed",
-            "isFocusActive": isFocus
+            "isFocusActive": effectiveIsFocus
         ] as [String: Any]
 
         sendJSONResponse(response, to: connection)
@@ -417,13 +420,13 @@ class HTTPServer: ObservableObject {
 
         return recommendations
     }
-    
+
     private func handleConnectionTest(_ message: [String: Any], connection: NWConnection) {
         let extensionId = message["extensionId"] as? String ?? "unknown"
         let testData = message["testData"] as? String ?? ""
-        
+
         print("HTTPServer: Connection test from extension \(extensionId) with data: \(testData)")
-        
+
         let response = [
             "command": "connection_test_response",
             "status": "ok",
@@ -431,7 +434,7 @@ class HTTPServer: ObservableObject {
             "testData": testData,
             "serverStatus": "healthy"
         ] as [String: Any]
-        
+
         sendJSONResponse(response, to: connection)
     }
 }
