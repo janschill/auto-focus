@@ -2,17 +2,19 @@ import SwiftUI
 
 enum OnboardingStep: Int, CaseIterable {
     case welcome = 0
-    case howItWorks = 1
-    case installShortcut = 2
-    case addFocusApps = 3
-    case browserIntegration = 4
-    case license = 5
+    case license = 1
+    case howItWorks = 2
+    case installShortcut = 3
+    case addFocusApps = 4
+    case browserIntegration = 5
     case complete = 6
 
     var title: String {
         switch self {
         case .welcome:
             return "Welcome to Auto-Focus"
+        case .license:
+            return "Get Auto-Focus+"
         case .howItWorks:
             return "How Auto-Focus Works"
         case .installShortcut:
@@ -21,8 +23,6 @@ enum OnboardingStep: Int, CaseIterable {
             return "Add Focus Apps"
         case .browserIntegration:
             return "Browser Integration"
-        case .license:
-            return "Get Auto-Focus+"
         case .complete:
             return "You're All Set!"
         }
@@ -77,6 +77,8 @@ struct OnboardingView: View {
         switch currentStep {
         case .welcome:
             WelcomeStepView()
+        case .license:
+            LicenseOnboardingStepView()
         case .howItWorks:
             HowItWorksStepView()
         case .installShortcut:
@@ -85,8 +87,6 @@ struct OnboardingView: View {
             AddFocusAppsStepView(hasAddedApps: $hasAddedApps)
         case .browserIntegration:
             BrowserIntegrationStepView(hasSetupBrowser: $hasSetupBrowser)
-        case .license:
-            LicenseOnboardingStepView()
         case .complete:
             CompleteStepView()
         }
