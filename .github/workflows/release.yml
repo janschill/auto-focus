@@ -46,41 +46,26 @@ jobs:
         run: xcodebuild -resolvePackageDependencies -project auto-focus.xcodeproj
 
       - name: Import code signing certificate
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        uses: apple-actions/import-codesign-certs@v2
+        id: import-certs
+        with:
+          p12-file-base64: ${{ secrets.APPLE_CERTIFICATE }}
+          p12-password: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+
+      - name: Verify certificate import
         run: |
-          # Create variables
-          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
-          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-          KEYCHAIN_PASSWORD=$(openssl rand -base64 12)
-
-          # Decode certificate
-          echo "$APPLE_CERTIFICATE" | base64 --decode > $CERTIFICATE_PATH
-
-          # Create temporary keychain with password
-          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-
-          # Make keychain searchable
-          security list-keychains -d user -s $KEYCHAIN_PATH
-          security default-keychain -s $KEYCHAIN_PATH
-
-          # Import certificate
-          security import $CERTIFICATE_PATH -P "$APPLE_CERTIFICATE_PASSWORD" \
-            -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
-
-          # Configure keychain for codesign (no password prompt)
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-
-          # Verify certificate is imported
           echo "Available signing identities:"
-          security find-identity -v -p codesigning $KEYCHAIN_PATH
+          security find-identity -v -p codesigning
 
-          # Set keychain to be used by xcodebuild
-          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> $GITHUB_ENV
-          echo "KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD" >> $GITHUB_ENV
+          # Check specifically for Developer ID Application
+          if ! security find-identity -v -p codesigning | grep -q "Developer ID Application"; then
+            echo "❌ Developer ID Application certificate not found"
+            echo "All identities:"
+            security find-identity -v -p codesigning
+            exit 1
+          fi
+
+          echo "✅ Certificate verified"
 
       - name: Calculate next version
         id: version
@@ -134,23 +119,10 @@ jobs:
       - name: Build and archive app
         env:
           HMAC_SECRET: ${{ secrets.HMAC_SECRET }}
-          KEYCHAIN_PATH: ${{ env.KEYCHAIN_PATH }}
-          KEYCHAIN_PASSWORD: ${{ env.KEYCHAIN_PASSWORD }}
         run: |
-          # Ensure keychain is unlocked and accessible
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-
-          # Add keychain to search list (important for xcodebuild)
-          security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"' | tr '\n' ' ')
-          security default-keychain -s "$KEYCHAIN_PATH"
-
           # List available certificates for debugging
-          echo "Checking for signing certificate..."
-          security find-identity -v -p codesigning "$KEYCHAIN_PATH" | grep "Developer ID Application" || echo "Warning: Certificate not found"
-
-          # Also check in default keychain search
-          echo "All available signing identities:"
-          security find-identity -v -p codesigning | grep "Developer ID Application" || echo "No Developer ID certificates found"
+          echo "Checking for signing certificate before build..."
+          security find-identity -v -p codesigning | grep "Developer ID Application" || echo "Warning: Certificate not found"
 
           xcodebuild clean archive \
             -project auto-focus.xcodeproj \
@@ -170,20 +142,12 @@ jobs:
           echo "App extracted to build/auto-focus_temp.app"
 
       - name: Code sign app
-        env:
-          KEYCHAIN_PATH: ${{ env.KEYCHAIN_PATH }}
-          KEYCHAIN_PASSWORD: ${{ env.KEYCHAIN_PASSWORD }}
         run: |
-          # Ensure keychain is accessible
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          security list-keychain -d user -s "$KEYCHAIN_PATH"
-
           codesign --sign "Developer ID Application: Jan Schill (LKQJ2JG34Y)" \
             --timestamp \
             --options runtime \
             --deep \
             --force \
-            --keychain "$KEYCHAIN_PATH" \
             build/auto-focus_temp.app
 
           # Verify signature
@@ -358,11 +322,6 @@ jobs:
 
       - name: Cleanup
         if: always()
-        env:
-          KEYCHAIN_PATH: ${{ env.KEYCHAIN_PATH }}
         run: |
-          # Remove temporary keychain
-          if [ -n "$KEYCHAIN_PATH" ] && [ -f "$KEYCHAIN_PATH" ]; then
-            security delete-keychain "$KEYCHAIN_PATH" 2>/dev/null || true
-          fi
+          # The apple-actions/import-codesign-certs action handles cleanup automatically
           echo "✅ Cleanup complete"
