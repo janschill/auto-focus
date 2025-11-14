@@ -418,6 +418,15 @@ struct BrowserIntegrationStepView: View {
                     .font(.title3)
                     .multilineTextAlignment(.center)
                     .foregroundColor(.secondary)
+                
+                Text("Note: You don't need to add Chrome as a focus app. The extension handles website detection independently.")
+                    .font(.callout)
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.orange)
+                    .padding(.horizontal)
+                    .padding(.vertical, 8)
+                    .background(Color.orange.opacity(0.1))
+                    .cornerRadius(8)
             }
 
             VStack(spacing: 16) {

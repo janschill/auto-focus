@@ -53,6 +53,17 @@ private struct HeaderView: View {
                     .fontWeight(.regular)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
+                
+                Text("💡 Tip: Don't add Chrome as a focus app - the extension handles website detection automatically!")
+                    .font(.caption)
+                    .fontDesign(.default)
+                    .fontWeight(.medium)
+                    .foregroundColor(.orange)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.orange.opacity(0.1))
+                    .cornerRadius(6)
             }
             .padding(.horizontal, 40)
             .padding(.vertical)
@@ -109,6 +120,16 @@ private struct ExtensionInstallationView: View {
                         .fontDesign(.default)
                         .fontWeight(.regular)
                         .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                
+                HStack {
+                    Text("Chrome will NOT be added as a focus app - the extension only activates for specific websites you configure.")
+                        .font(.caption)
+                        .fontDesign(.default)
+                        .fontWeight(.medium)
+                        .foregroundColor(.blue)
+                        .italic()
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
