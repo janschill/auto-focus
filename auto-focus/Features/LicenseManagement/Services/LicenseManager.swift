@@ -31,7 +31,8 @@ class LicenseManager: ObservableObject {
     private let licenseKeyKey = "AutoFocus_LicenseKey"
     private let licenseDataKey = "AutoFocus_LicenseData"
     private let lastValidationKey = "AutoFocus_LastValidation"
-    private let validationIntervalHours: TimeInterval = 24 // Validate once per day
+    private let validationIntervalHours: TimeInterval = 168 // Validate once per week (7 days)
+    private let gracePeriodDays: TimeInterval = 30 // Allow 30 days offline before requiring validation
 
     // License server configuration
     private let licenseServerURL = "https://auto-focus.app/api/v1/licenses"
@@ -181,11 +182,13 @@ class LicenseManager: ObservableObject {
             self.appVersion = license.appVersion ?? appVersion
             self.maxAppsAllowed = license.maxApps ?? 3
 
-            // Check if license is still valid
+            // Check if license is still valid locally
             if let expiry = license.expiryDate, expiry < Date() {
                 self.licenseStatus = .expired
                 self.isLicensed = false
             } else if !licenseKey.isEmpty {
+                // License hasn't expired locally, mark as valid
+                // Will be validated with server later if needed
                 self.licenseStatus = .valid
                 self.isLicensed = true
             }
@@ -220,7 +223,56 @@ class LicenseManager: ObservableObject {
     }
 
     func hasValidLicense() -> Bool {
-        return isLicensed && (licenseStatus == .valid || isInBetaPeriod)
+        // Beta period always valid
+        if isInBetaPeriod {
+            return true
+        }
+
+        // If we have a valid license status, it's valid
+        if isLicensed && licenseStatus == .valid {
+            return true
+        }
+
+        // If we have a license key and haven't expired locally, check grace period
+        if !licenseKey.isEmpty {
+            // Check local expiry first
+            if let expiry = licenseExpiry, expiry < Date() {
+                // License has expired locally
+                return false
+            }
+
+            // If we have network error, check grace period
+            if licenseStatus == .networkError {
+                if let lastValidation = lastValidationDate {
+                    let daysSinceLastValidation = Date().timeIntervalSince(lastValidation) / 86400 // days
+                    if daysSinceLastValidation <= gracePeriodDays {
+                        // Still within grace period, keep license valid
+                        return true
+                    }
+                } else {
+                    // No last validation date but we have a license key - allow it (first time offline or never validated)
+                    return true
+                }
+            }
+
+            // If we have a saved license that hasn't expired locally, check grace period
+            if let expiry = licenseExpiry, expiry > Date() {
+                if let lastValidation = lastValidationDate {
+                    let daysSinceLastValidation = Date().timeIntervalSince(lastValidation) / 86400
+                    if daysSinceLastValidation <= gracePeriodDays {
+                        return true
+                    }
+                } else {
+                    // No validation date but license hasn't expired - allow it
+                    return true
+                }
+            } else if licenseExpiry == nil {
+                // No expiry date set - if we have a license key, allow it (lifetime license or first time)
+                return isLicensed
+            }
+        }
+
+        return false
     }
 
     func activateLicense() {
@@ -341,11 +393,28 @@ class LicenseManager: ObservableObject {
                         ])
                         self.enableBetaAccess()
                     } else if case LicenseError.networkError = error {
-                        // After beta period, handle network errors gracefully
+                        // Handle network errors gracefully - keep license valid if within grace period
                         self.licenseStatus = .networkError
-                        // Keep existing license status if we just have network issues
-                        if (self.licenseExpiry ?? Date.distantPast) > Date() {
+                        // Keep license valid if we have a valid expiry date or if we're within grace period
+                        if let expiry = self.licenseExpiry, expiry > Date() {
+                            // License hasn't expired locally, keep it valid
                             self.isLicensed = true
+                            self.logger.info("Network error during validation, keeping license valid (expires: \(ISO8601DateFormatter().string(from: expiry)))")
+                        } else if let lastValidation = self.lastValidationDate {
+                            // Check if we're within grace period
+                            let daysSinceLastValidation = Date().timeIntervalSince(lastValidation) / 86400
+                            if daysSinceLastValidation <= self.gracePeriodDays {
+                                self.isLicensed = true
+                                self.logger.info("Network error during validation, keeping license valid (within grace period: \(Int(daysSinceLastValidation))/\(Int(self.gracePeriodDays)) days)")
+                            } else {
+                                self.isLicensed = false
+                                self.logger.warning("Network error and grace period expired, invalidating license")
+                            }
+                        } else if self.isLicensed {
+                            // No last validation date but we have a license - keep it valid (first time offline)
+                            self.logger.info("Network error during validation, keeping license valid (no previous validation)")
+                        } else {
+                            self.isLicensed = false
                         }
                     } else {
                         self.licenseStatus = .invalid
