@@ -1,7 +1,7 @@
 {
-  "version": "1.1.1",
-  "build_date": "2025-11-14T14:17:29Z",
-  "commit_hash": "d05c63c",
+  "version": "1.2.0",
+  "build_date": "2025-11-14T16:42:25Z",
+  "commit_hash": "a42f578",
   "app_zip": "Auto-Focus.zip",
   "extension_zip": "auto-focus-extension.zip",
   "download_url": "https://auto-focus.app/downloads/Auto-Focus.zip",
