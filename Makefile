@@ -237,6 +237,7 @@ generate-version: prepare-downloads
 		\"commit_hash\": \"$$COMMIT_HASH\", \
 		\"app_zip\": \"Auto-Focus.zip\", \
 		\"extension_zip\": \"auto-focus-extension.zip\", \
+		\"download_url\": \"https://auto-focus.app/downloads/Auto-Focus.zip\", \
 		\"min_macos\": \"14.0\" \
 	}" > $(VERSION_FILE)
 	@echo "✅ Version file generated at $(VERSION_FILE)"
@@ -251,7 +252,7 @@ prepare-distribution: prepare-downloads package-extension generate-version
 	@echo "🚨 DISTRIBUTION PREPARATION COMPLETE 🚨"
 	@echo ""
 	@echo "⚠️  CRITICAL STEP REQUIRED:"
-	@echo "   1. Prepare for notarization: make prepare-app-for-notarization" 
+	@echo "   1. Prepare for notarization: make prepare-app-for-notarization"
 	@echo "   2. Follow the notarization steps shown by that command"
 	@echo "   3. Then run: make package-app"
 	@echo ""
@@ -415,7 +416,7 @@ complete-release: check-build-ready package-app deploy-downloads create-github-r
 	echo "   git push origin main --tags"
 
 # Legacy target (deprecated - use prepare-release + complete-release)
-manual-release: 
+manual-release:
 	@echo "⚠️  DEPRECATED: Use the new streamlined process instead:"
 	@echo "   1. make prepare-release    (builds, signs, and notarizes automatically)"
 	@echo "   2. make complete-release   (packages and deploys)"
