@@ -246,6 +246,23 @@ package-extension:
 	@echo "   This target now calls build-extension with patch bump"
 	@$(MAKE) build-extension BUMP=patch
 
+# Release extension to Chrome Web Store
+# Usage: make release-extension BUMP=patch|minor|major
+release-extension: build-extension
+	@echo ""
+	@echo "✅ Extension ready for Chrome Web Store submission!"
+	@echo ""
+	@echo "📦 Package location: $(EXTENSION_ZIP)"
+	@echo ""
+	@echo "📋 Next steps:"
+	@echo "   1. Go to: https://chrome.google.com/webstore/devconsole"
+	@echo "   2. Select your extension"
+	@echo "   3. Click 'Upload Updated Package'"
+	@echo "   4. Upload: $(EXTENSION_ZIP)"
+	@echo "   5. Fill in release notes and submit"
+	@echo ""
+	@echo "📖 See CHROME_STORE_RELEASE.md for detailed instructions"
+
 generate-version: prepare-downloads
 	@echo "Generating version information..."
 	@VERSION=$$(date +"%Y.%m.%d"); \
