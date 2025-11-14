@@ -2,28 +2,119 @@ name: CI
 
 on:
   push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
 
 jobs:
   test:
-    runs-on: macos-latest
+    name: Run Tests
+    runs-on: macos-15
+    timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Setup Xcode
-        uses: maxim-lobanov/setup-xcode@v1
+      - name: Select Xcode version
+        run: sudo xcode-select -switch /Applications/Xcode.app/Contents/Developer
+
+      - name: Cache Swift packages
+        uses: actions/cache@v4
         with:
-          xcode-version: latest-stable
+          path: |
+            ~/Library/Developer/Xcode/DerivedData
+            .build
+          key: ${{ runner.os }}-swift-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-swift-
+
+      - name: Resolve package dependencies
+        run: xcodebuild -resolvePackageDependencies -project auto-focus.xcodeproj
+
+      - name: Build project
+        run: |
+          xcodebuild clean build \
+            -project auto-focus.xcodeproj \
+            -scheme auto-focus \
+            -destination 'platform=macOS' \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty || exit ${PIPESTATUS[0]}
+
+      - name: Run unit tests
+        run: |
+          xcodebuild test \
+            -project auto-focus.xcodeproj \
+            -scheme auto-focus \
+            -destination 'platform=macOS' \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_ALLOWED=NO \
+            -only-testing:auto-focusTests \
+            | xcpretty --test || exit ${PIPESTATUS[0]}
+
+      - name: Generate test coverage
+        if: always()
+        run: |
+          xcodebuild test \
+            -project auto-focus.xcodeproj \
+            -scheme auto-focus \
+            -destination 'platform=macOS' \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_ALLOWED=NO \
+            -enableCodeCoverage YES \
+            -only-testing:auto-focusTests || true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            ~/Library/Developer/Xcode/DerivedData/*/Logs/Test/*.xcresult
+          retention-days: 7
+
+  lint:
+    name: Lint Code
+    runs-on: macos-15
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Install SwiftLint
-        run: brew install swiftlint
+        run: |
+          if ! command -v swiftlint &> /dev/null; then
+            brew install swiftlint
+          fi
 
-      - name: Build
-        run: make build
-
-      - name: Test
-        run: make test-swift
-
-      - name: Lint
-        run: make lint
+      - name: Run SwiftLint
+        run: |
+          swiftlint lint --strict || true
         continue-on-error: true
+
+  build-check:
+    name: Build Check
+    runs-on: macos-15
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: sudo xcode-select -switch /Applications/Xcode.app/Contents/Developer
+
+      - name: Resolve package dependencies
+        run: xcodebuild -resolvePackageDependencies -project auto-focus.xcodeproj
+
+      - name: Build Release configuration
+        run: |
+          xcodebuild clean build \
+            -project auto-focus.xcodeproj \
+            -scheme auto-focus \
+            -configuration Release \
+            -destination 'platform=macOS' \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_ALLOWED=NO
