@@ -1,0 +1,334 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '.github/workflows/release.yml'
+      - 'docs/downloads/**'
+      - 'README.md'
+      - '*.md'
+
+jobs:
+  release:
+    name: Build, Sign, Notarize, and Release
+    runs-on: macos-15
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history needed for git tags
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fetch all tags
+        run: |
+          git fetch --tags --force
+          echo "✅ Fetched all tags"
+
+      - name: Select Xcode version
+        run: sudo xcode-select -switch /Applications/Xcode.app/Contents/Developer
+
+      - name: Cache Swift packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Developer/Xcode/DerivedData
+            .build
+          key: ${{ runner.os }}-swift-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-swift-
+
+      - name: Resolve package dependencies
+        run: xcodebuild -resolvePackageDependencies -project auto-focus.xcodeproj
+
+      - name: Import code signing certificate
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          # Create variables
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+
+          # Decode certificate
+          echo "$APPLE_CERTIFICATE" | base64 --decode > $CERTIFICATE_PATH
+
+          # Create temporary keychain
+          security create-keychain -p "" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "" $KEYCHAIN_PATH
+
+          # Import certificate
+          security import $CERTIFICATE_PATH -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+
+          # Configure keychain for codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" $KEYCHAIN_PATH
+
+          # Verify certificate is imported
+          security find-identity -v -p codesigning $KEYCHAIN_PATH
+
+      - name: Calculate next version
+        id: version
+        run: |
+          # Get latest tag matching v1.*.* pattern
+          LATEST_TAG=$(git tag -l "v1.*.*" --sort=-version:refname | head -n 1)
+
+          if [ -z "$LATEST_TAG" ]; then
+            # No existing tag, start at v1.0.0
+            NEW_VERSION="1.0.0"
+            echo "No existing v1.*.* tag found, starting at v1.0.0"
+          else
+            # Extract version number (remove 'v' prefix)
+            VERSION=${LATEST_TAG#v}
+
+            # Split version into parts
+            IFS='.' read -ra VERSION_PARTS <<< "$VERSION"
+            MAJOR=${VERSION_PARTS[0]:-1}
+            MINOR=${VERSION_PARTS[1]:-0}
+            PATCH=${VERSION_PARTS[2]:-0}
+
+            # Increment patch version
+            PATCH=$((PATCH + 1))
+            NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+
+            echo "Latest tag: $LATEST_TAG"
+            echo "Incrementing patch: $VERSION -> $NEW_VERSION"
+          fi
+
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "Next version: $NEW_VERSION"
+
+      - name: Update Xcode project version
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # Update MARKETING_VERSION in project.pbxproj (handles multiple occurrences)
+          # Use a more specific pattern to avoid matching other version strings
+          sed -i.bak "s/MARKETING_VERSION = [^;]*;/MARKETING_VERSION = $VERSION;/g" auto-focus.xcodeproj/project.pbxproj
+          rm -f auto-focus.xcodeproj/project.pbxproj.bak
+
+          # Verify the update
+          if grep -q "MARKETING_VERSION = $VERSION" auto-focus.xcodeproj/project.pbxproj; then
+            echo "✅ Updated MARKETING_VERSION to $VERSION"
+          else
+            echo "❌ Failed to update MARKETING_VERSION"
+            exit 1
+          fi
+
+      - name: Build and archive app
+        env:
+          HMAC_SECRET: ${{ secrets.HMAC_SECRET }}
+        run: |
+          xcodebuild clean archive \
+            -project auto-focus.xcodeproj \
+            -scheme auto-focus \
+            -configuration Release \
+            -archivePath build/auto-focus.xcarchive \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGN_IDENTITY="Developer ID Application: Jan Schill (LKQJ2JG34Y)" \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM=LKQJ2JG34Y \
+            HMAC_SECRET="$HMAC_SECRET" || exit $?
+
+      - name: Extract app from archive
+        run: |
+          mkdir -p build
+          cp -R build/auto-focus.xcarchive/Products/Applications/auto-focus.app build/auto-focus_temp.app
+          echo "App extracted to build/auto-focus_temp.app"
+
+      - name: Code sign app
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          security list-keychain -d user -s $KEYCHAIN_PATH
+
+          codesign --sign "Developer ID Application: Jan Schill (LKQJ2JG34Y)" \
+            --timestamp \
+            --options runtime \
+            --deep \
+            --force \
+            build/auto-focus_temp.app
+
+          # Verify signature
+          codesign --verify --verbose build/auto-focus_temp.app
+          echo "✅ Code signing verified"
+
+      - name: Create ZIP for notarization
+        run: |
+          cd build
+          zip -r auto-focus_notarization.zip auto-focus_temp.app
+          echo "Created notarization ZIP"
+
+      - name: Notarize app
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          # Submit for notarization
+          xcrun notarytool submit build/auto-focus_notarization.zip \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+
+          echo "✅ Notarization successful"
+
+      - name: Staple notarization ticket
+        run: |
+          xcrun stapler staple build/auto-focus_temp.app
+          xcrun stapler validate build/auto-focus_temp.app
+          echo "✅ Notarization ticket stapled"
+
+      - name: Package app for distribution
+        run: |
+          mkdir -p docs/downloads
+
+          # Create final distribution ZIP
+          cd build
+          zip -r ../docs/downloads/Auto-Focus.zip auto-focus_temp.app
+
+          # Verify ZIP contents
+          if unzip -l docs/downloads/Auto-Focus.zip | grep -q "auto-focus.app/"; then
+            echo "✅ App ZIP created successfully"
+          else
+            echo "❌ ERROR: ZIP does not contain auto-focus.app"
+            exit 1
+          fi
+
+      - name: Package browser extension
+        run: |
+          mkdir -p docs/downloads
+          cd auto-focus-browser-extension
+          zip -r ../docs/downloads/auto-focus-extension.zip chrome/ -x "*.DS_Store*" "*/.git*"
+          echo "✅ Extension packaged"
+
+      - name: Generate version.json
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+
+          cat > docs/downloads/version.json << EOF
+          {
+            "version": "$VERSION",
+            "build_date": "$BUILD_DATE",
+            "commit_hash": "$COMMIT_HASH",
+            "app_zip": "Auto-Focus.zip",
+            "extension_zip": "auto-focus-extension.zip",
+            "download_url": "https://auto-focus.app/downloads/Auto-Focus.zip",
+            "min_macos": "14.0"
+          }
+          EOF
+
+          echo "✅ Version file generated"
+          echo "Version: $VERSION"
+          echo "Build date: $BUILD_DATE"
+          echo "Commit: $COMMIT_HASH"
+
+      - name: Create git tag
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Release $TAG"
+          echo "Created tag: $TAG"
+
+      - name: Commit distribution files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Remove old files from git tracking (if they exist)
+          git rm --cached --ignore-unmatch docs/downloads/*.zip docs/downloads/version.json 2>/dev/null || true
+
+          # Add new distribution files
+          git add docs/downloads/Auto-Focus.zip \
+                  docs/downloads/auto-focus-extension.zip \
+                  docs/downloads/version.json \
+                  auto-focus.xcodeproj/project.pbxproj
+
+          # Commit if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Release ${{ steps.version.outputs.tag }}: Update distribution files"
+            echo "✅ Committed distribution files"
+          fi
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          TAG="${{ steps.version.outputs.tag }}"
+          BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+
+          cat > /tmp/release_notes.md << EOF
+          ## Auto-Focus $TAG
+
+          ### Release Information
+          - **Version**: $VERSION
+          - **Build Date**: $BUILD_DATE
+          - **Commit**: $COMMIT_HASH
+
+          ### Installation
+          1. Download Auto-Focus.zip
+          2. Extract and move Auto-Focus.app to Applications
+          3. Install the included Shortcut
+          4. Launch and configure focus apps
+
+          ### System Requirements
+          - macOS Sonoma (14.0) or later
+          - Chrome browser (for extension)
+
+          ---
+
+          🔗 **Website**: https://auto-focus.app
+          EOF
+
+          echo "✅ Release notes generated"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Release ${{ steps.version.outputs.tag }}
+          body_path: /tmp/release_notes.md
+          files: |
+            docs/downloads/Auto-Focus.zip
+            docs/downloads/auto-focus-extension.zip
+            docs/downloads/version.json
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push tag and commits
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+
+          # Push tag first
+          git push origin "$TAG" || echo "Tag may already exist"
+
+          # Check if there are commits to push
+          if git diff --quiet HEAD origin/main 2>/dev/null; then
+            echo "No new commits to push"
+          else
+            git push origin main
+            echo "✅ Pushed commits to main"
+          fi
+
+      - name: Cleanup
+        if: always()
+        run: |
+          # Remove temporary keychain
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          security delete-keychain $KEYCHAIN_PATH 2>/dev/null || true
+          echo "✅ Cleanup complete"
+
