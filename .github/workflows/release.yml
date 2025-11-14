@@ -70,29 +70,52 @@ jobs:
       - name: Calculate next version
         id: version
         run: |
+          # First, try to read MARKETING_VERSION from project file
+          PROJECT_VERSION=$(grep -m 1 "MARKETING_VERSION = " auto-focus.xcodeproj/project.pbxproj | sed 's/.*MARKETING_VERSION = \([^;]*\);.*/\1/' | head -n 1)
+
           # Get latest tag matching v1.*.* pattern
           LATEST_TAG=$(git tag -l "v1.*.*" --sort=-version:refname | head -n 1)
 
           if [ -z "$LATEST_TAG" ]; then
-            # No existing tag, start at v1.0.0
-            NEW_VERSION="1.0.0"
-            echo "No existing v1.*.* tag found, starting at v1.0.0"
+            # No existing tag, use project version or start at v1.0.0
+            if [ -n "$PROJECT_VERSION" ] && [ "$PROJECT_VERSION" != "1.0" ]; then
+              NEW_VERSION="$PROJECT_VERSION"
+              echo "No existing tag found, using MARKETING_VERSION from project: $NEW_VERSION"
+            else
+              NEW_VERSION="1.0.0"
+              echo "No existing tag found, starting at v1.0.0"
+            fi
           else
-            # Extract version number (remove 'v' prefix)
-            VERSION=${LATEST_TAG#v}
+            # Extract version number from tag (remove 'v' prefix)
+            TAG_VERSION=${LATEST_TAG#v}
 
-            # Split version into parts
-            IFS='.' read -ra VERSION_PARTS <<< "$VERSION"
-            MAJOR=${VERSION_PARTS[0]:-1}
-            MINOR=${VERSION_PARTS[1]:-0}
-            PATCH=${VERSION_PARTS[2]:-0}
-
-            # Increment patch version
-            PATCH=$((PATCH + 1))
-            NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
-
-            echo "Latest tag: $LATEST_TAG"
-            echo "Incrementing patch: $VERSION -> $NEW_VERSION"
+            # Compare project version with tag version
+            if [ -n "$PROJECT_VERSION" ] && [ "$PROJECT_VERSION" != "1.0" ]; then
+              # Use the higher of the two versions
+              if [ "$(printf '%s\n' "$PROJECT_VERSION" "$TAG_VERSION" | sort -V | tail -n 1)" = "$PROJECT_VERSION" ]; then
+                NEW_VERSION="$PROJECT_VERSION"
+                echo "Using MARKETING_VERSION from project ($NEW_VERSION) as it's newer than latest tag ($TAG_VERSION)"
+              else
+                # Tag is newer, increment patch
+                IFS='.' read -ra VERSION_PARTS <<< "$TAG_VERSION"
+                MAJOR=${VERSION_PARTS[0]:-1}
+                MINOR=${VERSION_PARTS[1]:-0}
+                PATCH=${VERSION_PARTS[2]:-0}
+                PATCH=$((PATCH + 1))
+                NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+                echo "Latest tag ($TAG_VERSION) is newer, incrementing patch: $TAG_VERSION -> $NEW_VERSION"
+              fi
+            else
+              # No project version or it's 1.0, increment from tag
+              IFS='.' read -ra VERSION_PARTS <<< "$TAG_VERSION"
+              MAJOR=${VERSION_PARTS[0]:-1}
+              MINOR=${VERSION_PARTS[1]:-0}
+              PATCH=${VERSION_PARTS[2]:-0}
+              PATCH=$((PATCH + 1))
+              NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+              echo "Latest tag: $LATEST_TAG"
+              echo "Incrementing patch: $TAG_VERSION -> $NEW_VERSION"
+            fi
           fi
 
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT

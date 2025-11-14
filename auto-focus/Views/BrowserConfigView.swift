@@ -3,9 +3,7 @@ import SwiftUI
 struct BrowserConfigView: View {
     @EnvironmentObject var focusManager: FocusManager
     @EnvironmentObject var licenseManager: LicenseManager
-    @State private var showingAddURLOptions = false
     @State private var showingAddURL = false
-    @State private var showingPresets = false
     @State private var newURL = FocusURL(name: "", domain: "")
     @State private var selectedCategory: URLCategory = .work
     @State private var selectedURLId: UUID?
@@ -16,25 +14,14 @@ struct BrowserConfigView: View {
 
             ExtensionInstallationView()
 
-            FocusURLsManagementView(selectedURLId: $selectedURLId, showingAddURLOptions: $showingAddURLOptions)
+            FocusURLsManagementView(selectedURLId: $selectedURLId, showingAddURL: $showingAddURL)
 
             Spacer()
         }
         .padding()
-        .sheet(isPresented: $showingAddURLOptions) {
-            AddURLOptionsSheet(
-                showingAddURL: $showingAddURL,
-                showingPresets: $showingPresets
-            )
-            .frame(minWidth: 700, minHeight: 500)
-        }
         .sheet(isPresented: $showingAddURL) {
             AddURLSheet(newURL: $newURL, selectedCategory: $selectedCategory)
-                .frame(minWidth: 700, minHeight: 600)
-        }
-        .sheet(isPresented: $showingPresets) {
-            URLPresetsSheet()
-                .frame(minWidth: 800, minHeight: 700)
+                .frame(minWidth: 500, minHeight: 400)
         }
     }
 }
@@ -53,7 +40,7 @@ private struct HeaderView: View {
                     .fontWeight(.regular)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
-                
+
                 Text("💡 Tip: Don't add Chrome as a focus app - the extension handles website detection automatically!")
                     .font(.caption)
                     .fontDesign(.default)
@@ -122,7 +109,7 @@ private struct ExtensionInstallationView: View {
                         .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                
+
                 HStack {
                     Text("Chrome will NOT be added as a focus app - the extension only activates for specific websites you configure.")
                         .font(.caption)
@@ -150,7 +137,7 @@ private struct FocusURLsManagementView: View {
     @EnvironmentObject var focusManager: FocusManager
     @EnvironmentObject var licenseManager: LicenseManager
     @Binding var selectedURLId: UUID?
-    @Binding var showingAddURLOptions: Bool
+    @Binding var showingAddURL: Bool
 
     var body: some View {
         GroupBox(label: Text("Focus URLs").font(.headline)) {
@@ -165,18 +152,26 @@ private struct FocusURLsManagementView: View {
 
                 HStack {
                     Button {
-                        showingAddURLOptions = true
+                        showingAddURL = true
                     } label: {
                         Image(systemName: "plus")
+                            .frame(width: 16, height: 16)
                     }
                     .disabled(!focusManager.canAddMoreURLs)
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .frame(width: 28, height: 28)
 
                     Button {
                         removeSelectedURL()
                     } label: {
                         Image(systemName: "minus")
+                            .frame(width: 16, height: 16)
                     }
                     .disabled(selectedURLId == nil)
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .frame(width: 28, height: 28)
 
                     Spacer()
                 }
@@ -294,187 +289,28 @@ private struct FocusURLRowSimple: View {
     }
 }
 
-private struct AddURLOptionsSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    @Binding var showingAddURL: Bool
-    @Binding var showingPresets: Bool
-
-    var body: some View {
-        VStack(spacing: 0) {
-            // Header with title and close button
-            HStack {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Add Focus URL")
-                        .font(.title2)
-                        .fontWeight(.bold)
-
-                    Text("Choose how you want to add a new focus URL")
-                        .font(.callout)
-                        .foregroundColor(.secondary)
-                }
-
-                Spacer()
-
-                Button("Cancel") {
-                    dismiss()
-                }
-                .keyboardShortcut(.cancelAction)
-            }
-            .padding(.horizontal, 32)
-            .padding(.top, 24)
-            .padding(.bottom, 32)
-
-            // Content area
-            VStack(spacing: 20) {
-                Button {
-                    dismiss()
-                    Task {
-                        try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
-                        await MainActor.run {
-                            showingPresets = true
-                        }
-                    }
-                } label: {
-                    HStack(spacing: 16) {
-                        Image(systemName: "list.bullet.rectangle")
-                            .font(.title2)
-                            .foregroundColor(.blue)
-                            .frame(width: 32, height: 32)
-
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Choose from Presets")
-                                .font(.headline)
-                                .foregroundColor(.primary)
-
-                            Text("Select from common websites like GitHub, Google Docs, Notion, and more")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-
-                        Spacer()
-
-                        Image(systemName: "chevron.right")
-                            .foregroundColor(.secondary)
-                            .font(.system(size: 14, weight: .medium))
-                    }
-                    .padding(20)
-                    .background(Color(.controlBackgroundColor))
-                    .cornerRadius(12)
-                }
-                .buttonStyle(.plain)
-
-                Button {
-                    dismiss()
-                    Task {
-                        try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
-                        await MainActor.run {
-                            showingAddURL = true
-                        }
-                    }
-                } label: {
-                    HStack(spacing: 16) {
-                        Image(systemName: "plus.circle")
-                            .font(.title2)
-                            .foregroundColor(.green)
-                            .frame(width: 32, height: 32)
-
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Add Custom URL")
-                                .font(.headline)
-                                .foregroundColor(.primary)
-
-                            Text("Enter your own domain or URL pattern to track")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-
-                        Spacer()
-
-                        Image(systemName: "chevron.right")
-                            .foregroundColor(.secondary)
-                            .font(.system(size: 14, weight: .medium))
-                    }
-                    .padding(20)
-                    .background(Color(.controlBackgroundColor))
-                    .cornerRadius(12)
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.horizontal, 32)
-
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.windowBackgroundColor))
-    }
-}
-
 private struct AddURLSheet: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var focusManager: FocusManager
     @Binding var newURL: FocusURL
     @Binding var selectedCategory: URLCategory
-    @State private var selectedMatchType: URLMatchType = .domain
 
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
-                GroupBox("URL Information") {
-                    VStack(spacing: 12) {
-                        TextField("Name (e.g., 'GitHub')", text: $newURL.name)
-                        TextField("Domain (e.g., 'github.com')", text: $newURL.domain)
-                            .autocorrectionDisabled()
-                    }
-                    .padding(.vertical, 8)
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Name")
+                        .font(.headline)
+                    TextField("e.g., GitHub", text: $newURL.name)
+                        .textFieldStyle(.roundedBorder)
                 }
 
-                GroupBox("Matching") {
-                    VStack(spacing: 12) {
-                        Picker("Match Type", selection: $selectedMatchType) {
-                            ForEach(URLMatchType.allCases, id: \.self) { type in
-                                VStack(alignment: .leading) {
-                                    Text(type.displayName)
-                                    Text(type.description)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                .tag(type)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                    }
-                    .padding(.vertical, 8)
-                }
-
-                GroupBox("Category") {
-                    VStack(spacing: 12) {
-                        Picker("Category", selection: $selectedCategory) {
-                            ForEach(URLCategory.allCases, id: \.self) { category in
-                                Label(category.displayName, systemImage: category.icon)
-                                    .tag(category)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                    }
-                    .padding(.vertical, 8)
-                }
-
-                if !newURL.domain.isEmpty {
-                    GroupBox("Preview") {
-                        VStack(spacing: 8) {
-                            Text("Will match URLs like:")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-
-                            Text(previewText)
-                                .font(.caption)
-                                .foregroundColor(.blue)
-                                .padding(.vertical, 4)
-                        }
-                        .padding(.vertical, 8)
-                    }
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Domain")
+                        .font(.headline)
+                    TextField("e.g., github.com", text: $newURL.domain)
+                        .textFieldStyle(.roundedBorder)
+                        .autocorrectionDisabled()
                 }
 
                 Spacer()
@@ -498,24 +334,10 @@ private struct AddURLSheet: View {
         }
     }
 
-    private var previewText: String {
-        let domain = newURL.domain.lowercased()
-        switch selectedMatchType {
-        case .exact:
-            return domain
-        case .domain:
-            return "\(domain), www.\(domain), app.\(domain)"
-        case .contains:
-            return "Any URL containing '\(domain)'"
-        case .startsWith:
-            return "URLs starting with '\(domain)'"
-        }
-    }
-
     private func addURL() {
         var urlToAdd = newURL
         urlToAdd.category = selectedCategory
-        urlToAdd.matchType = selectedMatchType
+        urlToAdd.matchType = .domain // Default to domain matching
         urlToAdd.domain = urlToAdd.domain.lowercased()
 
         focusManager.addFocusURL(urlToAdd)
@@ -523,7 +345,6 @@ private struct AddURLSheet: View {
         // Reset form
         newURL = FocusURL(name: "", domain: "")
         selectedCategory = .work
-        selectedMatchType = .domain
 
         dismiss()
     }
