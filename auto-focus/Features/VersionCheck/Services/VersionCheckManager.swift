@@ -84,10 +84,16 @@ class VersionCheckManager: ObservableObject {
             return
         }
 
-        URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+        // Create a URL request with timeout
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 10.0 // 10 second timeout
+
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             DispatchQueue.main.async {
                 guard let self = self else { return }
-                self.isChecking = false
+                defer {
+                    self.isChecking = false
+                }
 
                 // Handle network errors
                 if let error = error {
@@ -120,16 +126,32 @@ class VersionCheckManager: ObservableObject {
                     return
                 }
 
-                guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                      let versionString = json["version"] as? String else {
+                guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                    let jsonString = String(data: data, encoding: .utf8) ?? "Unable to decode"
                     self.logger.error("Failed to parse version JSON", metadata: [
                         "current_version": self.currentVersion,
-                        "data_length": String(data.count)
+                        "data_length": String(data.count),
+                        "response_preview": String(jsonString.prefix(200))
                     ])
                     self.lastCheckDate = Date()
                     self.persistData()
                     return
                 }
+
+                guard let versionString = json["version"] as? String else {
+                    self.logger.error("Version key not found in JSON", metadata: [
+                        "current_version": self.currentVersion,
+                        "json_keys": Array(json.keys).joined(separator: ", ")
+                    ])
+                    self.lastCheckDate = Date()
+                    self.persistData()
+                    return
+                }
+
+                self.logger.debug("Successfully parsed version from JSON", metadata: [
+                    "version": versionString,
+                    "current_version": self.currentVersion
+                ])
 
                 // Extract version and optional download URL
                 self.latestVersion = versionString

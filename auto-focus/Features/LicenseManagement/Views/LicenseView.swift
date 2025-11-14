@@ -240,7 +240,7 @@ struct LicenseInputView: View {
             .buttonStyle(.borderedProminent)
 
             Link("Don't have a license key? Get Auto-Focus+",
-                 destination: URL(string: "https://auto-focus.app/plus")!)
+                 destination: URL(string: "https://auto-focus.app")!)
         }
         .frame(maxWidth: 300)
     }
@@ -397,7 +397,7 @@ struct BetaUpgradeView: View {
             }
 
             HStack(spacing: 12) {
-                Link(destination: URL(string: "https://auto-focus.app/plus")!) {
+                Link(destination: URL(string: "https://auto-focus.app")!) {
                     HStack {
                         Text("Get License")
                             .fontWeight(.medium)

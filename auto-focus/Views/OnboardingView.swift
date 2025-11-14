@@ -70,6 +70,12 @@ struct OnboardingView: View {
             hasAddedApps = !focusManager.focusApps.isEmpty
             hasSetupBrowser = !focusManager.focusURLs.isEmpty
         }
+        .onChange(of: focusManager.focusApps.count) { _ in
+            hasAddedApps = !focusManager.focusApps.isEmpty
+        }
+        .onChange(of: focusManager.focusURLs.count) { _ in
+            hasSetupBrowser = !focusManager.focusURLs.isEmpty
+        }
     }
 
     @ViewBuilder
@@ -294,13 +300,18 @@ struct InstallShortcutStepView: View {
 
 struct AddFocusAppsStepView: View {
     @EnvironmentObject var focusManager: FocusManager
+    @EnvironmentObject var licenseManager: LicenseManager
     @Binding var hasAddedApps: Bool
+
+    private var actualHasApps: Bool {
+        !focusManager.focusApps.isEmpty
+    }
 
     var body: some View {
         VStack(spacing: 24) {
-            Image(systemName: hasAddedApps ? "checkmark.circle.fill" : "plus.app")
+            Image(systemName: actualHasApps ? "checkmark.circle.fill" : "plus.app")
                 .font(.system(size: 60))
-                .foregroundColor(hasAddedApps ? .green : .accentColor)
+                .foregroundColor(actualHasApps ? .green : .accentColor)
 
             VStack(spacing: 16) {
                 Text("Add Focus Apps")
@@ -313,72 +324,58 @@ struct AddFocusAppsStepView: View {
                     .foregroundColor(.secondary)
             }
 
-            VStack(spacing: 16) {
+            VStack(spacing: 8) {
                 HStack {
-                    Image(systemName: hasAddedApps ? "checkmark.circle.fill" : "circle")
-                        .foregroundColor(hasAddedApps ? .green : .gray)
+                    Image(systemName: actualHasApps ? "checkmark.circle.fill" : "circle")
+                        .foregroundColor(actualHasApps ? .green : .gray)
 
-                    Text(hasAddedApps ? "\(focusManager.focusApps.count) focus app(s) added" : "No focus apps added yet")
+                    Text(actualHasApps ? "\(focusManager.focusApps.count) focus app(s) added" : "No focus apps added yet")
                         .font(.headline)
-                        .foregroundColor(hasAddedApps ? .green : .primary)
+                        .foregroundColor(actualHasApps ? .green : .primary)
 
                     Spacer()
                 }
 
-                if !focusManager.focusApps.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        ForEach(focusManager.focusApps.prefix(3)) { app in
-                            HStack {
-                                Image(systemName: "app")
-                                    .foregroundColor(.accentColor)
-                                Text(app.name)
-                                    .font(.body)
-                                Spacer()
-                            }
+                AppsListView()
+                    .frame(minHeight: 200)
+
+                HStack {
+                    Button {
+                        DispatchQueue.main.async {
+                            focusManager.selectFocusApplication()
                         }
+                    } label: {
+                        Image(systemName: "plus")
+                            .frame(width: 16, height: 16)
+                    }
+                    .disabled(!focusManager.canAddMoreApps)
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .frame(width: 28, height: 28)
 
-                        if focusManager.focusApps.count > 3 {
-                            Text("... and \(focusManager.focusApps.count - 3) more")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .padding(.leading, 24)
+                    Button {
+                        DispatchQueue.main.async {
+                            focusManager.removeSelectedApp()
                         }
+                    } label: {
+                        Image(systemName: "minus")
+                            .frame(width: 16, height: 16)
                     }
-                    .padding(.top, 8)
-                }
+                    .disabled(focusManager.selectedAppId == nil)
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .frame(width: 28, height: 28)
 
-                Button(hasAddedApps ? "Add More Apps" : "Add Focus Apps") {
-                    focusManager.selectFocusApplication()
-                    // Use Task for proper async handling
-                    Task {
-                        try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
-                        await MainActor.run {
-                            hasAddedApps = !focusManager.focusApps.isEmpty
-                        }
-                    }
+                    Spacer()
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-
-                VStack(spacing: 8) {
-                    Text("Recommended focus apps:")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.secondary)
-
-                    HStack(spacing: 12) {
-                        RecommendedAppTag(name: "Xcode")
-                        RecommendedAppTag(name: "VS Code")
-                        RecommendedAppTag(name: "Figma")
-                        RecommendedAppTag(name: "Notion")
-                    }
-                }
-                .padding(.top, 12)
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 20)
             .background(Color(.controlBackgroundColor))
             .cornerRadius(12)
+            .onChange(of: focusManager.focusApps.count) { _ in
+                hasAddedApps = actualHasApps
+            }
         }
     }
 }
@@ -418,7 +415,7 @@ struct BrowserIntegrationStepView: View {
                     .font(.title3)
                     .multilineTextAlignment(.center)
                     .foregroundColor(.secondary)
-                
+
                 Text("Note: You don't need to add Chrome as a focus app. The extension handles website detection independently.")
                     .font(.callout)
                     .multilineTextAlignment(.center)
@@ -688,7 +685,7 @@ struct LicenseOnboardingStepView: View {
                     .font(.largeTitle)
                     .fontWeight(.bold)
 
-                Text("Unlock unlimited focus apps, data export, and advanced insights. Currently in open beta - all features are free until August 31, 2025.")
+                Text("Unlock unlimited focus apps, data export, and advanced insights.")
                     .font(.title3)
                     .multilineTextAlignment(.center)
                     .foregroundColor(.secondary)
@@ -714,17 +711,8 @@ struct LicenseOnboardingStepView: View {
                 .cornerRadius(12)
 
                 VStack(spacing: 16) {
-                    Text("🎉 Open Beta")
-                        .font(.headline)
-                        .fontWeight(.bold)
-
-                    Text("All premium features are currently free during our open beta period. After August 31, 2025, you'll need a license to continue using premium features.")
-                        .font(.body)
-                        .multilineTextAlignment(.center)
-                        .foregroundColor(.secondary)
-
                     VStack(spacing: 12) {
-                        Link(destination: URL(string: "https://auto-focus.app/plus")!) {
+                        Link(destination: URL(string: "https://auto-focus.app")!) {
                             HStack {
                                 Text("Get Auto-Focus+ License")
                                     .fontWeight(.medium)

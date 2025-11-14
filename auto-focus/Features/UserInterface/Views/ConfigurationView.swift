@@ -30,34 +30,45 @@ struct AppsListView: View {
     @EnvironmentObject var licenseManager: LicenseManager
 
     var body: some View {
-        List(selection: $focusManager.selectedAppId) {
-            ForEach(focusManager.focusApps) { app in
-                AppRowView(app: app)
-            }
-        }
-        .listStyle(.bordered)
-
-        if !licenseManager.isLicensed {
-            HStack {
-                Image(systemName: "lock.fill")
-                    .foregroundColor(.secondary)
-                Text("Upgrade to Auto-Focus+ for unlimited apps")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-
-                Spacer()
-
-                Button("Upgrade") {
-                    // Instead of changing tabs, show an alert or notification
-                    // This removes the circular binding dependency
-                    print("Upgrade to premium for export/import features")
+        VStack(spacing: 0) {
+            List(selection: $focusManager.selectedAppId) {
+                if focusManager.focusApps.isEmpty {
+                    Text("No focus apps added yet")
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding()
+                } else {
+                    ForEach(focusManager.focusApps) { app in
+                        AppRowView(app: app)
+                    }
                 }
-                .controlSize(.small)
             }
-            .padding(.vertical, 6)
-            .padding(.horizontal, 8)
-            .background(Color.secondary.opacity(0.1))
-            .cornerRadius(6)
+            .listStyle(.bordered)
+            .frame(minHeight: 200)
+
+            if !licenseManager.isLicensed {
+                HStack {
+                    Image(systemName: "lock.fill")
+                        .foregroundColor(.secondary)
+                    Text("Upgrade to Auto-Focus+ for unlimited apps")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Spacer()
+
+                    Button("Upgrade") {
+                        // Instead of changing tabs, show an alert or notification
+                        // This removes the circular binding dependency
+                        print("Upgrade to premium for export/import features")
+                    }
+                    .controlSize(.small)
+                }
+                .padding(.vertical, 6)
+                .padding(.horizontal, 8)
+                .background(Color.secondary.opacity(0.1))
+                .cornerRadius(6)
+                .padding(.top, 8)
+            }
         }
     }
 }
@@ -113,12 +124,12 @@ struct GeneralSettingsView: View {
                     Text("Version")
                         .frame(width: 150, alignment: .leading)
                     Spacer()
-                    
+
                     VStack(alignment: .trailing, spacing: 2) {
                         HStack(spacing: 8) {
                             Text(appVersion)
                                 .foregroundColor(.secondary)
-                            
+
                             if versionCheckManager.isUpdateAvailable {
                                 HStack(spacing: 4) {
                                     Image(systemName: "arrow.up.circle.fill")
@@ -129,14 +140,14 @@ struct GeneralSettingsView: View {
                                         .foregroundColor(.blue)
                                 }
                             }
-                            
+
                             if versionCheckManager.isChecking {
                                 ProgressView()
                                     .scaleEffect(0.5)
                                     .frame(width: 12, height: 12)
                             }
                         }
-                        
+
                         if versionCheckManager.isUpdateAvailable {
                             Button("Download v\(versionCheckManager.latestVersion)") {
                                 versionCheckManager.openDownloadPage()
@@ -264,7 +275,7 @@ struct GeneralSettingsView: View {
             return .green
         }
     }
-    
+
     private var appVersion: String {
         return Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
     }
@@ -343,7 +354,7 @@ struct FocusApplicationsView: View {
 
     var body: some View {
         GroupBox(label: Text("Focus Applications").font(.headline)) {
-            VStack(alignment: .leading) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text("Being in any of these apps will automatically activate focus mode.")
                     .font(.callout)
                     .fontDesign(.default)
@@ -351,7 +362,6 @@ struct FocusApplicationsView: View {
                     .foregroundColor(.secondary)
 
                 AppsListView()
-                    .frame(minHeight: 200)
 
                 HStack {
                     Button {
@@ -360,8 +370,12 @@ struct FocusApplicationsView: View {
                         }
                     } label: {
                         Image(systemName: "plus")
+                            .frame(width: 16, height: 16)
                     }
                     .disabled(!focusManager.canAddMoreApps)
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .frame(width: 28, height: 28)
 
                     Button {
                         DispatchQueue.main.async {
@@ -369,8 +383,12 @@ struct FocusApplicationsView: View {
                         }
                     } label: {
                         Image(systemName: "minus")
+                            .frame(width: 16, height: 16)
                     }
                     .disabled(focusManager.selectedAppId == nil)
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .frame(width: 28, height: 28)
 
                     Spacer()
                 }
