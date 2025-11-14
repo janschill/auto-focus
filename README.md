@@ -14,8 +14,8 @@ To prevent losing focus during quick context switches (like checking documentati
 
 1. Download the latest version of Auto-Focus from the releases page
 2. Install the required Shortcut:
-   - Open the Shortcuts folder in the downloaded DMG and install the Shortcut
-   - or later through Settings of the app iteself
+   - Open the Shortcuts folder in the downloaded ZIP and install the Shortcut
+   - or later through Settings of the app itself
 3. Launch Auto-Focus and configure your focus applications
 4. Enjoy your uninterrupted work sessions! 🚀
 
@@ -30,146 +30,56 @@ To prevent losing focus during quick context switches (like checking documentati
 - **Configurable Thresholds**: Customize how long before focus mode activates
 - **Data Export**: Export focus session data (Premium feature)
 
-## Future Plans
-
-### Export/Import of Data
-
-- Maybe use the cloud, maybe not
-
-### Auto-Focus+
-
-- Hide some features behind a paywall
-
-### More Integrations
-
-- **Slack Integration**: Set Slack status automatically and manage notifications
-- **Calendar Integration**: Respect your meeting schedule and adjust focus mode accordingly
-- **Browser Extension**: Detect protective websites
-- **More Focus Providers**: Support for other focus/DND implementations beyond macOS Focus
-
-### Enhanced Detection
-
-- **Activity Detection**: Smarter detection of actual work vs. idle time
-- **Context Awareness**: Better understanding of work contexts and patterns
-- **Custom Rules**: Allow users to create their own rules for when to enable/disable focus mode
-
 ---
 
-## 🚀 Release Guide
+## 🚀 Release Process
 
-### Automated Releases (Recommended)
+### Automated Releases
 
-**Releases are now fully automated!** Every merge to `main` automatically triggers:
+Releases are fully automated via GitHub Actions. **The release workflow only runs when `MARKETING_VERSION` changes in `auto-focus.xcodeproj/project.pbxproj`.**
 
-1. ✅ Build and archive the app
-2. ✅ Code sign with Developer ID certificate
-3. ✅ Notarize with Apple
-4. ✅ Package app and extension
-5. ✅ Generate version.json
-6. ✅ Create git tag (semantic versioning: v1.0.0, v1.0.1, etc.)
-7. ✅ Update GitHub Pages (docs/downloads/)
-8. ✅ Create GitHub release with assets
-9. ✅ Push tag and commits
+**To create a new release:**
 
-**No manual steps required!** Just merge your PR to `main` and the release happens automatically.
+1. Bump `MARKETING_VERSION` in `auto-focus.xcodeproj/project.pbxproj` (e.g., `1.2.0` → `1.2.1`)
+2. Commit and push to `main`
+3. The workflow automatically:
+   - Builds and archives the app
+   - Code signs with Developer ID certificate
+   - Notarizes with Apple
+   - Packages app and extension
+   - Creates git tag (e.g., `v1.2.1`)
+   - Creates GitHub release with assets
+   - Updates distribution files
 
-### GitHub Secrets Setup
+**Note**: The workflow checks if the version actually changed. If `MARKETING_VERSION` matches the latest tag, the release is skipped (no duplicate tags).
 
-For automated releases to work, configure these secrets in your GitHub repository:
+### GitHub Secrets Required
 
-**Settings → Secrets and variables → Actions → New repository secret**
+Configure these secrets in **Settings → Secrets and variables → Actions**:
 
-1. **`APPLE_CERTIFICATE`**: Base64-encoded .p12 certificate file
-   ```bash
-   # Export certificate from Keychain Access as .p12
-   # Then encode it:
-   base64 -i certificate.p12 | pbcopy
-   # Paste the output as the secret value
-   ```
+- `APPLE_CERTIFICATE`: Base64-encoded .p12 certificate file
+- `APPLE_CERTIFICATE_PASSWORD`: Password for the .p12 certificate
+- `APPLE_ID`: Your Apple ID email
+- `APPLE_APP_SPECIFIC_PASSWORD`: App-specific password from https://appleid.apple.com/account/manage
+- `APPLE_TEAM_ID`: Your Apple Developer Team ID (`LKQJ2JG34Y`)
+- `HMAC_SECRET`: (optional) HMAC secret for license validation
 
-2. **`APPLE_CERTIFICATE_PASSWORD`**: Password used when exporting the .p12 certificate
+### Manual Release (Testing Only)
 
-3. **`APPLE_ID`**: Your Apple ID email (e.g., `apple@janschill.de`)
-
-4. **`APPLE_APP_SPECIFIC_PASSWORD`**: App-specific password for notarization
-   - Generate at: https://appleid.apple.com/account/manage
-   - Select "App-Specific Passwords" → Generate new password
-   - Use this password (not your Apple ID password)
-
-5. **`APPLE_TEAM_ID`**: Your Apple Developer Team ID (`LKQJ2JG34Y`)
-
-6. **`HMAC_SECRET`** (optional): HMAC secret for license validation (if used)
-
-### Manual Release Workflow (Legacy)
-
-If you need to create a release manually (e.g., for testing):
+For local testing or manual releases:
 
 ```bash
-# ⚠️  One-command release (does everything!)
 make manual-release
 ```
 
-This command will:
-1. ✅ Build and archive the app
-2. ✅ Prepare app for notarization
-3. ✅ Create notarization ZIP
-4. ⚠️  **PAUSE** - You must manually notarize (see output)
-5. ✅ Package extension and generate version metadata
-6. ✅ Update website download links
-7. ✅ Stage files in git
-8. ✅ Create git tag with semantic version (e.g., v1.0.1)
-9. ✅ Create GitHub release with assets
-10. ✅ Provide final push instructions
-
-### Manual Step-by-Step (if needed)
-
-If you prefer to control each step:
-
-```bash
-# 1. Prepare app for notarization
-make prepare-app-for-notarization
-
-# 2. Notarize (follow the output instructions)
-xcrun notarytool submit 'build/auto-focus_notarization.zip' --keychain-profile 'Developer' --wait
-xcrun stapler staple 'build/auto-focus_temp.app'
-
-# 3. Package and deploy
-make package-app
-make deploy-downloads
-
-# 4. Create git tag and GitHub release
-make create-github-release
-
-# 5. Push to deploy
-git push origin main
-```
-
-### Notarization Process
-
-When you see "⚠️ IMPORTANT: Ensure the app is notarized", run:
-
-```bash
-# Submit for notarization (this takes 1-5 minutes)
-xcrun notarytool submit 'build/auto-focus_notarization.zip' --keychain-profile 'Developer' --wait
-
-# If successful, staple the notarization ticket
-xcrun stapler staple 'build/auto-focus_temp.app'
-```
+This will guide you through the notarization process step-by-step.
 
 ### Version Strategy
 
-- **Semantic versioning**: `v1.MINOR.PATCH` (e.g., v1.0.0, v1.0.1, v1.1.0)
-- **Auto-increment**: Patch version increments automatically on each release (v1.0.0 → v1.0.1 → v1.0.2)
-- **Major version**: Stays at v1 until manually bumped (v2 would require new license)
-- **Git tags**: Created automatically with each release (e.g., v1.0.1)
-- **Version file**: `docs/downloads/version.json` updated automatically
-- **Xcode project**: `MARKETING_VERSION` updated automatically during build
-
-### Distribution Strategy
-
-- **Primary**: Direct downloads from https://auto-focus.app/downloads/
-- **Backup**: GitHub releases for version history
-- **Formats**: ZIP (primary), DMG (optional with `make create-dmg`)
+- **Semantic versioning**: `v1.MINOR.PATCH` (e.g., v1.2.0, v1.2.1)
+- **Manual version bump**: Update `MARKETING_VERSION` in `project.pbxproj` before releasing
+- **Git tags**: Created automatically with each release
+- **Distribution**: Files served from `docs/downloads/` and GitHub releases
 
 ### Troubleshooting
 
@@ -178,48 +88,8 @@ xcrun stapler staple 'build/auto-focus_temp.app'
 xcrun notarytool log <submission-id> --keychain-profile 'Developer'
 ```
 
-**GitHub CLI issues**: Re-authenticate:
-```bash
-gh auth login --scopes repo
-```
-
 **Build issues**: Clean and retry:
 ```bash
 make clean
 make manual-release
 ```
-
-### Release Checklist
-
-**For Automated Releases (Default):**
-- [ ] Code is committed and pushed to main
-- [ ] Tests pass (CI runs automatically)
-- [ ] GitHub Secrets are configured (see above)
-- [ ] Merge PR to main
-- [ ] Monitor GitHub Actions workflow
-- [ ] Verify release appears at https://github.com/janschill/auto-focus/releases
-- [ ] Verify website updates at auto-focus.app/downloads/
-- [ ] Test download and installation
-
-**For Manual Releases (Legacy):**
-- [ ] Code is committed and pushed to main
-- [ ] Tests pass locally (`make test`)
-- [ ] App builds and runs correctly
-- [ ] Browser extension works (if changed)
-- [ ] Run `make manual-release`
-- [ ] Follow notarization instructions
-- [ ] Verify website updates at auto-focus.app
-- [ ] Test download links work
-- [ ] Push final changes: `git push origin main`
-
-### Post-Release
-
-After automated release:
-- [ ] Verify GitHub Actions workflow completed successfully
-- [ ] Check GitHub release page for new version
-- [ ] Verify auto-focus.app/downloads/ serves new files
-- [ ] Test download and installation
-- [ ] Verify version.json is updated correctly
-- [ ] Check that app shows update notification (if applicable)
-
-**Note**: Releases are now fully automated! Just merge to `main` and the workflow handles everything. 🎉
