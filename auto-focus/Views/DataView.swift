@@ -6,15 +6,15 @@ struct DataView: View {
     @Binding var selectedTab: Int
 
     var body: some View {
-        VStack(spacing: 10) {
-            DataHeaderView()
-            DataOverviewView()
-            DataSessionManagementView()
-            DataExportImportView(selectedTab: $selectedTab)
-
-            Spacer()
+        ScrollView {
+            VStack(spacing: 10) {
+                DataHeaderView()
+                DataOverviewView()
+                DataSessionManagementView()
+                DataExportImportView(selectedTab: $selectedTab)
+            }
+            .padding()
         }
-        .padding()
     }
 }
 
@@ -149,7 +149,7 @@ struct DataOverviewView: View {
 struct DataSessionManagementView: View {
     @EnvironmentObject var focusManager: FocusManager
     @State private var showingSessionList = false
-    
+
     var body: some View {
         GroupBox(label: Text("Session Management").font(.headline)) {
             VStack(spacing: 16) {
@@ -158,7 +158,7 @@ struct DataSessionManagementView: View {
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                
+
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Total Sessions")
@@ -168,9 +168,9 @@ struct DataSessionManagementView: View {
                             .font(.title3)
                             .fontWeight(.bold)
                     }
-                    
+
                     Spacer()
-                    
+
                     if focusManager.focusSessions.count > 0 {
                         VStack(alignment: .trailing, spacing: 4) {
                             Text("Shortest Session")
@@ -183,7 +183,7 @@ struct DataSessionManagementView: View {
                                     .foregroundColor(shortest.duration < 60 ? .orange : .primary)
                             }
                         }
-                        
+
                         VStack(alignment: .trailing, spacing: 4) {
                             Text("Longest Session")
                                 .font(.caption)
@@ -197,10 +197,10 @@ struct DataSessionManagementView: View {
                         }
                     }
                 }
-                
+
                 HStack {
                     Spacer()
-                    
+
                     Button("Manage Sessions") {
                         showingSessionList = true
                     }
@@ -216,9 +216,8 @@ struct DataSessionManagementView: View {
             NavigationView {
                 SessionListView()
                     .navigationTitle("Focus Sessions")
-                    .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
-                        ToolbarItem(placement: .navigationBarTrailing) {
+                        ToolbarItem(placement: .automatic) {
                             Button("Done") {
                                 showingSessionList = false
                             }

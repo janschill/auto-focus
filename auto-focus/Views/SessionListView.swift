@@ -15,10 +15,10 @@ struct SessionListView: View {
     @State private var sessionToDelete: FocusSession?
     @State private var sortOrder: SessionSortOrder = .newest
     @State private var filterDuration: SessionDurationFilter = .all
-    
+
     private var filteredAndSortedSessions: [FocusSession] {
         let filtered = filteredSessions
-        
+
         switch sortOrder {
         case .newest:
             return filtered.sorted { $0.startTime > $1.startTime }
@@ -30,10 +30,10 @@ struct SessionListView: View {
             return filtered.sorted { $0.duration > $1.duration }
         }
     }
-    
+
     private var filteredSessions: [FocusSession] {
         let sessions = focusManager.focusSessions
-        
+
         switch filterDuration {
         case .all:
             return sessions
@@ -47,18 +47,19 @@ struct SessionListView: View {
             return sessions.filter { $0.duration >= 60 * 60 } // 1+ hours
         }
     }
-    
+
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 12) {
             // Header and Controls
             sessionControlsHeader
-            
+
             if filteredAndSortedSessions.isEmpty {
                 emptyStateView
             } else {
                 sessionsList
             }
         }
+        .padding()
         .sheet(isPresented: $showingSessionEditor) {
             sessionEditorSheet
         }
@@ -66,25 +67,25 @@ struct SessionListView: View {
             deleteConfirmationAlert
         }
     }
-    
+
     // MARK: - View Components
-    
+
     private var sessionControlsHeader: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 8) {
             HStack {
                 Text("Focus Sessions")
                     .font(.headline)
                     .fontWeight(.semibold)
-                
+
                 Spacer()
-                
+
                 Text("\(filteredAndSortedSessions.count) sessions")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
-            
+
             // Filters and Sort Controls
-            HStack(spacing: 16) {
+            HStack(spacing: 12) {
                 // Duration Filter
                 Picker("Filter", selection: $filterDuration) {
                     ForEach(SessionDurationFilter.allCases, id: \.self) { filter in
@@ -93,7 +94,7 @@ struct SessionListView: View {
                 }
                 .pickerStyle(.menu)
                 .frame(maxWidth: 150)
-                
+
                 // Sort Order
                 Picker("Sort", selection: $sortOrder) {
                     ForEach(SessionSortOrder.allCases, id: \.self) { order in
@@ -102,24 +103,24 @@ struct SessionListView: View {
                 }
                 .pickerStyle(.menu)
                 .frame(maxWidth: 150)
-                
+
                 Spacer()
             }
         }
     }
-    
+
     private var emptyStateView: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 8) {
             Image(systemName: "clock.badge.questionmark")
-                .font(.largeTitle)
+                .font(.title)
                 .foregroundColor(.secondary)
-            
+
             Text("No sessions found")
                 .font(.headline)
                 .foregroundColor(.secondary)
-            
+
             if filterDuration != .all || focusManager.focusSessions.isEmpty {
-                Text(focusManager.focusSessions.isEmpty 
+                Text(focusManager.focusSessions.isEmpty
                      ? "Start using Auto-Focus to record your first session"
                      : "Try adjusting your filters to see more sessions")
                     .font(.caption)
@@ -127,12 +128,13 @@ struct SessionListView: View {
                     .multilineTextAlignment(.center)
             }
         }
-        .padding(.vertical, 40)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.vertical, 20)
     }
-    
+
     private var sessionsList: some View {
         ScrollView {
-            LazyVStack(spacing: 8) {
+            LazyVStack(spacing: 6) {
                 ForEach(filteredAndSortedSessions) { session in
                     SessionRowView(
                         session: session,
@@ -149,11 +151,11 @@ struct SessionListView: View {
             }
             .padding(.horizontal, 4)
         }
-        .frame(maxHeight: 400)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-    
+
     // MARK: - Sheets and Alerts
-    
+
     private var sessionEditorSheet: some View {
         Group {
             if let session = selectedSession {
@@ -179,7 +181,7 @@ struct SessionListView: View {
             }
         }
     }
-    
+
     private var deleteConfirmationAlert: Alert {
         Alert(
             title: Text("Delete Session"),
@@ -203,14 +205,14 @@ struct SessionRowView: View {
     let session: FocusSession
     let onEdit: () -> Void
     let onDelete: () -> Void
-    
+
     private var dateFormatter: DateFormatter {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
         return formatter
     }
-    
+
     private var durationColor: Color {
         let duration = session.duration
         if duration < 60 { return .orange } // Very short
@@ -218,44 +220,44 @@ struct SessionRowView: View {
         if duration < 60 * 60 { return .green } // Good
         return .blue // Long
     }
-    
+
     var body: some View {
         HStack(spacing: 12) {
             // Duration indicator
             RoundedRectangle(cornerRadius: 2)
                 .fill(durationColor)
                 .frame(width: 4)
-            
+
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text(TimeFormatter.duration(Int(session.duration / 60)))
                         .font(.headline)
                         .fontWeight(.semibold)
-                    
+
                     Spacer()
-                    
+
                     Text(dateFormatter.string(from: session.startTime))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 HStack {
                     Text("Started: \(formatTime(session.startTime))")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    
+
                     Text("•")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    
+
                     Text("Ended: \(formatTime(session.endTime))")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    
+
                     Spacer()
                 }
             }
-            
+
             // Action buttons
             HStack(spacing: 8) {
                 Button(action: onEdit) {
@@ -264,7 +266,7 @@ struct SessionRowView: View {
                 }
                 .buttonStyle(.plain)
                 .help("Edit session")
-                
+
                 Button(action: onDelete) {
                     Image(systemName: "trash")
                         .foregroundColor(.red)
@@ -274,7 +276,7 @@ struct SessionRowView: View {
             }
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.vertical, 6)
         .background(Color(.controlBackgroundColor))
         .cornerRadius(8)
         .overlay(
@@ -282,7 +284,7 @@ struct SessionRowView: View {
                 .stroke(Color(.separatorColor), lineWidth: 0.5)
         )
     }
-    
+
     private func formatTime(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
@@ -294,7 +296,7 @@ struct SessionRowView: View {
 
 enum SessionSortOrder: CaseIterable {
     case newest, oldest, shortest, longest
-    
+
     var displayName: String {
         switch self {
         case .newest: return "Newest First"
@@ -307,7 +309,7 @@ enum SessionSortOrder: CaseIterable {
 
 enum SessionDurationFilter: CaseIterable {
     case all, veryShort, short, medium, long
-    
+
     var displayName: String {
         switch self {
         case .all: return "All Sessions"
@@ -327,7 +329,7 @@ enum SessionDurationFilter: CaseIterable {
         FocusSession(startTime: Date().addingTimeInterval(-14400), endTime: Date().addingTimeInterval(-14340)),
         FocusSession(startTime: Date().addingTimeInterval(-86400), endTime: Date().addingTimeInterval(-82800))
     ]
-    
+
     return SessionListView()
         .environmentObject(FocusManager.shared)
         .onAppear {

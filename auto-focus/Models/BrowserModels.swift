@@ -189,13 +189,14 @@ struct ExtensionHealth: Codable {
 }
 
 struct ExtensionError: Codable, Identifiable {
-    let id = UUID()
+    let id: UUID
     let type: String
     let message: String
     let timestamp: Date
     let stack: String?
 
-    init(type: String, message: String, timestamp: Date = Date(), stack: String? = nil) {
+    init(id: UUID = UUID(), type: String, message: String, timestamp: Date = Date(), stack: String? = nil) {
+        self.id = id
         self.type = type
         self.message = message
         self.timestamp = timestamp

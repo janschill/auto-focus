@@ -380,7 +380,7 @@
 				INFOPLIST_FILE = "auto-focus/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Auto Focus Tracker";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
-				INFOPLIST_KEY_NSAppleEventsUsageDescription = "";
+				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Auto-Focus needs to control Focus modes";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -415,7 +415,7 @@
 				INFOPLIST_FILE = "auto-focus/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Auto Focus Tracker";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
-				INFOPLIST_KEY_NSAppleEventsUsageDescription = "";
+				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Auto-Focus needs to control Focus modes";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
