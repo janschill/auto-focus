@@ -108,6 +108,47 @@ class SessionManager: ObservableObject, SessionManaging {
         focusSessions.append(contentsOf: sessions)
     }
 
+    // MARK: - Session Editing Methods
+    
+    func updateSession(_ session: FocusSession) {
+        guard let index = focusSessions.firstIndex(where: { $0.id == session.id }) else {
+            print("Warning: Trying to update session that doesn't exist")
+            return
+        }
+        
+        // Validate session data
+        guard session.startTime < session.endTime else {
+            print("Warning: Invalid session times - start must be before end")
+            return
+        }
+        
+        // Validate reasonable duration limits
+        let duration = session.duration
+        guard duration >= 1 else { // At least 1 second
+            print("Warning: Session duration too short")
+            return
+        }
+        
+        guard duration <= 24 * 60 * 60 else { // No more than 24 hours
+            print("Warning: Session duration too long (exceeds 24 hours)")
+            return
+        }
+        
+        // Validate session is not in the future
+        guard session.endTime <= Date().addingTimeInterval(60) else { // Allow 1 minute tolerance
+            print("Warning: Session end time cannot be in the future")
+            return
+        }
+        
+        focusSessions[index] = session
+        print("Session updated: \(session.id)")
+    }
+    
+    func deleteSession(_ session: FocusSession) {
+        focusSessions.removeAll { $0.id == session.id }
+        print("Session deleted: \(session.id)")
+    }
+
     // MARK: - Debug Methods
 
     func addSampleSessions(_ sessions: [FocusSession]) {

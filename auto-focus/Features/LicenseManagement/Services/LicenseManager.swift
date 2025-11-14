@@ -119,7 +119,7 @@ class LicenseManager: ObservableObject {
         logger.info("Initializing LicenseManager", metadata: [
             "app_version": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
         ])
-        
+
         loadAppVersion()
         loadLicense()
 
@@ -128,7 +128,7 @@ class LicenseManager: ObservableObject {
             self?.performPostInitializationSetup()
         }
     }
-    
+
     private func performPostInitializationSetup() {
         // First check if user has a valid license that needs validation
         if shouldValidateLicense() {
@@ -257,7 +257,7 @@ class LicenseManager: ObservableObject {
                 await MainActor.run {
                     self.validationError = error.localizedDescription
                     self.isActivating = false
-                    
+
                     // During beta period, still give beta access even if license activation fails
                     if isInBetaPeriod {
                         logger.info("License activation failed but beta period active, enabling beta access", metadata: [
@@ -312,11 +312,13 @@ class LicenseManager: ObservableObject {
         guard !licenseKey.isEmpty else { return }
         guard !isActivating else { return }
 
-        Task {
+        Task { @MainActor in
             do {
                 let license = try await validateLicenseWithServer(licenseKey)
 
-                await MainActor.run {
+                // Defer updates to next runloop to avoid publishing during view updates
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
                     if let expiry = license.expiryDate, expiry < Date() {
                         self.licenseStatus = .expired
                         self.isLicensed = false
@@ -324,23 +326,25 @@ class LicenseManager: ObservableObject {
                         self.licenseStatus = .valid
                         self.isLicensed = true
                         self.lastValidationDate = Date()
-                        userDefaults.set(Date(), forKey: lastValidationKey)
+                        self.userDefaults.set(Date(), forKey: self.lastValidationKey)
                     }
                 }
             } catch {
-                await MainActor.run {
+                // Defer updates to next runloop to avoid publishing during view updates
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
                     // During beta period, always give beta access when validation fails
-                    if isInBetaPeriod {
-                        logger.info("License validation failed but beta period active, enabling beta access", metadata: [
+                    if self.isInBetaPeriod {
+                        self.logger.info("License validation failed but beta period active, enabling beta access", metadata: [
                             "error": error.localizedDescription,
-                            "beta_expiry": ISO8601DateFormatter().string(from: betaExpiryDate)
+                            "beta_expiry": ISO8601DateFormatter().string(from: self.betaExpiryDate)
                         ])
-                        enableBetaAccess()
+                        self.enableBetaAccess()
                     } else if case LicenseError.networkError = error {
                         // After beta period, handle network errors gracefully
                         self.licenseStatus = .networkError
                         // Keep existing license status if we just have network issues
-                        if (licenseExpiry ?? Date.distantPast) > Date() {
+                        if (self.licenseExpiry ?? Date.distantPast) > Date() {
                             self.isLicensed = true
                         }
                     } else {
@@ -359,7 +363,7 @@ class LicenseManager: ObservableObject {
             "key_length": String(key.count),
             "timestamp": String(Date().timeIntervalSince1970)
         ])
-        
+
         // Debug license key for development
         #if DEBUG
         if key == "DEBUG-AUTOFOCUS-DEV-2025" {
@@ -413,19 +417,19 @@ class LicenseManager: ObservableObject {
 
                 return try parseLicenseResponse(json, licenseKey: key)
             }
-            
+
             logger.info("License validation successful", metadata: [
                 "license_owner": license.ownerName,
                 "expires_at": license.expiryDate?.timeIntervalSince1970.description ?? "never"
             ])
-            
+
             return license
 
         } catch {
             logger.error("License validation failed", error: error, metadata: [
                 "key_prefix": String(key.prefix(4))
             ])
-            
+
             if error is LicenseError {
                 throw error
             } else {
@@ -502,30 +506,30 @@ class LicenseManager: ObservableObject {
             maxApps: nil // No limit info from API
         )
     }
-    
+
     private func verifyHMACSignature(valid: Bool, message: String, timestamp: Int64, signature: String) -> Bool {
         let secret = getHMACSecret()
-        
+
         // Create the same payload format as server: valid|message|timestamp
         let payload = "\(valid)|\(message)|\(timestamp)"
-        
+
         // Generate HMAC
         guard let payloadData = payload.data(using: .utf8),
               let secretData = secret.data(using: .utf8) else {
             return false
         }
-        
+
         var mac = [UInt8](repeating: 0, count: Int(CC_SHA256_DIGEST_LENGTH))
         CCHmac(CCHmacAlgorithm(kCCHmacAlgSHA256), secretData.withUnsafeBytes { $0.baseAddress }, secretData.count,
                payloadData.withUnsafeBytes { $0.baseAddress }, payloadData.count, &mac)
-        
+
         let computedSignature = Data(mac).base64EncodedString()
-        
+
         // Constant-time comparison to prevent timing attacks
-        return computedSignature.count == signature.count && 
+        return computedSignature.count == signature.count &&
                zip(computedSignature, signature).allSatisfy { $0 == $1 }
     }
-    
+
     private func getHMACSecret() -> String {
         #if DEBUG
         // Development/debug secret - safe to be in source code
@@ -535,7 +539,7 @@ class LicenseManager: ObservableObject {
         if let secret = Bundle.main.object(forInfoDictionaryKey: "HMAC_SECRET") as? String, !secret.isEmpty {
             return secret
         }
-        
+
         // Fallback - log warning but don't crash
         logger.error("HMAC_SECRET not found in build configuration, using development secret")
         return "auto-focus-hmac-secret-2025"
