@@ -50,6 +50,11 @@ class FocusManager: ObservableObject {
             userDefaultsManager.setDouble(focusLossBuffer, forKey: UserDefaultsManager.Keys.focusLossBuffer)
         }
     }
+    @Published var timerDisplayMode: TimerDisplayMode = .full {
+        didSet {
+            userDefaultsManager.save(timerDisplayMode, forKey: UserDefaultsManager.Keys.timerDisplayMode)
+        }
+    }
     @Published var selectedAppId: String?
     @Published var isInFocusMode = false
     @Published var hasCompletedOnboarding: Bool = false
@@ -167,6 +172,7 @@ class FocusManager: ObservableObject {
         if focusLossBuffer == 0 { focusLossBuffer = AppConfiguration.defaultBufferTime }
         isPaused = userDefaultsManager.getBool(forKey: UserDefaultsManager.Keys.isPaused)
         hasCompletedOnboarding = userDefaultsManager.getBool(forKey: UserDefaultsManager.Keys.hasCompletedOnboarding)
+        timerDisplayMode = userDefaultsManager.load(TimerDisplayMode.self, forKey: UserDefaultsManager.Keys.timerDisplayMode) ?? .full
 
         // Set up delegates and start monitoring
         self.appMonitor.delegate = self

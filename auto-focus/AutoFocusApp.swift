@@ -29,8 +29,18 @@ struct AutoFocusApp: App {
                 if focusManager.isPaused {
                     Image(systemName: "pause.circle")
                 } else if focusManager.isFocusAppActive {
-                    Text(TimeFormatter.duration(focusManager.timeSpent))
-                        .font(.system(size: 10, weight: .medium))
+                    // Show timer based on user preference
+                    switch focusManager.timerDisplayMode {
+                    case .hidden:
+                        // Don't show timer
+                        EmptyView()
+                    case .full:
+                        Text(TimeFormatter.duration(focusManager.timeSpent))
+                            .font(.system(size: 10, weight: .medium))
+                    case .simplified:
+                        Text(TimeFormatter.minutes(focusManager.timeSpent))
+                            .font(.system(size: 10, weight: .medium))
+                    }
                 }
                 if focusManager.isInFocusMode {
                     Image(systemName: "brain.head.profile.fill")

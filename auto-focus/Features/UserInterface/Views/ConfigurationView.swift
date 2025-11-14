@@ -126,6 +126,31 @@ struct GeneralSettingsView: View {
                 Divider().padding(.vertical, 5).contrast(0.5)
 
                 HStack {
+                    Text("Timer Display")
+                        .frame(width: 150, alignment: .leading)
+                    Spacer(minLength: 10)
+                    Picker("", selection: $focusManager.timerDisplayMode) {
+                        ForEach(TimerDisplayMode.allCases, id: \.self) { mode in
+                            Text(mode.displayName).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .fixedSize()
+                    .padding(.trailing, 5)
+                }
+
+                HStack {
+                    Text("Controls how the current session timer appears in the menu bar. Choose 'Hidden' to reduce distractions.")
+                        .font(.callout)
+                        .fontDesign(.default)
+                        .fontWeight(.regular)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                Divider().padding(.vertical, 5).contrast(0.5)
+
+                HStack {
                     Text("Shortcut Installation")
                         .frame(width: 150, alignment: .leading)
 
@@ -275,6 +300,7 @@ struct FocusApplicationsView: View {
                     .foregroundColor(.secondary)
 
                 AppsListView()
+                    .frame(minHeight: 200)
 
                 HStack {
                     Button {
@@ -310,13 +336,16 @@ struct ConfigurationView: View {
     @EnvironmentObject var licenseManager: LicenseManager
 
     var body: some View {
-        VStack(spacing: 10) {
-            HeaderView()
-            GeneralSettingsView()
-            ThresholdsView()
-            FocusApplicationsView()
+        ScrollView {
+            VStack(spacing: 10) {
+                HeaderView()
+                GeneralSettingsView()
+                ThresholdsView()
+                FocusApplicationsView()
+            }
+            .padding()
         }
-        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
