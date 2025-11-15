@@ -7,10 +7,32 @@ protocol FocusModeManagerDelegate: AnyObject {
     func focusModeController(_ controller: any FocusModeControlling, didFailWithError error: FocusModeError)
 }
 
-enum FocusModeError: Error {
+enum FocusModeError: LocalizedError {
     case shortcutNotFound
     case appleScriptError(String)
     case shortcutsAppNotInstalled
+    
+    var errorDescription: String? {
+        switch self {
+        case .shortcutNotFound:
+            return "Toggle Do Not Disturb shortcut not found"
+        case .appleScriptError(let message):
+            return "AppleScript error: \(message)"
+        case .shortcutsAppNotInstalled:
+            return "Shortcuts app is not installed"
+        }
+    }
+    
+    var failureReason: String? {
+        switch self {
+        case .shortcutNotFound:
+            return "The required shortcut '\(AppConfiguration.shortcutName)' was not found in the Shortcuts app"
+        case .appleScriptError(let message):
+            return message
+        case .shortcutsAppNotInstalled:
+            return "The Shortcuts app is required but not installed on this system"
+        }
+    }
 }
 
 class FocusModeManager: ObservableObject, FocusModeControlling {

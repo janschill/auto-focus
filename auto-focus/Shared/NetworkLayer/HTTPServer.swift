@@ -28,10 +28,11 @@ class HTTPServer: ObservableObject {
                     ])
                     self.startupRetryCount = 0 // Reset retry count on success
                 case .failed(let error):
-                    AppLogger.network.error("Failed to start HTTP server", error: error, metadata: [
+                    let browserError = BrowserError.serverStartFailed(error)
+                    AppLogger.network.error("Failed to start HTTP server", error: browserError, metadata: [
                         "port": String(self.port)
                     ])
-                    self.handleStartupFailure(error)
+                    self.handleStartupFailure(browserError)
                 case .waiting(let error):
                     AppLogger.network.warning("Waiting to start HTTP server", metadata: [
                         "error": error.localizedDescription,
@@ -55,14 +56,15 @@ class HTTPServer: ObservableObject {
                 "port": String(port)
             ])
         } catch {
-            AppLogger.network.error("Failed to create HTTP server listener", error: error, metadata: [
+            let browserError = BrowserError.serverStartFailed(error)
+            AppLogger.network.error("Failed to create HTTP server listener", error: browserError, metadata: [
                 "port": String(port)
             ])
-            handleStartupFailure(error)
+            handleStartupFailure(browserError)
         }
     }
 
-    private func handleStartupFailure(_ error: Error) {
+    private func handleStartupFailure(_ error: BrowserError) {
         startupRetryCount += 1
 
         if startupRetryCount <= maxStartupRetries {
@@ -70,14 +72,16 @@ class HTTPServer: ObservableObject {
             AppLogger.network.warning("Retrying HTTP server startup", metadata: [
                 "delay": String(format: "%.1f", delay),
                 "attempt": String(startupRetryCount),
-                "max_attempts": String(maxStartupRetries)
+                "max_attempts": String(maxStartupRetries),
+                "error": error.localizedDescription
             ])
 
             DispatchQueue.global().asyncAfter(deadline: .now() + delay) {
                 self.start()
             }
         } else {
-            AppLogger.network.critical("Max startup retries exceeded - HTTP server failed to start", error: error, metadata: [
+            let maxRetriesError = BrowserError.maxRetriesExceeded
+            AppLogger.network.critical("Max startup retries exceeded - HTTP server failed to start", error: maxRetriesError, metadata: [
                 "max_retries": String(maxStartupRetries)
             ])
             startupRetryCount = 0 // Reset for potential future attempts
@@ -281,14 +285,15 @@ class HTTPServer: ObservableObject {
 
                 self.sendJSONResponse(response, to: connection)
             } else {
-                AppLogger.network.error("Failed to add focus URL - no browser manager", metadata: [
+                let error = BrowserError.browserManagerNotAvailable
+                AppLogger.network.error("Failed to add focus URL - no browser manager", error: error, metadata: [
                     "domain": domain
                 ])
 
                 let response = [
                     "command": "add_focus_url_response",
                     "success": false,
-                    "error": "Browser manager not available"
+                    "error": error.localizedDescription
                 ] as [String: Any]
 
                 self.sendJSONResponse(response, to: connection)
