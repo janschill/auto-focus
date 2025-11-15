@@ -1,0 +1,101 @@
+# Auto-Focus Cursor Rules
+
+## Project Context
+
+Auto-Focus is a macOS productivity app that automatically enables Do Not Disturb mode when users are in deep work. It monitors active applications and browser tabs, tracking focus time and managing focus sessions.
+
+## Code Style
+
+### Swift Conventions
+
+- Use SwiftUI for all UI components
+- Follow MVVM pattern: Views display, ViewModels manage state
+- Use `@Published` properties for reactive state updates
+- Prefer `@EnvironmentObject` for dependency injection in views
+- Use `MARK:` comments to organize code sections
+
+### Naming
+
+- Classes: `PascalCase` (e.g., `FocusManager`)
+- Properties/Methods: `camelCase` (e.g., `isFocusAppActive`)
+- Protocols: End with `-ing` for capabilities (e.g., `AppMonitoring`)
+- Constants: Descriptive `camelCase` names
+
+### State Management
+
+- Use `batchUpdate()` for multiple `@Published` property updates
+- Defer delegate notifications: `DispatchQueue.main.async { delegate?.method() }`
+- Always check state before making changes (e.g., `if !isFocusAppActive`)
+
+## Architecture Patterns
+
+### Focus State Transitions
+
+- **Preserve timer** when switching between focus contexts (app ↔ browser, app ↔ app)
+- **Reset timer** when leaving focus entirely (focus → non-focus)
+- Use `isChromeBrowserFrontmost()` to distinguish tab switching vs app switching
+
+### Browser Integration
+
+- Extension communicates via HTTP on `localhost:8942`
+- `BrowserManager` handles extension communication
+- `FocusManager` coordinates browser focus with app focus
+- Browser and app focus share the same `timeSpent` timer
+
+### License Management
+
+- Check `licenseManager.isLicensed` before premium features
+- Default `maxAppsAllowed = -1` (unlimited) for licensed users
+- Free tier: 3 apps, 3 URLs
+
+## Common Patterns
+
+### Adding Focus Detection
+
+```swift
+// Check if switching contexts vs leaving focus
+let preserveTime = isBrowserInFocus || (timeSpent > 0 && timeTrackingTimer != nil)
+startFocusSession(preserveTime: preserveTime)
+```
+
+### Browser Tab Switching
+
+```swift
+// Reset when switching tabs (Chrome still frontmost)
+// Preserve when switching to app (Chrome not frontmost)
+if isChromeStillFrontmost {
+    resetFocusState() // Switching tabs
+} else if isSwitchingToFocusApp {
+    // Preserve time
+} else {
+    resetFocusState() // Leaving focus
+}
+```
+
+### Error Handling
+
+- Log with context: `print("FocusManager: Error - \(error)")`
+- Don't crash on non-critical errors
+- Show user-friendly messages in UI
+
+## File Locations
+
+- Core logic: `auto-focus/Features/FocusControl/Services/FocusManager.swift`
+- Browser: `auto-focus/Managers/BrowserManager.swift`
+- License: `auto-focus/Features/LicenseManagement/Services/LicenseManager.swift`
+- UI: `auto-focus/Views/` and `auto-focus/Features/UserInterface/Views/`
+
+## Testing Considerations
+
+- Test timer preservation when switching contexts
+- Test timer reset when leaving focus
+- Test browser tab switching behavior
+- Test license limits (free vs premium)
+
+## Important Notes
+
+- Timer should continue when switching between focus apps/domains
+- Timer should reset when switching from focus to non-focus
+- Browser and app focus share the same timer
+- Use `isInOverallFocus` for combined focus state
+- Buffer period only applies when `isInFocusMode = true`
