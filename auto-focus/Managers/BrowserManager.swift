@@ -62,9 +62,9 @@ class BrowserManager: ObservableObject, BrowserManaging {
     // Suppress focus activation temporarily after adding a URL
     private var suppressFocusActivationUntil: Date?
     private var connectionTimeoutTimer: Timer?
-    private let connectionTimeoutInterval: TimeInterval = 90.0 // 90 seconds
+    private let connectionTimeoutInterval: TimeInterval = AppConfiguration.connectionTimeoutInterval
     private var serverHealthTimer: Timer?
-    private let serverHealthCheckInterval: TimeInterval = 300.0 // 5 minutes
+    private let serverHealthCheckInterval: TimeInterval = AppConfiguration.serverHealthCheckInterval
 
     init(userDefaultsManager: any PersistenceManaging, licenseManager: LicenseManager = LicenseManager()) {
         self.userDefaultsManager = userDefaultsManager
@@ -358,7 +358,7 @@ class BrowserManager: ObservableObject, BrowserManaging {
         if licenseManager.isLicensed {
             return true // Unlimited for premium users
         } else {
-            return focusURLs.count < 3 // Free tier limit
+            return focusURLs.count < AppConfiguration.freeURLLimit
         }
     }
 

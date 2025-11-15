@@ -76,7 +76,8 @@ class FocusStateMachine {
 
         // Validate transition
         guard isValidTransition(from: currentState, to: newState) else {
-            AppLogger.focus.warning("Invalid state transition attempted", metadata: [
+            let error = FocusError.invalidStateTransition(from: currentState.name, to: newState.name)
+            AppLogger.focus.error("Invalid state transition attempted", error: error, metadata: [
                 "from": currentState.name,
                 "to": newState.name
             ])
