@@ -165,17 +165,9 @@ class FocusManager: ObservableObject {
         self.focusModeController = focusModeController ?? FocusModeManager()
         self.browserManager = browserManager ?? BrowserManager(userDefaultsManager: userDefaultsManager)
         
-        // Initialize focus timer with callbacks
-        self.focusTimer = FocusTimer(interval: checkInterval)
-        self.focusTimer.onTick = { [weak self] elapsedTime in
-            self?.handleTimerTick(elapsedTime: elapsedTime)
-        }
-        
-        // Initialize state machine
+        // Initialize state machine and timer (without callbacks first)
         self.stateMachine = FocusStateMachine()
-        self.stateMachine.onStateChanged = { [weak self] transition in
-            self?.handleStateTransition(transition)
-        }
+        self.focusTimer = FocusTimer(interval: checkInterval)
 
         loadFocusApps()
         // Load UserDefault values using UserDefaultsManager
@@ -201,6 +193,14 @@ class FocusManager: ObservableObject {
         self.isExtensionConnected = self.browserManager.isExtensionConnected
         self.extensionHealth = self.browserManager.extensionHealth
         self.connectionQuality = self.browserManager.connectionQuality
+        
+        // Set up callbacks after all initialization is complete
+        self.stateMachine.onStateChanged = { [weak self] transition in
+            self?.handleStateTransition(transition)
+        }
+        self.focusTimer.onTick = { [weak self] elapsedTime in
+            self?.handleTimerTick(elapsedTime: elapsedTime)
+        }
     }
 
     func togglePause() {
@@ -270,13 +270,13 @@ class FocusManager: ObservableObject {
         timeSpent = focusTimer.currentTime
         checkAndActivateFocusMode()
     }
-    
+
     private func handleTimerTick(elapsedTime: TimeInterval) {
         timeSpent = elapsedTime
         stateMachine.updateTime(timeSpent: elapsedTime)
         checkAndActivateFocusMode()
     }
-    
+
     private func checkAndActivateFocusMode() {
         if shouldEnterFocusMode {
             AppLogger.focus.info("Activating focus mode", metadata: [
@@ -291,7 +291,7 @@ class FocusManager: ObservableObject {
             stateMachine.transitionToCounting(timeSpent: timeSpent)
         }
     }
-    
+
     private func handleStateTransition(_ transition: FocusTransition) {
         // Sync published properties with state machine
         switch transition.to {

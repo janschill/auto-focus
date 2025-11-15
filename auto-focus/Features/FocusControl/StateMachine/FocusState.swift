@@ -4,16 +4,16 @@ import Foundation
 enum FocusState: Equatable {
     /// Not tracking focus - idle state
     case idle
-    
+
     /// Tracking time but haven't reached threshold yet
     case counting(timeSpent: TimeInterval)
-    
+
     /// In active focus mode (DND enabled)
     case focusMode(timeSpent: TimeInterval)
-    
+
     /// In buffer period after leaving focus
     case buffer(timeRemaining: TimeInterval)
-    
+
     /// State name for logging/debugging
     var name: String {
         switch self {
@@ -27,7 +27,7 @@ enum FocusState: Equatable {
             return "buffer"
         }
     }
-    
+
     /// Whether focus mode (DND) should be active
     var isFocusModeActive: Bool {
         if case .focusMode = self {
@@ -35,7 +35,7 @@ enum FocusState: Equatable {
         }
         return false
     }
-    
+
     /// Whether we're currently tracking time
     var isTracking: Bool {
         switch self {
@@ -52,13 +52,13 @@ struct FocusTransition {
     let from: FocusState
     let to: FocusState
     let timestamp: Date
-    
+
     init(from: FocusState, to: FocusState) {
         self.from = from
         self.to = to
         self.timestamp = Date()
     }
-    
+
     var description: String {
         return "\(from.name) → \(to.name)"
     }
