@@ -69,6 +69,7 @@ class FocusManager: ObservableObject {
 
     private let focusTimer: FocusTimer
     private let checkInterval: TimeInterval = AppConfiguration.checkInterval
+    private let stateMachine: FocusStateMachine
 
     // Batch update system to prevent publishing during view updates
     private var pendingUpdates: [() -> Void] = []
@@ -169,6 +170,12 @@ class FocusManager: ObservableObject {
         self.focusTimer.onTick = { [weak self] elapsedTime in
             self?.handleTimerTick(elapsedTime: elapsedTime)
         }
+        
+        // Initialize state machine
+        self.stateMachine = FocusStateMachine()
+        self.stateMachine.onStateChanged = { [weak self] transition in
+            self?.handleStateTransition(transition)
+        }
 
         loadFocusApps()
         // Load UserDefault values using UserDefaultsManager
@@ -248,12 +255,14 @@ class FocusManager: ObservableObject {
         if !preserveTime {
             timeSpent = 0
             focusTimer.reset()
+            stateMachine.transitionToIdle()
         }
         // Only start a new session if we're not already in one (from browser focus)
         if !isBrowserInFocus {
             sessionManager.startSession()
         }
         focusTimer.start(preserveTime: preserveTime)
+        stateMachine.transitionToCounting(timeSpent: timeSpent)
     }
 
     private func updateFocusSession() {
@@ -264,6 +273,7 @@ class FocusManager: ObservableObject {
     
     private func handleTimerTick(elapsedTime: TimeInterval) {
         timeSpent = elapsedTime
+        stateMachine.updateTime(timeSpent: elapsedTime)
         checkAndActivateFocusMode()
     }
     
@@ -274,7 +284,25 @@ class FocusManager: ObservableObject {
                 "threshold": String(format: "%.1f", focusThreshold * AppConfiguration.timeMultiplier)
             ])
             isInFocusMode = true
+            stateMachine.transitionToFocusMode(timeSpent: timeSpent)
             focusModeController.setFocusMode(enabled: true)
+        } else if case .counting = stateMachine.currentState {
+            // Update counting state with new time
+            stateMachine.transitionToCounting(timeSpent: timeSpent)
+        }
+    }
+    
+    private func handleStateTransition(_ transition: FocusTransition) {
+        // Sync published properties with state machine
+        switch transition.to {
+        case .idle:
+            isInFocusMode = false
+        case .counting:
+            isInFocusMode = false
+        case .focusMode:
+            isInFocusMode = true
+        case .buffer:
+            isInFocusMode = true // Keep focus mode active during buffer
         }
     }
 
@@ -291,6 +319,7 @@ class FocusManager: ObservableObject {
         if isInFocusMode {
             // Pause time tracking when entering buffer period
             focusTimer.pause()
+            stateMachine.transitionToBuffer(timeRemaining: focusLossBuffer)
             bufferManager.startBuffer(duration: focusLossBuffer)
         } else {
             // Only reset if we're not switching to browser focus
@@ -316,6 +345,7 @@ class FocusManager: ObservableObject {
         timeSpent = 0
         isInFocusMode = false
         focusTimer.reset()
+        stateMachine.transitionToIdle()
     }
 
     func checkShortcutExists() -> Bool {
@@ -670,6 +700,7 @@ extension FocusManager: BufferManagerDelegate {
     func bufferManagerDidTimeout(_ manager: any BufferManaging) {
         // Buffer timed out - end session and exit focus mode
         sessionManager.endSession()
+        stateMachine.transitionToIdle()
         resetFocusState()
         if !isNotificationsEnabled {
             focusModeController.setFocusMode(enabled: false)
@@ -862,6 +893,7 @@ extension FocusManager: BrowserManagerDelegate {
                 "time_spent": String(format: "%.1f", timeSpent)
             ])
             focusTimer.pause()
+            stateMachine.transitionToBuffer(timeRemaining: focusLossBuffer)
             bufferManager.startBuffer(duration: focusLossBuffer)
         } else {
             // Check if Chrome is still the frontmost app
