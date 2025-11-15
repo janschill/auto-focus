@@ -25,14 +25,14 @@ class LicenseManager: ObservableObject {
     @Published var validationError: String?
     @Published var lastValidationDate: Date?
     @Published var appVersion: String = ""
-    @Published var maxAppsAllowed: Int = 3
+    @Published var maxAppsAllowed: Int = AppConfiguration.defaultMaxAppsAllowed
 
     private let userDefaults = UserDefaults.standard
     private let licenseKeyKey = "AutoFocus_LicenseKey"
     private let licenseDataKey = "AutoFocus_LicenseData"
     private let lastValidationKey = "AutoFocus_LastValidation"
-    private let validationIntervalHours: TimeInterval = 168 // Validate once per week (7 days)
-    private let gracePeriodDays: TimeInterval = 30 // Allow 30 days offline before requiring validation
+    private let validationIntervalHours: TimeInterval = AppConfiguration.validationIntervalHours
+    private let gracePeriodDays: TimeInterval = AppConfiguration.gracePeriodDays
 
     // License server configuration
     private let licenseServerURL = "https://auto-focus.app/api/v1/licenses"
@@ -160,7 +160,7 @@ class LicenseManager: ObservableObject {
         self.licenseOwner = "Beta User"
         self.licenseEmail = "beta@auto-focus.app"
         self.licenseExpiry = betaExpiryDate
-        self.maxAppsAllowed = -1 // Unlimited during beta
+        self.maxAppsAllowed = AppConfiguration.unlimited // Unlimited during beta
     }
 
     private func loadAppVersion() {
@@ -181,7 +181,7 @@ class LicenseManager: ObservableObject {
             self.licenseExpiry = license.expiryDate
             self.appVersion = license.appVersion ?? appVersion
             // For licensed users, default to unlimited (-1) if maxApps is not specified
-            self.maxAppsAllowed = license.maxApps ?? -1
+            self.maxAppsAllowed = license.maxApps ?? AppConfiguration.unlimited
 
             // Check if license is still valid locally
             if let expiry = license.expiryDate, expiry < Date() {
@@ -355,7 +355,7 @@ class LicenseManager: ObservableObject {
         self.isLicensed = false
         self.validationError = nil
         self.lastValidationDate = nil
-        self.maxAppsAllowed = 3
+        self.maxAppsAllowed = AppConfiguration.defaultMaxAppsAllowed
 
         // Clear saved data
         userDefaults.removeObject(forKey: licenseKeyKey)
@@ -449,7 +449,7 @@ class LicenseManager: ObservableObject {
                 email: "dev@auto-focus.app",
                 expiryDate: Calendar.current.date(byAdding: .year, value: 5, to: Date()),
                 appVersion: appVersion,
-                maxApps: -1 // Unlimited
+                maxApps: AppConfiguration.unlimited // Unlimited
             )
         }
         #endif

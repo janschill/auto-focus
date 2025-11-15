@@ -13,8 +13,21 @@ struct AppConfiguration {
     static let debugTimeMultiplier: Double = 1.0 // Debug mode: 1 second = 1 minute
     static let productionTimeMultiplier: Double = 60.0 // Production: 60 seconds = 1 minute
 
-    // MARK: - Licensing
-    static let freeAppLimit = 2
+    // MARK: - Free Tier Limits
+    static let freeAppLimit = 3
+    static let freeURLLimit = 3
+    static let unlimited = -1 // Used to indicate unlimited for licensed users
+
+    // MARK: - Network Configuration
+    static let serverPort: UInt16 = 8942
+    static let connectionTimeoutInterval: TimeInterval = 90.0 // 90 seconds
+    static let serverHealthCheckInterval: TimeInterval = 300.0 // 5 minutes
+    static let maxStartupRetries = 3
+
+    // MARK: - License Configuration
+    static let defaultMaxAppsAllowed = 3
+    static let validationIntervalHours: TimeInterval = 168 // Validate once per week (7 days)
+    static let gracePeriodDays: TimeInterval = 30 // Allow 30 days offline before requiring validation
 
     // MARK: - System Integration
     static let shortcutName = "Toggle Do Not Disturb"

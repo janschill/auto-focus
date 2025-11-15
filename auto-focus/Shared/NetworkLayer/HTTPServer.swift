@@ -3,10 +3,10 @@ import Network
 
 class HTTPServer: ObservableObject {
     private var listener: NWListener?
-    private let port: UInt16 = 8942
+    private let port: UInt16 = AppConfiguration.serverPort
     private weak var browserManager: BrowserManager?
     private var startupRetryCount = 0
-    private let maxStartupRetries = 3
+    private let maxStartupRetries = AppConfiguration.maxStartupRetries
 
     func setBrowserManager(_ manager: BrowserManager) {
         self.browserManager = manager
