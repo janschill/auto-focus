@@ -11,7 +11,7 @@ enum FocusModeError: LocalizedError {
     case shortcutNotFound
     case appleScriptError(String)
     case shortcutsAppNotInstalled
-    
+
     var errorDescription: String? {
         switch self {
         case .shortcutNotFound:
@@ -22,7 +22,7 @@ enum FocusModeError: LocalizedError {
             return "Shortcuts app is not installed"
         }
     }
-    
+
     var failureReason: String? {
         switch self {
         case .shortcutNotFound:

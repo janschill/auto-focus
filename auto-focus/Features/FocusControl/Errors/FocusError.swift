@@ -11,7 +11,7 @@ enum FocusError: LocalizedError {
     case focusModeDeactivationFailed(String)
     case appDetectionFailed
     case bufferStartFailed
-    
+
     var errorDescription: String? {
         switch self {
         case .sessionStartFailed:
@@ -34,7 +34,7 @@ enum FocusError: LocalizedError {
             return "Failed to start buffer period"
         }
     }
-    
+
     var failureReason: String? {
         switch self {
         case .sessionStartFailed:

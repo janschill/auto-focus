@@ -13,7 +13,7 @@ enum BrowserError: LocalizedError {
     case browserManagerNotAvailable
     case portAlreadyInUse(UInt16)
     case maxRetriesExceeded
-    
+
     var errorDescription: String? {
         switch self {
         case .extensionNotConnected:
@@ -40,7 +40,7 @@ enum BrowserError: LocalizedError {
             return "Maximum retry attempts exceeded"
         }
     }
-    
+
     var failureReason: String? {
         switch self {
         case .extensionNotConnected:
