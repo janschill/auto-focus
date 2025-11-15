@@ -69,7 +69,7 @@ class FocusManager: ObservableObject {
 
     private var timeTrackingTimer: Timer?
     private let checkInterval: TimeInterval = AppConfiguration.checkInterval
-    
+
     // Batch update system to prevent publishing during view updates
     private var pendingUpdates: [() -> Void] = []
     private var updateTimer: Timer?
@@ -105,22 +105,22 @@ class FocusManager: ObservableObject {
     var monthSessions: [FocusSession] {
         return sessionManager.monthSessions
     }
-    
+
     // MARK: - Session Management
-    
+
     func updateSession(_ session: FocusSession) {
         sessionManager.updateSession(session)
     }
-    
+
     func deleteSession(_ session: FocusSession) {
         sessionManager.deleteSession(session)
     }
-    
+
     // MARK: - Current App Access
     var currentAppBundleId: String? {
         return appMonitor.currentApp
     }
-    
+
     var currentAppInfo: AppInfo? {
         guard let bundleId = currentAppBundleId else { return nil }
         return focusApps.first { $0.bundleIdentifier == bundleId }
@@ -222,9 +222,13 @@ class FocusManager: ObservableObject {
         bufferManager.cancelBuffer()
 
         if !isFocusAppActive {
-            startFocusSession()
+            // Check if we're already tracking time in browser focus - if so, preserve it
+            // We preserve time if we're switching between focus contexts (browser ↔ app)
+            // Only reset if we're truly starting fresh (not in any focus context)
+            let preserveTime = isBrowserInFocus || (timeSpent > 0 && timeTrackingTimer != nil)
+            startFocusSession(preserveTime: preserveTime)
         } else {
-            // Resume time tracking if we were in a buffer period
+            // Already in app focus - continue tracking
             if timeTrackingTimer == nil && isFocusAppActive {
                 startTimeTracking()
             }
@@ -232,10 +236,16 @@ class FocusManager: ObservableObject {
         }
     }
 
-    private func startFocusSession() {
+    private func startFocusSession(preserveTime: Bool = false) {
         isFocusAppActive = true
-        timeSpent = 0
-        sessionManager.startSession()
+        // Only reset timeSpent if we're not preserving time from browser focus
+        if !preserveTime {
+            timeSpent = 0
+        }
+        // Only start a new session if we're not already in one (from browser focus)
+        if !isBrowserInFocus {
+            sessionManager.startSession()
+        }
         startTimeTracking()
     }
 
@@ -270,9 +280,18 @@ class FocusManager: ObservableObject {
             timeTrackingTimer = nil
             bufferManager.startBuffer(duration: focusLossBuffer)
         } else {
-            resetFocusState()
-            if !isNotificationsEnabled {
-                focusModeController.setFocusMode(enabled: false)
+            // Only reset if we're not switching to browser focus
+            // If we're switching to browser focus, preserve the time - it will be handled by handleBrowserFocusActivated()
+            if !isBrowserInFocus {
+                resetFocusState()
+                if !isNotificationsEnabled {
+                    focusModeController.setFocusMode(enabled: false)
+                }
+            } else {
+                print("FocusManager: App focus deactivated but browser focus is active - preserving time")
+                // Don't reset - we're switching to browser focus, time will be preserved
+                // Just mark app focus as inactive, but keep timeSpent and timer
+                isFocusAppActive = false
             }
         }
     }
@@ -305,12 +324,12 @@ class FocusManager: ObservableObject {
         hasCompletedOnboarding = false
         userDefaultsManager.setBool(false, forKey: UserDefaultsManager.Keys.hasCompletedOnboarding)
     }
-    
+
     // MARK: - Safe Update System
-    
+
     private func batchUpdate(_ update: @escaping () -> Void) {
         pendingUpdates.append(update)
-        
+
         // Schedule execution if not already scheduled
         if updateTimer == nil {
             updateTimer = Timer.scheduledTimer(withTimeInterval: 0.001, repeats: false) { [weak self] _ in
@@ -318,13 +337,13 @@ class FocusManager: ObservableObject {
             }
         }
     }
-    
+
     private func executePendingUpdates() {
         let updates = pendingUpdates
         pendingUpdates.removeAll()
         updateTimer?.invalidate()
         updateTimer = nil
-        
+
         // Execute all pending updates in a batch
         for update in updates {
             update()
@@ -777,9 +796,16 @@ extension FocusManager: BrowserManagerDelegate {
 
         if !isFocusAppActive {
             print("FocusManager: Starting focus session from browser")
-            startFocusSession()
+            // Check if we're switching from app focus to browser focus
+            // We preserve time only if we were tracking in app focus AND Chrome is now frontmost
+            // If we're just switching between browser tabs, don't preserve time
+            let wasTrackingInApp = timeSpent > 0 && timeTrackingTimer != nil
+            let isChromeFrontmost = isChromeBrowserFrontmost()
+            let preserveTime = wasTrackingInApp && isChromeFrontmost
+            startFocusSession(preserveTime: preserveTime)
         } else {
             print("FocusManager: Continuing focus session with browser focus")
+            // Already tracking in app focus - continue tracking when browser focus activates
             if timeTrackingTimer == nil && isFocusAppActive {
                 startTimeTracking()
             }
@@ -797,13 +823,44 @@ extension FocusManager: BrowserManagerDelegate {
             timeTrackingTimer = nil
             bufferManager.startBuffer(duration: focusLossBuffer)
         } else {
-            print("FocusManager: Resetting focus state after browser focus loss")
+            // Check if Chrome is still the frontmost app
+            // If Chrome is still frontmost, we're just switching tabs - reset the timer
+            // If Chrome is not frontmost, check if we're switching to a focus app
+            let isChromeStillFrontmost = isChromeBrowserFrontmost()
+
+            if !isChromeStillFrontmost {
+                // Chrome is not frontmost - check if we're switching to a focus app
+                let currentApp = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+                let isSwitchingToFocusApp = currentApp != nil && focusApps.contains { $0.bundleIdentifier == currentApp }
+
+                if isSwitchingToFocusApp {
+                    print("FocusManager: Browser focus deactivated, switching to focus app - preserving time")
+                    // Don't reset - we're switching to app focus, time will be preserved
+                    // Just mark browser focus as inactive, but keep timeSpent and timer
+                    return
+                }
+            }
+
+            // Reset in all other cases (switching tabs or leaving focus entirely)
+            print("FocusManager: Resetting focus state after browser focus loss (Chrome frontmost: \(isChromeStillFrontmost))")
             resetFocusState()
             if !isNotificationsEnabled {
                 focusModeController.setFocusMode(enabled: false)
             }
         }
 
+    }
+
+    private func isChromeBrowserFrontmost() -> Bool {
+        guard let frontmostApp = NSWorkspace.shared.frontmostApplication else {
+            return false
+        }
+
+        let bundleId = frontmostApp.bundleIdentifier
+        return bundleId == "com.google.Chrome" ||
+               bundleId == "com.google.Chrome.canary" ||
+               bundleId == "com.google.Chrome.beta" ||
+               bundleId == "com.google.Chrome.dev"
     }
 
     func browserManager(_ manager: any BrowserManaging, didUpdateFocusURLs urls: [FocusURL]) {
