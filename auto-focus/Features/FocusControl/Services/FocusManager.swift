@@ -67,7 +67,7 @@ class FocusManager: ObservableObject {
     private var freeAppLimit: Int = AppConfiguration.freeAppLimit
     @Published var isPremiumUser: Bool = false
 
-    private var timeTrackingTimer: Timer?
+    private let focusTimer: FocusTimer
     private let checkInterval: TimeInterval = AppConfiguration.checkInterval
 
     // Batch update system to prevent publishing during view updates
@@ -163,6 +163,12 @@ class FocusManager: ObservableObject {
         self.bufferManager = bufferManager ?? BufferManager()
         self.focusModeController = focusModeController ?? FocusModeManager()
         self.browserManager = browserManager ?? BrowserManager(userDefaultsManager: userDefaultsManager)
+        
+        // Initialize focus timer with callbacks
+        self.focusTimer = FocusTimer(interval: checkInterval)
+        self.focusTimer.onTick = { [weak self] elapsedTime in
+            self?.handleTimerTick(elapsedTime: elapsedTime)
+        }
 
         loadFocusApps()
         // Load UserDefault values using UserDefaultsManager
@@ -225,12 +231,12 @@ class FocusManager: ObservableObject {
             // Check if we're already tracking time in browser focus - if so, preserve it
             // We preserve time if we're switching between focus contexts (browser ↔ app)
             // Only reset if we're truly starting fresh (not in any focus context)
-            let preserveTime = isBrowserInFocus || (timeSpent > 0 && timeTrackingTimer != nil)
+            let preserveTime = isBrowserInFocus || (timeSpent > 0 && focusTimer.isRunning)
             startFocusSession(preserveTime: preserveTime)
         } else {
             // Already in app focus - continue tracking
-            if timeTrackingTimer == nil && isFocusAppActive {
-                startTimeTracking()
+            if !focusTimer.isRunning && isFocusAppActive {
+                focusTimer.start(preserveTime: true)
             }
             updateFocusSession()
         }
@@ -241,16 +247,27 @@ class FocusManager: ObservableObject {
         // Only reset timeSpent if we're not preserving time from browser focus
         if !preserveTime {
             timeSpent = 0
+            focusTimer.reset()
         }
         // Only start a new session if we're not already in one (from browser focus)
         if !isBrowserInFocus {
             sessionManager.startSession()
         }
-        startTimeTracking()
+        focusTimer.start(preserveTime: preserveTime)
     }
 
     private func updateFocusSession() {
-        timeSpent += checkInterval
+        // This is called when already tracking - just sync timeSpent with timer
+        timeSpent = focusTimer.currentTime
+        checkAndActivateFocusMode()
+    }
+    
+    private func handleTimerTick(elapsedTime: TimeInterval) {
+        timeSpent = elapsedTime
+        checkAndActivateFocusMode()
+    }
+    
+    private func checkAndActivateFocusMode() {
         if shouldEnterFocusMode {
             AppLogger.focus.info("Activating focus mode", metadata: [
                 "time_spent": String(format: "%.1f", timeSpent),
@@ -258,12 +275,6 @@ class FocusManager: ObservableObject {
             ])
             isInFocusMode = true
             focusModeController.setFocusMode(enabled: true)
-        }
-    }
-
-    private func startTimeTracking() {
-        timeTrackingTimer = Timer.scheduledTimer(withTimeInterval: checkInterval, repeats: true) { [weak self] _ in
-            self?.updateFocusSession()
         }
     }
 
@@ -279,8 +290,7 @@ class FocusManager: ObservableObject {
     private func handleNonFocusAppInFront() {
         if isInFocusMode {
             // Pause time tracking when entering buffer period
-            timeTrackingTimer?.invalidate()
-            timeTrackingTimer = nil
+            focusTimer.pause()
             bufferManager.startBuffer(duration: focusLossBuffer)
         } else {
             // Only reset if we're not switching to browser focus
@@ -305,8 +315,7 @@ class FocusManager: ObservableObject {
         isFocusAppActive = false
         timeSpent = 0
         isInFocusMode = false
-        timeTrackingTimer?.invalidate()
-        timeTrackingTimer = nil
+        focusTimer.reset()
     }
 
     func checkShortcutExists() -> Bool {
@@ -827,7 +836,7 @@ extension FocusManager: BrowserManagerDelegate {
             // Check if we're switching from app focus to browser focus
             // We preserve time only if we were tracking in app focus AND Chrome is now frontmost
             // If we're just switching between browser tabs, don't preserve time
-            let wasTrackingInApp = timeSpent > 0 && timeTrackingTimer != nil
+            let wasTrackingInApp = timeSpent > 0 && focusTimer.isRunning
             let isChromeFrontmost = isChromeBrowserFrontmost()
             let preserveTime = wasTrackingInApp && isChromeFrontmost
             startFocusSession(preserveTime: preserveTime)
@@ -836,8 +845,8 @@ extension FocusManager: BrowserManagerDelegate {
                 "time_spent": String(format: "%.1f", timeSpent)
             ])
             // Already tracking in app focus - continue tracking when browser focus activates
-            if timeTrackingTimer == nil && isFocusAppActive {
-                startTimeTracking()
+            if !focusTimer.isRunning && isFocusAppActive {
+                focusTimer.start(preserveTime: true)
             }
             updateFocusSession()
         }
@@ -852,8 +861,7 @@ extension FocusManager: BrowserManagerDelegate {
                 "buffer_duration": String(format: "%.1f", focusLossBuffer),
                 "time_spent": String(format: "%.1f", timeSpent)
             ])
-            timeTrackingTimer?.invalidate()
-            timeTrackingTimer = nil
+            focusTimer.pause()
             bufferManager.startBuffer(duration: focusLossBuffer)
         } else {
             // Check if Chrome is still the frontmost app
