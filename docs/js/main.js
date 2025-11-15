@@ -1,4 +1,24 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // Load version info and update download links
+    fetch('/downloads/version.json')
+        .then(response => response.json())
+        .then(versionInfo => {
+            // Update all download links to use versioned filename
+            const downloadLinks = document.querySelectorAll('a[href*="downloads/Auto-Focus.zip"]');
+            downloadLinks.forEach(link => {
+                const currentHref = link.getAttribute('href');
+                if (currentHref.includes('downloads/Auto-Focus.zip')) {
+                    link.setAttribute('href', `downloads/${versionInfo.app_zip}`);
+                    // Add cache-busting query parameter as fallback
+                    link.setAttribute('href', link.getAttribute('href') + `?v=${versionInfo.version}`);
+                }
+            });
+            console.log('✅ Updated download links to version:', versionInfo.version);
+        })
+        .catch(error => {
+            console.warn('⚠️ Could not load version.json, using default download links:', error);
+        });
+
     // Configuration
     const config = {
         production: {
@@ -22,11 +42,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const userLocale = navigator.language || navigator.languages[0] || 'en-US';
         const region = userLocale.split('-')[1] || userLocale.split('_')[1];
         const language = userLocale.split('-')[0] || userLocale.split('_')[0];
-        
+
         // Map regions to currencies (based on the available Stripe prices)
         const regionToCurrency = {
             'DK': 'DKK',    // Denmark
-            'NO': 'NOK',    // Norway  
+            'NO': 'NOK',    // Norway
             'SE': 'NOK',    // Sweden (use NOK as closest)
             'FI': 'EUR',    // Finland
             'DE': 'EUR',    // Germany
@@ -40,7 +60,7 @@ document.addEventListener('DOMContentLoaded', function() {
             'IE': 'EUR',    // Ireland
             'LU': 'EUR',    // Luxembourg
         };
-        
+
         // Map language codes to currencies (fallback when region is not available)
         const languageToCurrency = {
             'da': 'DKK',    // Danish
@@ -56,29 +76,29 @@ document.addEventListener('DOMContentLoaded', function() {
             'nl': 'EUR',    // Dutch
             'pt': 'EUR',    // Portuguese
         };
-        
+
         // If we have a specific mapping for the region, use it first
         if (region && regionToCurrency[region]) {
             return regionToCurrency[region];
         }
-        
+
         // If no region, try to map based on language code
         if (language && languageToCurrency[language]) {
             return languageToCurrency[language];
         }
-        
+
         // Default to USD for all other regions (US, Canada, UK, Asia, etc.)
         return 'USD';
     }
 
     // Get user's detected currency
     const userCurrency = detectUserCurrency();
-    
+
     // Update pricing display based on detected currency
     function updatePricingDisplay() {
         const priceElement = document.querySelector('.pricing-amount');
         const currencyElement = document.querySelector('.pricing-currency');
-        
+
         if (priceElement && currencyElement) {
             switch(userCurrency) {
                 case 'DKK':
@@ -271,7 +291,7 @@ window.changeScreenshot = function(index) {
     document.getElementById('featured-screenshot').src = screenshots[index].src;
     document.getElementById('screenshot-title').textContent = screenshots[index].title;
     document.getElementById('screenshot-description').textContent = screenshots[index].description;
-    
+
     // Update thumbnail borders
     document.querySelectorAll('.screenshot-thumb').forEach((thumb, i) => {
         if (i === index) {
