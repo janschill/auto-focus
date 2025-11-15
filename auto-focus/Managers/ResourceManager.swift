@@ -25,7 +25,7 @@ struct ResourceManager {
             try FileManager.default.copyItem(at: shortcutUrl, to: tempUrl)
             return tempUrl
         } catch {
-            print("Error copying shortcut: \(error)")
+            AppLogger.general.error("Error copying shortcut", error: error)
             return nil
         }
     }

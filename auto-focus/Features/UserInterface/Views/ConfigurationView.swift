@@ -59,7 +59,7 @@ struct AppsListView: View {
                     Button("Upgrade") {
                         // Instead of changing tabs, show an alert or notification
                         // This removes the circular binding dependency
-                        print("Upgrade to premium for export/import features")
+                        AppLogger.ui.info("Export/import feature requires premium")
                     }
                     .controlSize(.small)
                 }
@@ -427,7 +427,7 @@ struct ConfigurationView: View {
 
 private func installShortcut() {
     guard let shortcutUrl = ResourceManager.copyShortcutToTemporary() else {
-        print("Could not prepare shortcut for installation")
+        AppLogger.ui.error("Could not prepare shortcut for installation")
         return
     }
 

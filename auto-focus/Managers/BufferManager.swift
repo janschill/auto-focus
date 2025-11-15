@@ -46,13 +46,15 @@ class BufferManager: ObservableObject, BufferManaging {
         RunLoop.current.add(bufferTimer!, forMode: .common)
 
         delegate?.bufferManagerDidStartBuffer(self)
-        print("Buffer started: \(duration) seconds")
+        AppLogger.focus.info("Buffer started", metadata: [
+            "duration": String(format: "%.1f", duration)
+        ])
     }
 
     func cancelBuffer() {
         guard isInBufferPeriod else { return }
         endBuffer(timedOut: false)
-        print("Buffer cancelled")
+        AppLogger.focus.info("Buffer cancelled")
     }
 
     private func endBuffer(timedOut: Bool) {

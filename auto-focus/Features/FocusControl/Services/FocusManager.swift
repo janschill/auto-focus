@@ -252,7 +252,10 @@ class FocusManager: ObservableObject {
     private func updateFocusSession() {
         timeSpent += checkInterval
         if shouldEnterFocusMode {
-            print("activating focus mode")
+            AppLogger.focus.info("Activating focus mode", metadata: [
+                "time_spent": String(format: "%.1f", timeSpent),
+                "threshold": String(format: "%.1f", focusThreshold * AppConfiguration.timeMultiplier)
+            ])
             isInFocusMode = true
             focusModeController.setFocusMode(enabled: true)
         }
@@ -288,7 +291,9 @@ class FocusManager: ObservableObject {
                     focusModeController.setFocusMode(enabled: false)
                 }
             } else {
-                print("FocusManager: App focus deactivated but browser focus is active - preserving time")
+                AppLogger.focus.info("App focus deactivated but browser focus is active - preserving time", metadata: [
+                    "time_spent": String(format: "%.1f", timeSpent)
+                ])
                 // Don't reset - we're switching to browser focus, time will be preserved
                 // Just mark app focus as inactive, but keep timeSpent and timer
                 isFocusAppActive = false
@@ -397,7 +402,7 @@ class FocusManager: ObservableObject {
 
     func exportDataToFile(options: ExportOptions = .default) {
         guard licenseManager.isLicensed else {
-            print("Export feature requires premium subscription")
+            AppLogger.focus.warning("Export feature requires premium subscription")
             return
         }
 
@@ -416,14 +421,19 @@ class FocusManager: ObservableObject {
                 if result == .OK, let url = savePanel.url {
                     do {
                         try jsonData.write(to: url)
-                        print("Export successful: \(url.path)")
+                        AppLogger.focus.info("Export successful", metadata: [
+                            "file_path": url.path,
+                            "options": String(describing: options)
+                        ])
                     } catch {
-                        print("Export failed: \(error)")
+                        AppLogger.focus.error("Export failed", error: error, metadata: [
+                            "file_path": url.path
+                        ])
                     }
                 }
             }
         } catch {
-            print("Export encoding failed: \(error)")
+            AppLogger.focus.error("Export encoding failed", error: error)
         }
     }
 
@@ -627,11 +637,13 @@ extension FocusManager: FocusModeManagerDelegate {
     func focusModeController(_ controller: any FocusModeControlling, didFailWithError error: FocusModeError) {
         switch error {
         case .shortcutNotFound:
-            print("Focus mode error: Toggle Do Not Disturb shortcut not found")
+            AppLogger.focus.error("Focus mode error: Toggle Do Not Disturb shortcut not found", error: error)
         case .appleScriptError(let message):
-            print("Focus mode AppleScript error: \(message)")
+            AppLogger.focus.error("Focus mode AppleScript error", error: error, metadata: [
+                "message": message
+            ])
         case .shortcutsAppNotInstalled:
-            print("Focus mode error: Shortcuts app not installed")
+            AppLogger.focus.error("Focus mode error: Shortcuts app not installed", error: error)
         }
     }
 }
@@ -668,7 +680,9 @@ extension FocusManager: AppMonitorDelegate {
             if let currentApp = (monitor as? AppMonitor)?.currentApp,
                currentApp == "com.google.Chrome" || currentApp == "com.apple.Safari" || currentApp == "org.mozilla.firefox" {
                 // Browser became active - let browser manager handle focus state
-                print("Browser became active during focus session - waiting for browser focus check")
+                AppLogger.focus.info("Browser became active during focus session - waiting for browser focus check", metadata: [
+                    "browser": currentApp
+                ])
                 // Give browser manager a moment to update focus state
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     if !self.isBrowserInFocus {
@@ -696,7 +710,11 @@ extension FocusManager: AppMonitorDelegate {
                 let isNewAppFocus = focusApps.contains { $0.bundleIdentifier == bundleIdentifier }
 
                 if !isNewAppFocus {
-                    print("FocusManager: Switched from focus state to non-focus app: \(bundleIdentifier ?? "unknown")")
+                    AppLogger.focus.info("Switched from focus state to non-focus app", metadata: [
+                        "app": bundleIdentifier ?? "unknown",
+                        "was_browser_focus": String(isBrowserInFocus),
+                        "was_app_focus": String(isFocusAppActive)
+                    ])
                     // We left both browser focus and native focus - handle appropriately
                     if isBrowserInFocus {
                         // We were in browser focus, now we're leaving
@@ -709,7 +727,9 @@ extension FocusManager: AppMonitorDelegate {
             } else {
                 // Switched to a browser app - check if extension is connected
                 if !isExtensionConnected {
-                    print("FocusManager: Switched to browser without extension - ending browser focus")
+                    AppLogger.focus.warning("Switched to browser without extension - ending browser focus", metadata: [
+                        "browser": bundleIdentifier ?? "unknown"
+                    ])
                     // No extension means we can't track browser focus, so set it to false
                     batchUpdate {
                         self.isBrowserInFocus = false
@@ -766,14 +786,20 @@ extension FocusManager: BrowserManagerDelegate {
     func browserManager(_ manager: any BrowserManaging, didReceiveTabUpdate tabInfo: BrowserTabInfo) {
         batchUpdate {
             self.currentBrowserTab = tabInfo
-            print("Browser tab updated: \(tabInfo.url) (Focus: \(tabInfo.isFocusURL))")
+            AppLogger.browser.info("Browser tab updated", metadata: [
+                "url": tabInfo.url,
+                "is_focus": String(tabInfo.isFocusURL),
+                "title": tabInfo.title
+            ])
         }
     }
 
     func browserManager(_ manager: any BrowserManaging, didChangeConnectionState isConnected: Bool) {
         batchUpdate {
             self.isExtensionConnected = isConnected
-            print("Browser extension connection: \(isConnected ? "connected" : "disconnected")")
+            AppLogger.browser.info("Browser extension connection state changed", metadata: [
+                "connected": String(isConnected)
+            ])
         }
     }
 
@@ -790,12 +816,14 @@ extension FocusManager: BrowserManagerDelegate {
     }
 
     private func handleBrowserFocusActivated() {
-        print("FocusManager: handleBrowserFocusActivated called")
+        AppLogger.focus.info("Browser focus activated")
         // Similar to handleFocusAppInFront but for browser
         bufferManager.cancelBuffer()
 
         if !isFocusAppActive {
-            print("FocusManager: Starting focus session from browser")
+            AppLogger.focus.info("Starting focus session from browser", metadata: [
+                "time_spent": String(format: "%.1f", timeSpent)
+            ])
             // Check if we're switching from app focus to browser focus
             // We preserve time only if we were tracking in app focus AND Chrome is now frontmost
             // If we're just switching between browser tabs, don't preserve time
@@ -804,7 +832,9 @@ extension FocusManager: BrowserManagerDelegate {
             let preserveTime = wasTrackingInApp && isChromeFrontmost
             startFocusSession(preserveTime: preserveTime)
         } else {
-            print("FocusManager: Continuing focus session with browser focus")
+            AppLogger.focus.info("Continuing focus session with browser focus", metadata: [
+                "time_spent": String(format: "%.1f", timeSpent)
+            ])
             // Already tracking in app focus - continue tracking when browser focus activates
             if timeTrackingTimer == nil && isFocusAppActive {
                 startTimeTracking()
@@ -815,10 +845,13 @@ extension FocusManager: BrowserManagerDelegate {
     }
 
     private func handleBrowserFocusDeactivated() {
-        print("FocusManager: handleBrowserFocusDeactivated called")
+        AppLogger.focus.info("Browser focus deactivated")
         // Similar to handleNonFocusAppInFront but for browser
         if isInFocusMode {
-            print("FocusManager: Starting buffer period after browser focus loss")
+            AppLogger.focus.info("Starting buffer period after browser focus loss", metadata: [
+                "buffer_duration": String(format: "%.1f", focusLossBuffer),
+                "time_spent": String(format: "%.1f", timeSpent)
+            ])
             timeTrackingTimer?.invalidate()
             timeTrackingTimer = nil
             bufferManager.startBuffer(duration: focusLossBuffer)
@@ -834,7 +867,10 @@ extension FocusManager: BrowserManagerDelegate {
                 let isSwitchingToFocusApp = currentApp != nil && focusApps.contains { $0.bundleIdentifier == currentApp }
 
                 if isSwitchingToFocusApp {
-                    print("FocusManager: Browser focus deactivated, switching to focus app - preserving time")
+                    AppLogger.focus.info("Browser focus deactivated, switching to focus app - preserving time", metadata: [
+                        "target_app": currentApp ?? "unknown",
+                        "time_spent": String(format: "%.1f", timeSpent)
+                    ])
                     // Don't reset - we're switching to app focus, time will be preserved
                     // Just mark browser focus as inactive, but keep timeSpent and timer
                     return
@@ -842,7 +878,10 @@ extension FocusManager: BrowserManagerDelegate {
             }
 
             // Reset in all other cases (switching tabs or leaving focus entirely)
-            print("FocusManager: Resetting focus state after browser focus loss (Chrome frontmost: \(isChromeStillFrontmost))")
+            AppLogger.focus.info("Resetting focus state after browser focus loss", metadata: [
+                "chrome_frontmost": String(isChromeStillFrontmost),
+                "time_spent": String(format: "%.1f", timeSpent)
+            ])
             resetFocusState()
             if !isNotificationsEnabled {
                 focusModeController.setFocusMode(enabled: false)

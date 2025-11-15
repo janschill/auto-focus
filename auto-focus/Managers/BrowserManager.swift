@@ -84,12 +84,16 @@ class BrowserManager: ObservableObject, BrowserManaging {
     func addFocusURL(_ focusURL: FocusURL) {
         // Check premium limits
         if !licenseManager.isLicensed && focusURL.isPremium {
-            print("Premium license required for premium focus URLs")
+            AppLogger.browser.warning("Premium license required for premium focus URLs", metadata: [
+                "url": focusURL.domain
+            ])
             return
         }
 
         if !licenseManager.isLicensed && focusURLs.count >= 3 {
-            print("Free tier limited to 3 focus URLs")
+            AppLogger.browser.warning("Free tier limited to 3 focus URLs", metadata: [
+                "current_count": String(focusURLs.count)
+            ])
             return
         }
 
@@ -102,7 +106,9 @@ class BrowserManager: ObservableObject, BrowserManaging {
         // Add URL but suppress focus activation for 2 seconds
         addFocusURL(focusURL)
         suppressFocusActivationUntil = Date().addingTimeInterval(2.0)
-        print("BrowserManager: Suppressing focus activation for 2 seconds after adding URL")
+        AppLogger.browser.info("Suppressing focus activation for 2 seconds after adding URL", metadata: [
+            "url": focusURL.domain
+        ])
     }
 
     func removeFocusURL(_ focusURL: FocusURL) {
@@ -131,7 +137,7 @@ class BrowserManager: ObservableObject, BrowserManaging {
     // MARK: - HTTP Server
 
     private func startHTTPServer() {
-        print("BrowserManager: Starting HTTP server for browser extension...")
+        AppLogger.browser.info("Starting HTTP server for browser extension")
         httpServer.setBrowserManager(self)
         httpServer.start()
 
@@ -151,10 +157,12 @@ class BrowserManager: ObservableObject, BrowserManaging {
             DispatchQueue.main.async {
                 if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 404 {
                     // 404 is expected for GET request to /browser endpoint, means server is running
-                    print("BrowserManager: ✅ HTTP server verified as running")
+                    AppLogger.browser.info("HTTP server verified as running")
                     self.isExtensionConnected = false // Reset connection state
                 } else {
-                    print("BrowserManager: ❌ HTTP server verification failed - \(error?.localizedDescription ?? "unknown error")")
+                    AppLogger.browser.error("HTTP server verification failed", error: error, metadata: [
+                        "status_code": (response as? HTTPURLResponse)?.statusCode.description ?? "unknown"
+                    ])
                     self.retryServerStartup()
                 }
             }
@@ -163,7 +171,7 @@ class BrowserManager: ObservableObject, BrowserManaging {
     }
 
     private func retryServerStartup() {
-        print("BrowserManager: Retrying HTTP server startup in 2 seconds...")
+        AppLogger.browser.info("Retrying HTTP server startup in 2 seconds")
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
             self.httpServer.stop()
             self.startHTTPServer()
@@ -173,7 +181,9 @@ class BrowserManager: ObservableObject, BrowserManaging {
     func updateFromExtension(tabInfo: BrowserTabInfo, isFocus: Bool) {
         // Ensure we're connected when receiving updates
         if !isExtensionConnected {
-            print("BrowserManager: ✅ Extension connection restored via tab update")
+            AppLogger.browser.info("Extension connection restored via tab update", metadata: [
+                "url": tabInfo.url
+            ])
             isExtensionConnected = true
             delegate?.browserManager(self, didChangeConnectionState: true)
         }
@@ -198,25 +208,38 @@ class BrowserManager: ObservableObject, BrowserManaging {
         let effectiveIsFocus = isFocus && !shouldSuppressFocus && isChromeFrontmost
 
         if isFocus && !isChromeFrontmost {
-            print("BrowserManager: Focus URL detected but Chrome is not frontmost - suppressing focus activation")
+            AppLogger.browser.info("Focus URL detected but Chrome is not frontmost - suppressing focus activation", metadata: [
+                "url": tabInfo.url
+            ])
         }
 
         if shouldSuppressFocus && isFocus {
-            print("BrowserManager: Suppressing focus activation for \(tabInfo.url) (recently added as focus URL)")
+            AppLogger.browser.info("Suppressing focus activation for recently added URL", metadata: [
+                "url": tabInfo.url
+            ])
         }
 
         // Update focus state if changed
         if self.isBrowserInFocus != effectiveIsFocus {
-            print("BrowserManager: Focus state changing from \(self.isBrowserInFocus) to \(effectiveIsFocus)")
+            AppLogger.browser.stateChange(
+                from: String(self.isBrowserInFocus),
+                to: String(effectiveIsFocus),
+                metadata: ["url": tabInfo.url]
+            )
             self.isBrowserInFocus = effectiveIsFocus
 
             // Immediately notify delegate of focus state change
             self.delegate?.browserManager(self, didChangeFocusState: effectiveIsFocus)
 
             if effectiveIsFocus {
-                print("BrowserManager: ✅ Browser entered focus mode for \(tabInfo.url)")
+                AppLogger.browser.info("Browser entered focus mode", metadata: [
+                    "url": tabInfo.url,
+                    "matched_url": tabInfo.matchedFocusURL?.name ?? "none"
+                ])
             } else {
-                print("BrowserManager: ❌ Browser exited focus mode - was on \(tabInfo.url)")
+                AppLogger.browser.info("Browser exited focus mode", metadata: [
+                    "url": tabInfo.url
+                ])
             }
         }
 
@@ -226,7 +249,10 @@ class BrowserManager: ObservableObject, BrowserManaging {
         }
 
         if previousFocusState != effectiveIsFocus {
-            print("BrowserManager: Browser focus state updated - \(effectiveIsFocus ? "FOCUS" : "NO FOCUS") for \(tabInfo.url)")
+            AppLogger.browser.info("Browser focus state updated", metadata: [
+                "state": effectiveIsFocus ? "FOCUS" : "NO FOCUS",
+                "url": tabInfo.url
+            ])
         }
     }
 
@@ -271,7 +297,10 @@ class BrowserManager: ObservableObject, BrowserManaging {
             return
         }
 
-        print("BrowserManager: Browser state - URL: \(currentURL), Focus: \(isFocus)")
+        AppLogger.browser.info("Browser state updated", metadata: [
+            "url": currentURL,
+            "is_focus": String(isFocus)
+        ])
 
         let tabInfo = BrowserTabInfo(
             url: currentURL,
@@ -308,9 +337,13 @@ class BrowserManager: ObservableObject, BrowserManaging {
         if focusURLs.isEmpty {
             focusURLs = FocusURL.freePresets
             saveFocusURLs()
-            print("BrowserManager: Loaded \(focusURLs.count) default focus URLs")
+            AppLogger.browser.info("Loaded default focus URLs", metadata: [
+                "count": String(focusURLs.count)
+            ])
         } else {
-            print("BrowserManager: Loaded \(focusURLs.count) saved focus URLs")
+            AppLogger.browser.info("Loaded saved focus URLs", metadata: [
+                "count": String(focusURLs.count)
+            ])
         }
 
         // Notify delegate of initial URLs (after delegate is set)
@@ -354,7 +387,9 @@ class BrowserManager: ObservableObject, BrowserManaging {
 
     private func handleConnectionTimeout() {
         if isExtensionConnected {
-            print("BrowserManager: ⚠️ Connection timeout - no updates from extension for \(connectionTimeoutInterval) seconds")
+            AppLogger.browser.warning("Connection timeout - no updates from extension", metadata: [
+                "timeout_interval": String(format: "%.1f", connectionTimeoutInterval)
+            ])
             isExtensionConnected = false
             delegate?.browserManager(self, didChangeConnectionState: false)
         }
@@ -369,15 +404,17 @@ class BrowserManager: ObservableObject, BrowserManaging {
     }
 
     private func performServerHealthCheck() {
-        print("BrowserManager: 🏥 Performing server health check...")
+        AppLogger.browser.info("Performing server health check")
 
         let task = URLSession.shared.dataTask(with: URLRequest(url: URL(string: "http://localhost:8942/browser")!)) { [weak self] _, response, error in
             DispatchQueue.main.async {
                 if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 404 {
-                    print("BrowserManager: ✅ Server health check passed")
+                    AppLogger.browser.info("Server health check passed")
                 } else {
-                    print("BrowserManager: ❌ Server health check failed - \(error?.localizedDescription ?? "unknown error")")
-                    print("BrowserManager: 🔄 Attempting to restart server...")
+                    AppLogger.browser.error("Server health check failed", error: error, metadata: [
+                        "status_code": (response as? HTTPURLResponse)?.statusCode.description ?? "unknown"
+                    ])
+                    AppLogger.browser.info("Attempting to restart server")
                     self?.httpServer.stop()
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                         self?.httpServer.start()

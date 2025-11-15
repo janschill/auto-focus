@@ -38,7 +38,9 @@ class FocusModeManager: ObservableObject, FocusModeControlling {
             } else {
                 let errorMessage = error?.description ?? "Unknown AppleScript error"
                 delegate?.focusModeController(self, didFailWithError: .appleScriptError(errorMessage))
-                print("AppleScript error: \(errorMessage)")
+                AppLogger.focus.error("AppleScript error", error: FocusModeError.appleScriptError(errorMessage), metadata: [
+                    "enabled": String(enabled)
+                ])
             }
         }
     }

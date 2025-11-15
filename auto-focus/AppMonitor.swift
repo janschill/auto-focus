@@ -27,13 +27,15 @@ class AppMonitor: ObservableObject, AppMonitoring {
         timer = Timer.scheduledTimer(withTimeInterval: checkInterval, repeats: true) { [weak self] _ in
             self?.checkActiveApp()
         }
-        print("App monitoring started")
+        AppLogger.focus.info("App monitoring started", metadata: [
+            "check_interval": String(format: "%.1f", checkInterval)
+        ])
     }
 
     func stopMonitoring() {
         timer?.invalidate()
         timer = nil
-        print("App monitoring stopped")
+        AppLogger.focus.info("App monitoring stopped")
     }
 
     func updateFocusApps(_ apps: [AppInfo]) {

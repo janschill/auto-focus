@@ -1189,7 +1189,7 @@ struct OnboardingPresetRow: View {
 
 private func installShortcut() {
     guard let shortcutUrl = ResourceManager.copyShortcutToTemporary() else {
-        print("Could not prepare shortcut for installation")
+        AppLogger.ui.error("Could not prepare shortcut for installation")
         return
     }
 

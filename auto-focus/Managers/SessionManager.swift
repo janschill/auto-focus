@@ -27,19 +27,25 @@ class SessionManager: ObservableObject, SessionManaging {
 
     func startSession() {
         currentSessionStartTime = Date()
-        print("Session started at: \(Date())")
+        AppLogger.session.info("Session started", metadata: [
+            "start_time": ISO8601DateFormatter().string(from: Date())
+        ])
     }
 
     func endSession() {
         guard let startTime = currentSessionStartTime else {
-            print("Warning: Trying to end session but no start time found")
+            AppLogger.session.warning("Trying to end session but no start time found")
             return
         }
 
         let session = FocusSession(startTime: startTime, endTime: Date())
         focusSessions.append(session)
 
-        print("Session ended. Duration: \(session.duration) seconds")
+        AppLogger.session.info("Session ended", metadata: [
+            "duration": String(format: "%.1f", session.duration),
+            "start_time": ISO8601DateFormatter().string(from: startTime),
+            "end_time": ISO8601DateFormatter().string(from: Date())
+        ])
 
         // Notify delegate
         delegate?.sessionManager(self, didEndSession: session)
@@ -50,7 +56,7 @@ class SessionManager: ObservableObject, SessionManaging {
 
     func cancelCurrentSession() {
         currentSessionStartTime = nil
-        print("Current session cancelled")
+        AppLogger.session.info("Current session cancelled")
     }
 
     var isSessionActive: Bool {
@@ -111,7 +117,9 @@ class SessionManager: ObservableObject, SessionManaging {
 
         // Debug: Log session count on load
         #if DEBUG
-        print("SessionManager: Loaded \(focusSessions.count) sessions from UserDefaults")
+        AppLogger.session.debug("Loaded sessions from UserDefaults", metadata: [
+            "count": String(focusSessions.count)
+        ])
         #endif
     }
 
@@ -120,7 +128,9 @@ class SessionManager: ObservableObject, SessionManaging {
 
         // Debug: Log session count on save
         #if DEBUG
-        print("SessionManager: Saved \(focusSessions.count) sessions to UserDefaults")
+        AppLogger.session.debug("Saved sessions to UserDefaults", metadata: [
+            "count": String(focusSessions.count)
+        ])
         #endif
     }
 
@@ -134,41 +144,58 @@ class SessionManager: ObservableObject, SessionManaging {
 
     func updateSession(_ session: FocusSession) {
         guard let index = focusSessions.firstIndex(where: { $0.id == session.id }) else {
-            print("Warning: Trying to update session that doesn't exist")
+            AppLogger.session.warning("Trying to update session that doesn't exist", metadata: [
+                "session_id": session.id.uuidString
+            ])
             return
         }
 
         // Validate session data
         guard session.startTime < session.endTime else {
-            print("Warning: Invalid session times - start must be before end")
+            AppLogger.session.warning("Invalid session times - start must be before end", metadata: [
+                "session_id": session.id.uuidString
+            ])
             return
         }
 
         // Validate reasonable duration limits
         let duration = session.duration
         guard duration >= 1 else { // At least 1 second
-            print("Warning: Session duration too short")
+            AppLogger.session.warning("Session duration too short", metadata: [
+                "session_id": session.id.uuidString,
+                "duration": String(format: "%.1f", duration)
+            ])
             return
         }
 
         guard duration <= 24 * 60 * 60 else { // No more than 24 hours
-            print("Warning: Session duration too long (exceeds 24 hours)")
+            AppLogger.session.warning("Session duration too long (exceeds 24 hours)", metadata: [
+                "session_id": session.id.uuidString,
+                "duration": String(format: "%.1f", duration)
+            ])
             return
         }
 
         // Validate session is not in the future
         guard session.endTime <= Date().addingTimeInterval(60) else { // Allow 1 minute tolerance
-            print("Warning: Session end time cannot be in the future")
+            AppLogger.session.warning("Session end time cannot be in the future", metadata: [
+                "session_id": session.id.uuidString
+            ])
             return
         }
 
         focusSessions[index] = session
-        print("Session updated: \(session.id)")
+        AppLogger.session.info("Session updated", metadata: [
+            "session_id": session.id.uuidString,
+            "duration": String(format: "%.1f", duration)
+        ])
     }
 
     func deleteSession(_ session: FocusSession) {
         focusSessions.removeAll { $0.id == session.id }
-        print("Session deleted: \(session.id)")
+        AppLogger.session.info("Session deleted", metadata: [
+            "session_id": session.id.uuidString
+        ])
     }
 
     // MARK: - Debug Methods

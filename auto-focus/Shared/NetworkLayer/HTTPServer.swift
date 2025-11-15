@@ -23,17 +23,26 @@ class HTTPServer: ObservableObject {
             listener?.stateUpdateHandler = { state in
                 switch state {
                 case .ready:
-                    print("HTTPServer: ✅ Successfully listening on port \(self.port)")
+                    AppLogger.network.info("Successfully listening on port", metadata: [
+                        "port": String(self.port)
+                    ])
                     self.startupRetryCount = 0 // Reset retry count on success
                 case .failed(let error):
-                    print("HTTPServer: ❌ Failed to start - \(error.localizedDescription)")
+                    AppLogger.network.error("Failed to start HTTP server", error: error, metadata: [
+                        "port": String(self.port)
+                    ])
                     self.handleStartupFailure(error)
                 case .waiting(let error):
-                    print("HTTPServer: ⏳ Waiting to start - \(error.localizedDescription)")
+                    AppLogger.network.warning("Waiting to start HTTP server", metadata: [
+                        "error": error.localizedDescription,
+                        "port": String(self.port)
+                    ])
                 case .cancelled:
-                    print("HTTPServer: Server cancelled")
+                    AppLogger.network.info("HTTP server cancelled")
                 default:
-                    print("HTTPServer: State changed to \(state)")
+                    AppLogger.network.info("HTTP server state changed", metadata: [
+                        "state": String(describing: state)
+                    ])
                 }
             }
 
@@ -42,9 +51,13 @@ class HTTPServer: ObservableObject {
             }
 
             listener?.start(queue: .global())
-            print("HTTPServer: Starting server on port \(port)...")
+            AppLogger.network.info("Starting HTTP server", metadata: [
+                "port": String(port)
+            ])
         } catch {
-            print("HTTPServer: ❌ Failed to create listener - \(error.localizedDescription)")
+            AppLogger.network.error("Failed to create HTTP server listener", error: error, metadata: [
+                "port": String(port)
+            ])
             handleStartupFailure(error)
         }
     }
@@ -54,13 +67,19 @@ class HTTPServer: ObservableObject {
 
         if startupRetryCount <= maxStartupRetries {
             let delay = Double(startupRetryCount) * 2.0 // 2, 4, 6 second delays
-            print("HTTPServer: Retrying startup in \(delay) seconds (attempt \(startupRetryCount)/\(maxStartupRetries))")
+            AppLogger.network.warning("Retrying HTTP server startup", metadata: [
+                "delay": String(format: "%.1f", delay),
+                "attempt": String(startupRetryCount),
+                "max_attempts": String(maxStartupRetries)
+            ])
 
             DispatchQueue.global().asyncAfter(deadline: .now() + delay) {
                 self.start()
             }
         } else {
-            print("HTTPServer: ❌ Max startup retries (\(maxStartupRetries)) exceeded. Server failed to start.")
+            AppLogger.network.critical("Max startup retries exceeded - HTTP server failed to start", error: error, metadata: [
+                "max_retries": String(maxStartupRetries)
+            ])
             startupRetryCount = 0 // Reset for potential future attempts
         }
     }
@@ -120,7 +139,9 @@ class HTTPServer: ObservableObject {
             return
         }
 
-        print("HTTPServer: Received command: \(command)")
+        AppLogger.network.info("Received command from browser extension", metadata: [
+            "command": command
+        ])
 
         switch command {
         case "handshake":
@@ -147,7 +168,7 @@ class HTTPServer: ObservableObject {
     }
 
     private func handleBrowserLostFocus(_ message: [String: Any], connection: NWConnection) {
-        print("HTTPServer: Browser lost focus")
+        AppLogger.network.info("Browser lost focus")
 
         // Immediately notify browser manager that browser is no longer in focus
         DispatchQueue.main.async {
@@ -176,18 +197,28 @@ class HTTPServer: ObservableObject {
 
         let forcedByFocus = message["forcedByFocus"] as? Bool ?? false
         let isChromeFocused = message["isChromeFocused"] as? Bool ?? true // Default to true for backward compatibility
-        print("HTTPServer: Tab changed to \(url)\(forcedByFocus ? " (due to Chrome focus)" : "") - Chrome focused: \(isChromeFocused)")
+        AppLogger.network.info("Tab changed", metadata: [
+            "url": url,
+            "forced_by_focus": String(forcedByFocus),
+            "chrome_focused": String(isChromeFocused)
+        ])
 
         // Check if URL is a focus URL using BrowserManager
         let (isFocus, matchedURL) = browserManager?.checkIfURLIsFocus(url) ?? (false, nil)
-        print("HTTPServer: URL check result - isFocus: \(isFocus), matched: \(matchedURL?.name ?? "none")")
+        AppLogger.network.info("URL check result", metadata: [
+            "url": url,
+            "is_focus": String(isFocus),
+            "matched_url": matchedURL?.name ?? "none"
+        ])
 
         // Only activate focus mode if Chrome is actually focused
         // This prevents false positives when Chrome is in the background
         let effectiveIsFocus = isFocus && isChromeFocused
 
         if isFocus && !isChromeFocused {
-            print("HTTPServer: Focus URL detected but Chrome is not frontmost - suppressing focus activation")
+            AppLogger.network.info("Focus URL detected but Chrome is not frontmost - suppressing focus activation", metadata: [
+                "url": url
+            ])
         }
 
         // Update browser manager state
@@ -219,7 +250,11 @@ class HTTPServer: ObservableObject {
         }
 
         let currentUrl = message["url"] as? String
-        print("HTTPServer: Adding focus URL - domain: \(domain), name: \(name), current URL: \(currentUrl ?? "unknown")")
+        AppLogger.network.info("Adding focus URL", metadata: [
+            "domain": domain,
+            "name": name,
+            "current_url": currentUrl ?? "unknown"
+        ])
 
         // Create new FocusURL
         let newURL = FocusURL(
@@ -234,7 +269,9 @@ class HTTPServer: ObservableObject {
         DispatchQueue.main.async {
             if let browserManager = self.browserManager {
                 browserManager.addFocusURLWithoutImmediateActivation(newURL)
-                print("HTTPServer: Successfully added focus URL: \(domain) (with suppressed activation)")
+                AppLogger.network.info("Successfully added focus URL with suppressed activation", metadata: [
+                    "domain": domain
+                ])
 
                 let response = [
                     "command": "add_focus_url_response",
@@ -244,7 +281,9 @@ class HTTPServer: ObservableObject {
 
                 self.sendJSONResponse(response, to: connection)
             } else {
-                print("HTTPServer: Failed to add focus URL - no browser manager")
+                AppLogger.network.error("Failed to add focus URL - no browser manager", metadata: [
+                    "domain": domain
+                ])
 
                 let response = [
                     "command": "add_focus_url_response",
@@ -284,7 +323,7 @@ class HTTPServer: ObservableObject {
         let data = response.data(using: .utf8)!
         connection.send(content: data, completion: .contentProcessed { error in
             if let error = error {
-                print("HTTPServer: Send error - \(error)")
+                AppLogger.network.error("Failed to send HTTP response", error: error)
             }
             connection.cancel()
         })
@@ -296,7 +335,10 @@ class HTTPServer: ObservableObject {
         let extensionVersion = message["version"] as? String ?? "unknown"
         let extensionId = message["extensionId"] as? String ?? "unknown"
 
-        print("HTTPServer: Handshake from extension v\(extensionVersion) (ID: \(extensionId))")
+        AppLogger.network.info("Handshake from browser extension", metadata: [
+            "version": extensionVersion,
+            "extension_id": extensionId
+        ])
 
         // Parse extension health data
         if let healthData = message["healthData"] as? [String: Any] {
@@ -368,7 +410,11 @@ class HTTPServer: ObservableObject {
                 self.browserManager?.connectionQuality = .poor
             }
 
-            print("HTTPServer: Updated extension health - version: \(version), errors: \(errors.count), failures: \(consecutiveFailures)")
+            AppLogger.network.info("Updated extension health", metadata: [
+                "version": version,
+                "error_count": String(errors.count),
+                "consecutive_failures": String(consecutiveFailures)
+            ])
         }
     }
 
@@ -425,7 +471,10 @@ class HTTPServer: ObservableObject {
         let extensionId = message["extensionId"] as? String ?? "unknown"
         let testData = message["testData"] as? String ?? ""
 
-        print("HTTPServer: Connection test from extension \(extensionId) with data: \(testData)")
+        AppLogger.network.info("Connection test from browser extension", metadata: [
+            "extension_id": extensionId,
+            "test_data": testData
+        ])
 
         let response = [
             "command": "connection_test_response",
