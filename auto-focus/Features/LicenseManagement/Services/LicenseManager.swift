@@ -180,7 +180,8 @@ class LicenseManager: ObservableObject {
             self.licenseEmail = license.email
             self.licenseExpiry = license.expiryDate
             self.appVersion = license.appVersion ?? appVersion
-            self.maxAppsAllowed = license.maxApps ?? 3
+            // For licensed users, default to unlimited (-1) if maxApps is not specified
+            self.maxAppsAllowed = license.maxApps ?? -1
 
             // Check if license is still valid locally
             if let expiry = license.expiryDate, expiry < Date() {
@@ -295,7 +296,8 @@ class LicenseManager: ObservableObject {
                     self.licenseEmail = license.email
                     self.licenseExpiry = license.expiryDate
                     self.appVersion = license.appVersion ?? appVersion
-                    self.maxAppsAllowed = license.maxApps ?? 3
+                    // For licensed users, default to unlimited (-1) if maxApps is not specified
+                    self.maxAppsAllowed = license.maxApps ?? -1
                     self.licenseStatus = .valid
                     self.isLicensed = true
                     self.lastValidationDate = Date()
