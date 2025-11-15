@@ -291,7 +291,8 @@ class LicenseManager: ObservableObject {
             do {
                 let license = try await validateLicenseWithServer(licenseKey)
 
-                await MainActor.run {
+                // Defer @Published property updates to avoid publishing during view updates
+                Task { @MainActor in
                     self.licenseOwner = license.ownerName
                     self.licenseEmail = license.email
                     self.licenseExpiry = license.expiryDate
@@ -373,14 +374,17 @@ class LicenseManager: ObservableObject {
                 // Defer updates to next runloop to avoid publishing during view updates
                 DispatchQueue.main.async { [weak self] in
                     guard let self = self else { return }
-                    if let expiry = license.expiryDate, expiry < Date() {
-                        self.licenseStatus = .expired
-                        self.isLicensed = false
-                    } else {
-                        self.licenseStatus = .valid
-                        self.isLicensed = true
-                        self.lastValidationDate = Date()
-                        self.userDefaults.set(Date(), forKey: self.lastValidationKey)
+                    // Use Task to ensure this runs on the next runloop cycle
+                    Task { @MainActor in
+                        if let expiry = license.expiryDate, expiry < Date() {
+                            self.licenseStatus = .expired
+                            self.isLicensed = false
+                        } else {
+                            self.licenseStatus = .valid
+                            self.isLicensed = true
+                            self.lastValidationDate = Date()
+                            self.userDefaults.set(Date(), forKey: self.lastValidationKey)
+                        }
                     }
                 }
             } catch {

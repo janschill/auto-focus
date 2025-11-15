@@ -164,7 +164,7 @@ class FocusManager: ObservableObject {
         self.bufferManager = bufferManager ?? BufferManager()
         self.focusModeController = focusModeController ?? FocusModeManager()
         self.browserManager = browserManager ?? BrowserManager(userDefaultsManager: userDefaultsManager)
-        
+
         // Initialize state machine and timer (without callbacks first)
         self.stateMachine = FocusStateMachine()
         self.focusTimer = FocusTimer(interval: checkInterval)
@@ -193,7 +193,7 @@ class FocusManager: ObservableObject {
         self.isExtensionConnected = self.browserManager.isExtensionConnected
         self.extensionHealth = self.browserManager.extensionHealth
         self.connectionQuality = self.browserManager.connectionQuality
-        
+
         // Set up callbacks after all initialization is complete
         self.stateMachine.onStateChanged = { [weak self] transition in
             self?.handleStateTransition(transition)
