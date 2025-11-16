@@ -200,11 +200,13 @@ class HTTPServer: ObservableObject {
         }
 
         let forcedByFocus = message["forcedByFocus"] as? Bool ?? false
-        let isChromeFocused = message["isChromeFocused"] as? Bool ?? true // Default to true for backward compatibility
+        // Support both old and new field names for backward compatibility
+        let isBrowserFocused = message["isBrowserFocused"] as? Bool ??
+                              message["isChromeFocused"] as? Bool ?? true // Default to true for backward compatibility
         AppLogger.network.info("Tab changed", metadata: [
             "url": url,
             "forced_by_focus": String(forcedByFocus),
-            "chrome_focused": String(isChromeFocused)
+            "browser_focused": String(isBrowserFocused)
         ])
 
         // Check if URL is a focus URL using BrowserManager
@@ -215,12 +217,12 @@ class HTTPServer: ObservableObject {
             "matched_url": matchedURL?.name ?? "none"
         ])
 
-        // Only activate focus mode if Chrome is actually focused
-        // This prevents false positives when Chrome is in the background
-        let effectiveIsFocus = isFocus && isChromeFocused
+        // Only activate focus mode if browser is actually focused
+        // This prevents false positives when browser is in the background
+        let effectiveIsFocus = isFocus && isBrowserFocused
 
-        if isFocus && !isChromeFocused {
-            AppLogger.network.info("Focus URL detected but Chrome is not frontmost - suppressing focus activation", metadata: [
+        if isFocus && !isBrowserFocused {
+            AppLogger.network.info("Focus URL detected but browser is not frontmost - suppressing focus activation", metadata: [
                 "url": url
             ])
         }

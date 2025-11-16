@@ -931,15 +931,35 @@ extension FocusManager: BrowserManagerDelegate {
     }
 
     private func isChromeBrowserFrontmost() -> Bool {
+        return isChromiumBrowserFrontmost()
+    }
+
+    // Check if a Chromium-based browser is currently the frontmost application
+    private func isChromiumBrowserFrontmost() -> Bool {
         guard let frontmostApp = NSWorkspace.shared.frontmostApplication else {
             return false
         }
 
         let bundleId = frontmostApp.bundleIdentifier
+        // Check for common Chromium-based browser bundle identifiers
         return bundleId == "com.google.Chrome" ||
                bundleId == "com.google.Chrome.canary" ||
                bundleId == "com.google.Chrome.beta" ||
-               bundleId == "com.google.Chrome.dev"
+               bundleId == "com.google.Chrome.dev" ||
+               bundleId == "com.microsoft.Edge" ||
+               bundleId == "com.microsoft.Edge.Canary" ||
+               bundleId == "com.microsoft.Edge.Beta" ||
+               bundleId == "com.microsoft.Edge.Dev" ||
+               bundleId == "com.brave.Browser" ||
+               bundleId == "com.brave.Browser.beta" ||
+               bundleId == "com.operasoftware.Opera" ||
+               bundleId == "com.operasoftware.OperaNext" ||
+               bundleId == "com.operasoftware.OperaDeveloper" ||
+               bundleId == "com.vivaldi.Vivaldi" ||
+               bundleId == "com.yandex.browser" ||
+               bundleId == "com.arc.Arc" ||
+               bundleId == "com.360.Chrome" ||
+               bundleId == "com.chromium.Chromium"
     }
 
     func browserManager(_ manager: any BrowserManaging, didUpdateFocusURLs urls: [FocusURL]) {
