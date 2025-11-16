@@ -33,9 +33,25 @@ struct FocusURL: Identifiable, Codable, Hashable {
             return urlLowercase == domainLowercase
         case .domain:
             // Extract hostname from URL
-            if let urlObj = URL(string: url), let host = urlObj.host {
-                return host == domainLowercase || host.hasSuffix("." + domainLowercase)
+            // Try parsing as-is first
+            if let urlObj = URL(string: url) {
+                if let host = urlObj.host {
+                    // Normalize hostname (remove port if present for comparison)
+                    let hostWithoutPort = host.components(separatedBy: ":").first ?? host
+                    return hostWithoutPort == domainLowercase || hostWithoutPort.hasSuffix("." + domainLowercase)
+                }
             }
+
+            // If URL parsing failed, try adding a scheme (for localhost and other cases)
+            if !urlLowercase.contains("://") {
+                // Try with http:// prefix
+                if let urlObj = URL(string: "http://" + url), let host = urlObj.host {
+                    let hostWithoutPort = host.components(separatedBy: ":").first ?? host
+                    return hostWithoutPort == domainLowercase || hostWithoutPort.hasSuffix("." + domainLowercase)
+                }
+            }
+
+            // Fallback to contains check for edge cases
             return urlLowercase.contains(domainLowercase)
         case .contains:
             return urlLowercase.contains(domainLowercase)
