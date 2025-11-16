@@ -336,7 +336,7 @@ struct AddFocusAppsStepView: View {
                     Spacer()
                 }
 
-                AppsListView()
+                AppsListView(selectedTab: .constant(nil))
                     .frame(minHeight: 200)
 
                 HStack {

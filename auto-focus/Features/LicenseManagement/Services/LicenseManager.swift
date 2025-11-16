@@ -181,7 +181,15 @@ class LicenseManager: ObservableObject {
             self.licenseExpiry = license.expiryDate
             self.appVersion = license.appVersion ?? appVersion
             // For licensed users, default to unlimited (-1) if maxApps is not specified
-            self.maxAppsAllowed = license.maxApps ?? AppConfiguration.unlimited
+            // Also, if maxApps is set to the free limit (3), treat it as potentially incorrect
+            // and default to unlimited, since premium licenses should be unlimited by default
+            if let maxApps = license.maxApps {
+                // If maxApps is the free limit and user has a valid license, default to unlimited
+                // (this handles old saved licenses that may have incorrect values)
+                self.maxAppsAllowed = (maxApps == AppConfiguration.freeAppLimit) ? AppConfiguration.unlimited : maxApps
+            } else {
+                self.maxAppsAllowed = AppConfiguration.unlimited
+            }
 
             // Check if license is still valid locally
             if let expiry = license.expiryDate, expiry < Date() {
@@ -298,7 +306,7 @@ class LicenseManager: ObservableObject {
                     self.licenseExpiry = license.expiryDate
                     self.appVersion = license.appVersion ?? appVersion
                     // For licensed users, default to unlimited (-1) if maxApps is not specified
-                    self.maxAppsAllowed = license.maxApps ?? -1
+                    self.maxAppsAllowed = license.maxApps ?? AppConfiguration.unlimited
                     self.licenseStatus = .valid
                     self.isLicensed = true
                     self.lastValidationDate = Date()

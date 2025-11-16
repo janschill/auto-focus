@@ -390,7 +390,7 @@ struct InsightsView: View {
                         Spacer()
 
                         Button("Upgrade") {
-                            selectedTab = 2
+                            selectedTab = 4 // Navigate to Auto-Focus+ tab
                         }
                         .controlSize(.small)
                     }

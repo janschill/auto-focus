@@ -310,6 +310,17 @@ struct UnlicensedView: View {
 
                 Divider().padding(16)
 
+                Link(destination: URL(string: "https://auto-focus.app")!) {
+                    HStack {
+                        Text("Visit auto-focus.app")
+                            .fontWeight(.medium)
+                        Image(systemName: "arrow.up.forward.app")
+                    }
+                    .foregroundColor(.blue)
+                }
+                .buttonStyle(.plain)
+                .padding(.bottom, 8)
+
                 LicenseBenefitsView()
 
             }

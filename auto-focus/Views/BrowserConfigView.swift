@@ -3,6 +3,7 @@ import SwiftUI
 struct BrowserConfigView: View {
     @EnvironmentObject var focusManager: FocusManager
     @EnvironmentObject var licenseManager: LicenseManager
+    @Binding var selectedTab: Int
     @State private var showingAddURL = false
     @State private var newURL = FocusURL(name: "", domain: "")
     @State private var selectedCategory: URLCategory = .work
@@ -14,7 +15,7 @@ struct BrowserConfigView: View {
 
             ExtensionInstallationView()
 
-            FocusURLsManagementView(selectedURLId: $selectedURLId, showingAddURL: $showingAddURL)
+            FocusURLsManagementView(selectedTab: $selectedTab, selectedURLId: $selectedURLId, showingAddURL: $showingAddURL)
 
             Spacer()
         }
@@ -136,6 +137,7 @@ private struct ExtensionInstallationView: View {
 private struct FocusURLsManagementView: View {
     @EnvironmentObject var focusManager: FocusManager
     @EnvironmentObject var licenseManager: LicenseManager
+    @Binding var selectedTab: Int
     @Binding var selectedURLId: UUID?
     @Binding var showingAddURL: Bool
 
@@ -148,7 +150,7 @@ private struct FocusURLsManagementView: View {
                     .fontWeight(.regular)
                     .foregroundColor(.secondary)
 
-                FocusURLsList(selectedURLId: $selectedURLId)
+                FocusURLsList(selectedTab: $selectedTab, selectedURLId: $selectedURLId)
 
                 HStack {
                     Button {
@@ -196,6 +198,7 @@ private struct FocusURLsManagementView: View {
 private struct FocusURLsList: View {
     @EnvironmentObject var focusManager: FocusManager
     @EnvironmentObject var licenseManager: LicenseManager
+    @Binding var selectedTab: Int
     @Binding var selectedURLId: UUID?
 
     var body: some View {
@@ -219,7 +222,7 @@ private struct FocusURLsList: View {
                     Spacer()
 
                     Button("Upgrade") {
-                        // Navigate to upgrade tab
+                        selectedTab = 4 // Navigate to Auto-Focus+ tab
                     }
                     .controlSize(.small)
                 }
@@ -524,9 +527,3 @@ private struct PresetRow: View {
     }
 }
 
-#Preview {
-    BrowserConfigView()
-        .environmentObject(FocusManager.shared)
-        .environmentObject(LicenseManager())
-        .frame(width: 600, height: 900)
-}

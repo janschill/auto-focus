@@ -8,14 +8,14 @@ struct SettingsView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            ConfigurationView()
+            ConfigurationView(selectedTab: $selectedTab)
                 .tabItem {
                     Label("Configuration", systemImage: "gear")
                 }
                 .tag(0)
                 .environmentObject(licenseManager)
 
-            BrowserConfigView()
+            BrowserConfigView(selectedTab: $selectedTab)
                 .tabItem {
                     Label("Browser", systemImage: "globe")
                 }
@@ -23,14 +23,14 @@ struct SettingsView: View {
                 .environmentObject(focusManager)
                 .environmentObject(licenseManager)
 
-            InsightsView(selectedTab: .constant(2))
+            InsightsView(selectedTab: $selectedTab)
                 .tabItem {
                     Label("Insights", systemImage: "chart.bar")
                 }
                 .tag(2)
                 .environmentObject(licenseManager)
 
-            DataView(selectedTab: .constant(3))
+            DataView(selectedTab: $selectedTab)
                 .tabItem {
                     Label("Data", systemImage: "externaldrive")
                 }

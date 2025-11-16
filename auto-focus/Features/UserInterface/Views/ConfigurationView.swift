@@ -28,6 +28,7 @@ struct AppRowView: View {
 struct AppsListView: View {
     @EnvironmentObject var focusManager: FocusManager
     @EnvironmentObject var licenseManager: LicenseManager
+    @Binding var selectedTab: Int?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -46,7 +47,7 @@ struct AppsListView: View {
             .listStyle(.bordered)
             .frame(minHeight: 200)
 
-            if !licenseManager.isLicensed {
+            if !licenseManager.isLicensed, selectedTab != nil {
                 HStack {
                     Image(systemName: "lock.fill")
                         .foregroundColor(.secondary)
@@ -57,9 +58,7 @@ struct AppsListView: View {
                     Spacer()
 
                     Button("Upgrade") {
-                        // Instead of changing tabs, show an alert or notification
-                        // This removes the circular binding dependency
-                        AppLogger.ui.info("Export/import feature requires premium")
+                        selectedTab = 4 // Navigate to Auto-Focus+ tab
                     }
                     .controlSize(.small)
                 }
@@ -351,6 +350,7 @@ struct ThresholdsView: View {
 struct FocusApplicationsView: View {
     @EnvironmentObject var focusManager: FocusManager
     @EnvironmentObject var licenseManager: LicenseManager
+    @Binding var selectedTab: Int
 
     var body: some View {
         GroupBox(label: Text("Focus Applications").font(.headline)) {
@@ -361,7 +361,10 @@ struct FocusApplicationsView: View {
                     .fontWeight(.regular)
                     .foregroundColor(.secondary)
 
-                AppsListView()
+                AppsListView(selectedTab: Binding(
+                    get: { selectedTab },
+                    set: { if let newValue = $0 { selectedTab = newValue } }
+                ))
 
                 HStack {
                     Button {
@@ -403,6 +406,7 @@ struct FocusApplicationsView: View {
 struct ConfigurationView: View {
     @EnvironmentObject var focusManager: FocusManager
     @EnvironmentObject var licenseManager: LicenseManager
+    @Binding var selectedTab: Int
 
     var body: some View {
         ScrollView {
@@ -410,7 +414,7 @@ struct ConfigurationView: View {
                 HeaderView()
                 GeneralSettingsView()
                 ThresholdsView()
-                FocusApplicationsView()
+                FocusApplicationsView(selectedTab: $selectedTab)
             }
             .padding()
         }
@@ -419,7 +423,7 @@ struct ConfigurationView: View {
 }
 
 #Preview {
-    ConfigurationView()
+    ConfigurationView(selectedTab: .constant(0))
         .environmentObject(LicenseManager())
         .environmentObject(FocusManager.shared)
         .frame(width: 600, height: 900)
