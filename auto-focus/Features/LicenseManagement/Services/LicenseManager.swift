@@ -380,10 +380,20 @@ class LicenseManager: ObservableObject {
                             self.licenseStatus = .expired
                             self.isLicensed = false
                         } else {
+                            // Update all license fields from the validated license
+                            self.licenseOwner = license.ownerName
+                            self.licenseEmail = license.email
+                            self.licenseExpiry = license.expiryDate
+                            self.appVersion = license.appVersion ?? self.appVersion
+                            // For licensed users, default to unlimited (-1) if maxApps is not specified
+                            self.maxAppsAllowed = license.maxApps ?? AppConfiguration.unlimited
                             self.licenseStatus = .valid
                             self.isLicensed = true
                             self.lastValidationDate = Date()
                             self.userDefaults.set(Date(), forKey: self.lastValidationKey)
+
+                            // Save updated license data
+                            self.saveLicenseData(license)
                         }
                     }
                 }
