@@ -114,11 +114,12 @@ struct InsightsHeaderView: View {
             }, label: {
                 HStack(spacing: 4) {
                     Text(dataProvider.displayedDateString)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.horizontal, 8)
             })
             .foregroundColor(.primary)
-            .frame(maxWidth: 160)
 
             DateNavigationView(dataProvider: dataProvider)
         }

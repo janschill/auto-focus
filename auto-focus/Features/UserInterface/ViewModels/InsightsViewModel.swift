@@ -11,7 +11,7 @@ class InsightsViewModel: ObservableObject {
         // Initialize without data provider to avoid circular dependencies
         self.dataProvider = nil
     }
-    
+
     init(dataProvider: InsightsDataProvider) {
         self.dataProvider = dataProvider
     }
@@ -26,7 +26,7 @@ class InsightsViewModel: ObservableObject {
 
     var displayedDateString: String {
         guard let dataProvider = dataProvider else { return "Loading..." }
-        
+
         let calendar = Calendar.current
         let now = Date()
 
@@ -76,7 +76,7 @@ class InsightsViewModel: ObservableObject {
 
     var weekComparisonPercentage: Int? {
         guard let dataProvider = dataProvider else { return nil }
-        
+
         let calendar = Calendar.current
         guard selectedTimeframe == .week else { return nil }
 
@@ -93,7 +93,36 @@ class InsightsViewModel: ObservableObject {
     }
 
     func navigateDay(forward: Bool) {
+        guard let dataProvider = dataProvider else { return }
         let calendar = Calendar.current
+
+        // Find the next/previous day with data
+        var currentDate = selectedDate
+        let maxAttempts = 365 // Prevent infinite loop
+        var attempts = 0
+
+        while attempts < maxAttempts {
+            currentDate = calendar.date(byAdding: .day, value: forward ? 1 : -1, to: currentDate) ?? currentDate
+
+            // Check if this date has any sessions
+            let sessions = dataProvider.sessionsForDate(currentDate)
+            if !sessions.isEmpty {
+                selectedDate = currentDate
+                return
+            }
+
+            // Don't go beyond today when going forward
+            if forward && calendar.isDateInToday(currentDate) {
+                // If today has no data, stay on current date
+                if sessions.isEmpty {
+                    return
+                }
+            }
+
+            attempts += 1
+        }
+
+        // If we couldn't find a day with data, just move one day
         selectedDate = calendar.date(byAdding: .day, value: forward ? 1 : -1, to: selectedDate) ?? selectedDate
     }
 
