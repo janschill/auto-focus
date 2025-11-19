@@ -12,9 +12,12 @@ import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Initialize FileLogger early to ensure it's ready (if debug logging is enabled)
+        _ = FileLogger.shared
+
         // Set up debugging
         CoreSVGDebugger.setupDebugging()
-        
+
         // Start as a menu bar app with no dock icon
         NSApp.setActivationPolicy(.accessory)
 
@@ -58,13 +61,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if visibleWindows.isEmpty {
                 NSApp.setActivationPolicy(.accessory)
                 NSApp.deactivate()
-                
+
                 // Clear image cache when no windows are visible to free memory
                 SafeImageLoader.clearCache()
             }
         }
     }
-    
+
     func applicationDidReceiveMemoryWarning(_ application: NSApplication) {
         // Clear image cache on memory warnings
         SafeImageLoader.clearCache()

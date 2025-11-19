@@ -143,8 +143,9 @@ class HTTPServer: ObservableObject {
             return
         }
 
-        AppLogger.network.info("Received command from browser extension", metadata: [
-            "command": command
+        AppLogger.network.infoToFile("Received command from browser extension", metadata: [
+            "command": command,
+            "timestamp": ISO8601DateFormatter().string(from: Date())
         ])
 
         switch command {
@@ -195,6 +196,9 @@ class HTTPServer: ObservableObject {
 
     private func handleTabChanged(_ message: [String: Any], connection: NWConnection) {
         guard let url = message["url"] as? String else {
+            AppLogger.network.errorToFile("Tab changed message missing URL", metadata: [
+                "message_keys": Array(message.keys).joined(separator: ",")
+            ])
             sendResponse("HTTP/1.1 400 Bad Request\r\n\r\n", to: connection)
             return
         }
@@ -203,10 +207,11 @@ class HTTPServer: ObservableObject {
         // Support both old and new field names for backward compatibility
         let isBrowserFocused = message["isBrowserFocused"] as? Bool ??
                               message["isChromeFocused"] as? Bool ?? true // Default to true for backward compatibility
-        AppLogger.network.info("Tab changed", metadata: [
+        AppLogger.network.infoToFile("Tab changed", metadata: [
             "url": url,
             "forced_by_focus": String(forcedByFocus),
-            "browser_focused": String(isBrowserFocused)
+            "browser_focused": String(isBrowserFocused),
+            "timestamp": ISO8601DateFormatter().string(from: Date())
         ])
 
         // Check if URL is a focus URL using BrowserManager
@@ -330,7 +335,9 @@ class HTTPServer: ObservableObject {
         let data = response.data(using: .utf8)!
         connection.send(content: data, completion: .contentProcessed { error in
             if let error = error {
-                AppLogger.network.error("Failed to send HTTP response", error: error)
+                AppLogger.network.errorToFile("Failed to send HTTP response", error: error, metadata: [
+                    "response_length": String(data.count)
+                ])
             }
             connection.cancel()
         })
@@ -342,9 +349,10 @@ class HTTPServer: ObservableObject {
         let extensionVersion = message["version"] as? String ?? "unknown"
         let extensionId = message["extensionId"] as? String ?? "unknown"
 
-        AppLogger.network.info("Handshake from browser extension", metadata: [
+        AppLogger.network.infoToFile("Handshake from browser extension", metadata: [
             "version": extensionVersion,
-            "extension_id": extensionId
+            "extension_id": extensionId,
+            "timestamp": ISO8601DateFormatter().string(from: Date())
         ])
 
         // Parse extension health data

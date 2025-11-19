@@ -137,7 +137,9 @@ class BrowserManager: ObservableObject, BrowserManaging {
     // MARK: - HTTP Server
 
     private func startHTTPServer() {
-        AppLogger.browser.info("Starting HTTP server for browser extension")
+        AppLogger.browser.infoToFile("Starting HTTP server for browser extension", metadata: [
+            "port": String(AppConfiguration.serverPort)
+        ])
         httpServer.setBrowserManager(self)
         httpServer.start()
 
@@ -179,9 +181,17 @@ class BrowserManager: ObservableObject, BrowserManaging {
     }
 
     func updateFromExtension(tabInfo: BrowserTabInfo, isFocus: Bool) {
+        AppLogger.browser.infoToFile("Received update from extension", metadata: [
+            "url": tabInfo.url,
+            "is_focus": String(isFocus),
+            "was_connected": String(isExtensionConnected),
+            "matched_url": tabInfo.matchedFocusURL?.name ?? "none",
+            "timestamp": ISO8601DateFormatter().string(from: Date())
+        ])
+
         // Ensure we're connected when receiving updates
         if !isExtensionConnected {
-            AppLogger.browser.info("Extension connection restored via tab update", metadata: [
+            AppLogger.browser.infoToFile("Extension connection restored via tab update", metadata: [
                 "url": tabInfo.url
             ])
             isExtensionConnected = true
@@ -423,20 +433,33 @@ class BrowserManager: ObservableObject, BrowserManaging {
     }
 
     private func performServerHealthCheck() {
-        AppLogger.browser.info("Performing server health check")
+        AppLogger.browser.debugToFile("Performing server health check", metadata: [
+            "extension_connected": String(isExtensionConnected),
+            "connection_quality": connectionQuality.rawValue
+        ])
 
         let task = URLSession.shared.dataTask(with: URLRequest(url: URL(string: "http://localhost:8942/browser")!)) { [weak self] _, response, error in
             DispatchQueue.main.async {
                 if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 404 {
-                    AppLogger.browser.info("Server health check passed")
-                } else {
-                    AppLogger.browser.error("Server health check failed", error: error, metadata: [
-                        "status_code": (response as? HTTPURLResponse)?.statusCode.description ?? "unknown"
+                    AppLogger.browser.debugToFile("Server health check passed", metadata: [
+                        "status_code": String(httpResponse.statusCode)
                     ])
-                    AppLogger.browser.info("Attempting to restart server")
-                    self?.httpServer.stop()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                        self?.httpServer.start()
+                } else {
+                    let statusCode = (response as? HTTPURLResponse)?.statusCode.description ?? "unknown"
+                    AppLogger.browser.errorToFile("Server health check failed", error: error, metadata: [
+                        "status_code": statusCode,
+                        "extension_connected": String(self?.isExtensionConnected ?? false),
+                        "connection_quality": self?.connectionQuality.rawValue ?? "unknown"
+                    ])
+
+                    if AppConfiguration.serverRestartOnFailure {
+                        AppLogger.browser.warningToFile("Attempting to restart server due to health check failure", metadata: [
+                            "status_code": statusCode
+                        ])
+                        self?.httpServer.stop()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                            self?.httpServer.start()
+                        }
                     }
                 }
             }

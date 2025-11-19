@@ -138,6 +138,13 @@ public struct AppLogger {
         logger.info("\(formatMessage(message, metadata: stateMetadata), privacy: .public)")
     }
 
+    // MARK: - Public Properties
+
+    /// Get the category name for this logger instance
+    public var categoryName: String {
+        return category
+    }
+
     // MARK: - Private Helper Methods
 
     private func formatMessage(_ message: String, metadata: [String: String], file: String? = nil, function: String? = nil, line: Int? = nil) -> String {

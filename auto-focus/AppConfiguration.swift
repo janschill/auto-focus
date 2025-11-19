@@ -21,8 +21,9 @@ struct AppConfiguration {
     // MARK: - Network Configuration
     static let serverPort: UInt16 = 8942
     static let connectionTimeoutInterval: TimeInterval = 90.0 // 90 seconds
-    static let serverHealthCheckInterval: TimeInterval = 300.0 // 5 minutes
+    static let serverHealthCheckInterval: TimeInterval = 60.0 // 1 minute (reduced for better reliability)
     static let maxStartupRetries = 3
+    static let serverRestartOnFailure = true // Automatically restart server if health check fails
 
     // MARK: - License Configuration
     static let defaultMaxAppsAllowed = 3
