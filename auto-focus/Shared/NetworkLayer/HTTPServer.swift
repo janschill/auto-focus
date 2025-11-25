@@ -388,23 +388,37 @@ class HTTPServer: ObservableObject {
     }
 
     private func handleHeartbeatMessage(_ message: [String: Any], connection: NWConnection) {
-        // Update connection quality based on heartbeat data
-        if let connectionHealth = message["connectionHealth"] as? [String: Any] {
-            updateConnectionQuality(connectionHealth)
-        }
+        // Ignore heartbeats when system is sleeping (lid closed, etc.)
+        // Check if browser manager exists and if system is sleeping
+        if let browserManager = self.browserManager {
+            // Use reflection to check if system is sleeping (private property)
+            // Actually, we'll add a public method to check this
+            // For now, we'll process it but BrowserManager will ignore timer resets
 
-        // Reset connection timeout timer when heartbeat is received
-        // This prevents the connection from being marked as disconnected when only heartbeats are received
-        DispatchQueue.main.async {
-            self.browserManager?.resetConnectionTimeoutTimer()
+            // Update connection quality based on heartbeat data
+            if let connectionHealth = message["connectionHealth"] as? [String: Any] {
+                updateConnectionQuality(connectionHealth)
+            }
 
-            // Also ensure connection state is marked as connected if we're receiving heartbeats
-            if let browserManager = self.browserManager, !browserManager.isExtensionConnected {
-                AppLogger.network.info("Extension connection restored via heartbeat", metadata: [
-                    "timestamp": ISO8601DateFormatter().string(from: Date())
-                ])
-                browserManager.isExtensionConnected = true
-                browserManager.delegate?.browserManager(browserManager, didChangeConnectionState: true)
+            // Reset connection timeout timer when heartbeat is received
+            // This prevents the connection from being marked as disconnected when only heartbeats are received
+            // BrowserManager will skip this if system is sleeping
+            DispatchQueue.main.async {
+                browserManager.resetConnectionTimeoutTimer()
+
+                // Also ensure connection state is marked as connected if we're receiving heartbeats
+                // But only if system is not sleeping
+                if !browserManager.isSystemSleeping, !browserManager.isExtensionConnected {
+                    AppLogger.network.infoToFile("Extension connection restored via heartbeat", metadata: [
+                        "timestamp": ISO8601DateFormatter().string(from: Date())
+                    ])
+                    browserManager.isExtensionConnected = true
+                    browserManager.delegate?.browserManager(browserManager, didChangeConnectionState: true)
+                } else if browserManager.isSystemSleeping {
+                    AppLogger.network.debugToFile("Ignoring heartbeat - system is sleeping", metadata: [
+                        "timestamp": ISO8601DateFormatter().string(from: Date())
+                    ])
+                }
             }
         }
 
