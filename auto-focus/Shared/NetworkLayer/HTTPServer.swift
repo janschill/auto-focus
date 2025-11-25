@@ -360,6 +360,21 @@ class HTTPServer: ObservableObject {
             updateExtensionHealth(healthData, version: extensionVersion, extensionId: extensionId)
         }
 
+        // Reset connection timeout timer and mark as connected when handshake is received
+        DispatchQueue.main.async {
+            self.browserManager?.resetConnectionTimeoutTimer()
+
+            // Ensure connection state is marked as connected
+            if let browserManager = self.browserManager, !browserManager.isExtensionConnected {
+                AppLogger.network.info("Extension connection established via handshake", metadata: [
+                    "extension_id": extensionId,
+                    "timestamp": ISO8601DateFormatter().string(from: Date())
+                ])
+                browserManager.isExtensionConnected = true
+                browserManager.delegate?.browserManager(browserManager, didChangeConnectionState: true)
+            }
+        }
+
         let response = [
             "command": "handshake_response",
             "status": "connected",
@@ -376,6 +391,21 @@ class HTTPServer: ObservableObject {
         // Update connection quality based on heartbeat data
         if let connectionHealth = message["connectionHealth"] as? [String: Any] {
             updateConnectionQuality(connectionHealth)
+        }
+
+        // Reset connection timeout timer when heartbeat is received
+        // This prevents the connection from being marked as disconnected when only heartbeats are received
+        DispatchQueue.main.async {
+            self.browserManager?.resetConnectionTimeoutTimer()
+
+            // Also ensure connection state is marked as connected if we're receiving heartbeats
+            if let browserManager = self.browserManager, !browserManager.isExtensionConnected {
+                AppLogger.network.info("Extension connection restored via heartbeat", metadata: [
+                    "timestamp": ISO8601DateFormatter().string(from: Date())
+                ])
+                browserManager.isExtensionConnected = true
+                browserManager.delegate?.browserManager(browserManager, didChangeConnectionState: true)
+            }
         }
 
         let response = [

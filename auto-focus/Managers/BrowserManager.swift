@@ -407,7 +407,7 @@ class BrowserManager: ObservableObject, BrowserManaging {
 
     // MARK: - Connection Timeout Management
 
-    private func resetConnectionTimeoutTimer() {
+    func resetConnectionTimeoutTimer() {
         connectionTimeoutTimer?.invalidate()
         connectionTimeoutTimer = Timer.scheduledTimer(withTimeInterval: connectionTimeoutInterval, repeats: false) { [weak self] _ in
             self?.handleConnectionTimeout()
