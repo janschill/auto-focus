@@ -14,12 +14,20 @@
         <img src="../icons/icon32.png" alt="Auto-Focus" class="logo-icon">
         <span class="logo-text">Auto-Focus</span>
       </div>
-      <div class="status-indicator" id="statusIndicator">
-        <span class="status-dot"></span>
-        <span class="status-text">Ready</span>
-      </div>
     </div>
-    
+
+    <!-- Connection Status -->
+    <div class="connection-status" id="connectionStatus">
+      <div class="connection-indicator">
+        <span class="connection-dot" id="connectionDot"></span>
+        <span class="connection-text" id="connectionText">Connecting...</span>
+      </div>
+      <button class="reconnect-button" id="reconnectButton" style="display: none;">
+        <span class="button-icon">🔄</span>
+        Reconnect
+      </button>
+    </div>
+
     <!-- Current Tab Info -->
     <div class="current-tab" id="currentTab">
       <div class="tab-icon">🌐</div>
@@ -28,16 +36,7 @@
         <div class="tab-status" id="tabStatus">Checking...</div>
       </div>
     </div>
-    
-    
-    <!-- Connection Status -->
-    <div class="connection-status" id="connectionStatus">
-      <div class="connection-indicator">
-        <span class="connection-dot"></span>
-        <span class="connection-text">Connecting to Auto-Focus...</span>
-      </div>
-    </div>
-    
+
     <!-- Quick Actions -->
     <div class="actions">
       <button class="action-button" id="addCurrentSiteButton">
@@ -45,13 +44,15 @@
         Add Current Site
       </button>
     </div>
-    
+
     <!-- Footer -->
     <div class="footer">
-      <div class="version">v1.0.0</div>
+      <a href="https://auto-focus.app" target="_blank" class="footer-link">auto-focus.app</a>
+      <span class="separator">•</span>
+      <div class="version" id="versionText">v1.0.0</div>
     </div>
   </div>
-  
+
   <script src="popup.js"></script>
 </body>
 </html>
