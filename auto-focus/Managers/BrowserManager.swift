@@ -12,6 +12,7 @@ protocol BrowserManaging: AnyObject, ObservableObject {
     var delegate: BrowserManagerDelegate? { get set }
     var canAddMoreURLs: Bool { get }
     var availablePresets: [FocusURL] { get }
+    var isSystemSleeping: Bool { get }
 
     func addFocusURL(_ focusURL: FocusURL)
     func removeFocusURL(_ focusURL: FocusURL)
@@ -52,6 +53,7 @@ class BrowserManager: ObservableObject, BrowserManaging {
             }
         }
     }
+    @Published var isSystemSleeping: Bool = false
 
     weak var delegate: BrowserManagerDelegate?
 
@@ -71,6 +73,9 @@ class BrowserManager: ObservableObject, BrowserManaging {
         self.licenseManager = licenseManager
 
         loadFocusURLs()
+
+        // Set up sleep/wake notifications
+        setupSleepWakeNotifications()
 
         // Delay server startup to ensure app is fully initialized
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
@@ -407,7 +412,13 @@ class BrowserManager: ObservableObject, BrowserManaging {
 
     // MARK: - Connection Timeout Management
 
-    private func resetConnectionTimeoutTimer() {
+    func resetConnectionTimeoutTimer() {
+        // Don't reset timer if system is sleeping
+        guard !isSystemSleeping else {
+            AppLogger.browser.debug("Skipping connection timeout reset - system is sleeping")
+            return
+        }
+
         connectionTimeoutTimer?.invalidate()
         connectionTimeoutTimer = Timer.scheduledTimer(withTimeInterval: connectionTimeoutInterval, repeats: false) { [weak self] _ in
             self?.handleConnectionTimeout()
@@ -422,6 +433,79 @@ class BrowserManager: ObservableObject, BrowserManaging {
             isExtensionConnected = false
             delegate?.browserManager(self, didChangeConnectionState: false)
         }
+    }
+
+    // MARK: - Sleep/Wake Management
+
+    private func setupSleepWakeNotifications() {
+        let workspace = NSWorkspace.shared
+
+        // Listen for sleep notifications
+        NotificationCenter.default.addObserver(
+            forName: NSWorkspace.willSleepNotification,
+            object: workspace,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleSystemWillSleep()
+        }
+
+        // Listen for wake notifications
+        NotificationCenter.default.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: workspace,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleSystemDidWake()
+        }
+
+        // Also listen for screen sleep (lid closed on laptops)
+        NotificationCenter.default.addObserver(
+            forName: NSWorkspace.screensDidSleepNotification,
+            object: workspace,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleSystemWillSleep()
+        }
+
+        // Listen for screen wake
+        NotificationCenter.default.addObserver(
+            forName: NSWorkspace.screensDidWakeNotification,
+            object: workspace,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleSystemDidWake()
+        }
+    }
+
+    private func handleSystemWillSleep() {
+        guard !isSystemSleeping else { return }
+
+        isSystemSleeping = true
+        AppLogger.browser.infoToFile("System going to sleep - pausing heartbeat processing", metadata: [
+            "timestamp": ISO8601DateFormatter().string(from: Date())
+        ])
+
+        // Stop connection timeout timer
+        connectionTimeoutTimer?.invalidate()
+        connectionTimeoutTimer = nil
+
+        // Mark connection as inactive (but don't disconnect completely)
+        // The extension will reconnect when system wakes
+    }
+
+    private func handleSystemDidWake() {
+        guard isSystemSleeping else { return }
+
+        isSystemSleeping = false
+        AppLogger.browser.infoToFile("System woke up - resuming heartbeat processing", metadata: [
+            "timestamp": ISO8601DateFormatter().string(from: Date())
+        ])
+
+        // Reset connection state - extension will reconnect via handshake/heartbeat
+        isExtensionConnected = false
+
+        // Restart connection timeout timer
+        resetConnectionTimeoutTimer()
     }
 
     // MARK: - Server Health Monitoring

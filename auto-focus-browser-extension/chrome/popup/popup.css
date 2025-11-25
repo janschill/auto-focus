@@ -49,32 +49,6 @@ body {
   color: #1d1d1f;
 }
 
-.status-indicator {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #34c759;
-}
-
-.status-dot.warning {
-  background: #ff9500;
-}
-
-.status-dot.error {
-  background: #ff3b30;
-}
-
-.status-text {
-  font-size: 12px;
-  color: #666;
-}
-
 /* Current Tab */
 .current-tab {
   display: flex;
@@ -148,23 +122,27 @@ body {
 
 /* Connection Status */
 .connection-status {
-  padding: 8px 12px;
-  background: #f0f0f0;
-  border-radius: 6px;
-  font-size: 12px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .connection-indicator {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .connection-dot {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: #ff9500;
+  flex-shrink: 0;
 }
 
 .connection-dot.connected {
@@ -175,8 +153,55 @@ body {
   background: #ff3b30;
 }
 
+.connection-dot.connecting {
+  background: #ff9500;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
 .connection-text {
-  color: #666;
+  color: #333;
+  font-weight: 500;
+  flex: 1;
+}
+
+.reconnect-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid #007aff;
+  border-radius: 6px;
+  background: white;
+  color: #007aff;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.reconnect-button:hover:not(:disabled) {
+  background: #007aff;
+  color: white;
+}
+
+.reconnect-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.reconnect-button .button-icon {
+  font-size: 14px;
 }
 
 /* Actions */
@@ -222,12 +247,32 @@ body {
 /* Footer */
 .footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
+  gap: 8px;
   padding-top: 12px;
   border-top: 1px solid #e5e5e5;
-  font-size: 12px;
-  color: #666;
+  font-size: 11px;
+  color: #999;
+}
+
+.footer-link {
+  color: #007aff;
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+
+.footer-link:hover {
+  opacity: 0.7;
+  text-decoration: underline;
+}
+
+.separator {
+  color: #ccc;
+}
+
+.version {
+  font-weight: 400;
 }
 
 .links {
