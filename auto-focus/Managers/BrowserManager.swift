@@ -247,13 +247,35 @@ class BrowserManager: ObservableObject, BrowserManaging {
             self.delegate?.browserManager(self, didChangeFocusState: effectiveIsFocus)
 
             if effectiveIsFocus {
-                AppLogger.browser.info("Browser entered focus mode", metadata: [
+                AppLogger.browser.infoToFile("Browser entered focus mode", metadata: [
                     "url": tabInfo.url,
                     "matched_url": tabInfo.matchedFocusURL?.name ?? "none"
                 ])
             } else {
-                AppLogger.browser.info("Browser exited focus mode", metadata: [
+                AppLogger.browser.infoToFile("Browser exited focus mode", metadata: [
                     "url": tabInfo.url
+                ])
+            }
+        } else if effectiveIsFocus && self.isBrowserInFocus {
+            // State is already true and we're still on a focus URL
+            // Ensure delegate is notified to restart timer if needed
+            // This handles the case where timer was stopped but we're still in focus
+            AppLogger.browser.infoToFile("Browser focus already active, ensuring timer is running", metadata: [
+                "url": tabInfo.url,
+                "matched_url": tabInfo.matchedFocusURL?.name ?? "none"
+            ])
+            // Notify delegate to ensure timer is running
+            self.delegate?.browserManager(self, didChangeFocusState: true)
+        } else {
+            // Log when state doesn't change but we received a focus URL
+            if isFocus && !effectiveIsFocus {
+                AppLogger.browser.infoToFile("Focus URL detected but state unchanged", metadata: [
+                    "url": tabInfo.url,
+                    "current_state": String(self.isBrowserInFocus),
+                    "effective_focus": String(effectiveIsFocus),
+                    "is_focus": String(isFocus),
+                    "should_suppress": String(shouldSuppressFocus),
+                    "chrome_frontmost": String(isChromeFrontmost)
                 ])
             }
         }
