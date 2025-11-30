@@ -856,13 +856,18 @@ extension FocusManager: BrowserManagerDelegate {
     }
 
     private func handleBrowserFocusActivated() {
-        AppLogger.focus.info("Browser focus activated")
+        AppLogger.focus.infoToFile("Browser focus activated", metadata: [
+            "time_spent": String(format: "%.1f", timeSpent),
+            "timer_running": String(focusTimer.isRunning),
+            "is_focus_app_active": String(isFocusAppActive)
+        ])
         // Similar to handleFocusAppInFront but for browser
         bufferManager.cancelBuffer()
 
         if !isFocusAppActive {
-            AppLogger.focus.info("Starting focus session from browser", metadata: [
-                "time_spent": String(format: "%.1f", timeSpent)
+            AppLogger.focus.infoToFile("Starting focus session from browser", metadata: [
+                "time_spent": String(format: "%.1f", timeSpent),
+                "timer_running": String(focusTimer.isRunning)
             ])
             // Check if we're switching from app focus to browser focus
             // We preserve time only if we were tracking in app focus AND Chrome is now frontmost
@@ -872,16 +877,20 @@ extension FocusManager: BrowserManagerDelegate {
             let preserveTime = wasTrackingInApp && isChromeFrontmost
             startFocusSession(preserveTime: preserveTime)
         } else {
-            AppLogger.focus.info("Continuing focus session with browser focus", metadata: [
-                "time_spent": String(format: "%.1f", timeSpent)
+            AppLogger.focus.infoToFile("Continuing focus session with browser focus", metadata: [
+                "time_spent": String(format: "%.1f", timeSpent),
+                "timer_running": String(focusTimer.isRunning)
             ])
             // Already tracking in app focus - continue tracking when browser focus activates
-            if !focusTimer.isRunning && isFocusAppActive {
+            // Always ensure timer is running when browser focus is active
+            if !focusTimer.isRunning {
+                AppLogger.focus.infoToFile("Timer not running, restarting timer for browser focus", metadata: [
+                    "time_spent": String(format: "%.1f", timeSpent)
+                ])
                 focusTimer.start(preserveTime: true)
             }
             updateFocusSession()
         }
-
     }
 
     private func handleBrowserFocusDeactivated() {
