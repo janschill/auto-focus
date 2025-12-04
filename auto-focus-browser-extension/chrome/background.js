@@ -15,6 +15,7 @@ let reconnectAttempts = 0;
 let connectionErrors = [];
 let lastSuccessfulConnection = null;
 let initializationInProgress = false;
+let tabMonitoringStarted = false; // Track if listeners are registered
 
 // Initialize extension
 chrome.runtime.onInstalled.addListener((details) => {
@@ -31,9 +32,36 @@ chrome.runtime.onStartup.addListener(() => {
   initializeExtension();
 });
 
+// Service worker wake-up handler - reinitialize when service worker wakes from suspension
+// This is critical for Manifest V3 - service workers suspend after ~30 seconds of inactivity
+self.addEventListener('activate', (event) => {
+  console.log('🔄 Service worker activated (woke up)');
+  // Reinitialize when service worker wakes up
+  if (!tabMonitoringStarted) {
+    console.log('⚠️ Tab monitoring not started, reinitializing...');
+    initializeExtension();
+  } else {
+    console.log('✅ Tab monitoring already started, restoring connection state...');
+    // Still restore connection state even if monitoring is started
+    restoreConnectionState().then(() => {
+      // Check if we need to reconnect
+      if (!isConnectedToApp) {
+        console.log('⚠️ Not connected, attempting to reconnect...');
+        connectToApp();
+      }
+    });
+  }
+});
+
 // Handle alarms for periodic tasks
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   console.log('Alarm triggered:', alarm.name);
+
+  // Ensure tab monitoring is started (service worker might have suspended)
+  if (!tabMonitoringStarted) {
+    console.log('⚠️ Tab monitoring not started on alarm, starting now...');
+    startTabMonitoring();
+  }
 
   if (alarm.name === 'heartbeat') {
     await performHeartbeat();
@@ -68,6 +96,7 @@ async function initializeExtension() {
   }
 
   initializationInProgress = true;
+  console.log('🚀 Initializing extension...');
 
   try {
     // Restore connection state
@@ -76,10 +105,13 @@ async function initializeExtension() {
     // Start connection
     await connectToApp();
 
-    // Start monitoring tabs
+    // Start monitoring tabs (always start, even if not connected)
+    // Tab monitoring will work once connection is established
     startTabMonitoring();
+
+    console.log('✅ Extension initialization complete');
   } catch (error) {
-    console.error('Failed to initialize extension:', error);
+    console.error('❌ Failed to initialize extension:', error);
   } finally {
     initializationInProgress = false;
   }
@@ -110,18 +142,33 @@ async function restoreConnectionState() {
       const state = result.af_connection_state;
       const timeSinceSave = Date.now() - state.timestamp;
 
-      console.log(`Restoring state from ${Math.round(timeSinceSave/1000)}s ago`);
+      console.log(`🔄 Restoring state from ${Math.round(timeSinceSave/1000)}s ago`);
 
       // Restore state
       lastSuccessfulConnection = state.lastSuccessfulConnection;
       connectionErrors = state.connectionErrors || [];
 
-      // Always try to reconnect after restoration
+      // Restore connection state - if it was connected recently (within 2 minutes), assume still connected
+      const timeSinceLastSuccess = Date.now() - (state.lastSuccessfulConnection || 0);
+      if (timeSinceLastSuccess < 120000) { // 2 minutes
+        isConnectedToApp = state.isConnectedToApp;
+        console.log(`✅ Restored connection state: ${isConnectedToApp ? 'connected' : 'disconnected'}`);
+      } else {
+        // Too long ago, assume disconnected
+        isConnectedToApp = false;
+        reconnectAttempts = 0;
+        console.log('⚠️ Last connection too old, assuming disconnected');
+      }
+    } else {
+      // No saved state
       isConnectedToApp = false;
       reconnectAttempts = 0;
+      console.log('⚠️ No saved connection state found');
     }
   } catch (error) {
-    console.error('Failed to restore connection state:', error);
+    console.error('❌ Failed to restore connection state:', error);
+    isConnectedToApp = false;
+    reconnectAttempts = 0;
   }
 }
 
@@ -280,14 +327,28 @@ async function performHeartbeat() {
 
 // Start monitoring tab changes
 function startTabMonitoring() {
+  // Prevent duplicate listener registration
+  if (tabMonitoringStarted) {
+    console.log('⚠️ Tab monitoring already started, skipping...');
+    return;
+  }
+
+  console.log('👂 Starting tab monitoring...');
+
   // Listen for tab activation
   chrome.tabs.onActivated.addListener(async (activeInfo) => {
+    console.log('🔄 Tab activated:', activeInfo.tabId);
     await handleTabChange(activeInfo.tabId);
   });
 
   // Listen for tab updates
   chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     if (changeInfo.url && tab.active) {
+      console.log('🔄 Tab updated:', {
+        tabId: tabId,
+        url: changeInfo.url,
+        status: changeInfo.status
+      });
       await handleTabChange(tabId);
     }
   });
@@ -295,6 +356,7 @@ function startTabMonitoring() {
   // Listen for window focus changes
   chrome.windows.onFocusChanged.addListener(async (windowId) => {
     if (windowId !== chrome.windows.WINDOW_ID_NONE) {
+      console.log('🪟 Chrome window gained focus:', windowId);
       // Chrome window gained focus - send current tab info
       const tabs = await chrome.tabs.query({ active: true, windowId });
       if (tabs.length > 0) {
@@ -302,29 +364,45 @@ function startTabMonitoring() {
       }
     } else {
       // Chrome lost focus - notify the app
-      console.log('Chrome window lost focus, notifying app...');
+      console.log('🪟 Chrome window lost focus, notifying app...');
       await sendToApp({
         command: 'browser_lost_focus',
         timestamp: Date.now()
       });
     }
   });
+
+  tabMonitoringStarted = true;
+  console.log('✅ Tab monitoring started');
 }
 
 // Handle tab change events
 async function handleTabChange(tabId) {
   try {
+    console.log('🔄 handleTabChange called for tab:', tabId);
     const tab = await chrome.tabs.get(tabId);
 
     if (!tab.url || tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
+      console.log('⏭️ Skipping chrome internal page:', tab.url);
       return; // Ignore chrome internal pages
     }
+
+    console.log('📋 Tab change detected:', {
+      url: tab.url,
+      title: tab.title,
+      active: tab.active
+    });
 
     // Check if Chrome window is actually focused before sending tab update
     // This helps prevent race conditions when switching apps
     const windows = await chrome.windows.getAll();
     const focusedWindow = windows.find(w => w.focused);
     const isChromeFocused = focusedWindow !== undefined;
+
+    console.log('📤 Sending tab_changed to app:', {
+      url: tab.url,
+      isChromeFocused: isChromeFocused
+    });
 
     await sendToApp({
       command: 'tab_changed',
@@ -333,28 +411,50 @@ async function handleTabChange(tabId) {
       timestamp: Date.now(),
       isChromeFocused: isChromeFocused
     });
+
+    console.log('✅ tab_changed sent successfully');
   } catch (error) {
-    console.error('Error handling tab change:', error);
+    console.error('❌ Error handling tab change:', error);
   }
 }
 
 // Send message to Auto-Focus app
 async function sendToApp(message) {
-  // Check connection state from storage
-  const state = await chrome.storage.local.get('af_connection_state');
-  if (!state.af_connection_state?.isConnectedToApp && message.command !== 'handshake') {
-    console.log('Not connected to app, attempting to connect first');
-    await connectToApp();
+  console.log('📤 sendToApp called:', message.command);
 
-    // Re-check after connection attempt
-    const newState = await chrome.storage.local.get('af_connection_state');
-    if (!newState.af_connection_state?.isConnectedToApp) {
-      console.log('Still not connected, cannot send message');
-      return;
+  // Always use the global variable first (faster, more reliable)
+  // Only check storage if global is false
+  if (!isConnectedToApp && message.command !== 'handshake') {
+    console.log('⚠️ Global isConnectedToApp is false, checking storage...');
+
+    // Check connection state from storage
+    const state = await chrome.storage.local.get('af_connection_state');
+    if (!state.af_connection_state?.isConnectedToApp) {
+      console.log('⚠️ Storage also shows disconnected, attempting to connect first...');
+      await connectToApp();
+
+      // Update global state after connection attempt
+      const newState = await chrome.storage.local.get('af_connection_state');
+      if (!newState.af_connection_state?.isConnectedToApp) {
+        console.error('❌ Still not connected after connection attempt, cannot send message:', message.command);
+        return;
+      } else {
+        isConnectedToApp = true;
+        console.log('✅ Connection restored, proceeding with message send');
+      }
+    } else {
+      // Storage says connected, update global
+      isConnectedToApp = true;
+      console.log('✅ Connection state restored from storage');
     }
   }
 
   try {
+    console.log('🌐 Sending fetch request to app:', {
+      command: message.command,
+      url: message.url || 'N/A'
+    });
+
     const response = await fetch(`http://localhost:${CONFIG.HTTP_PORT}/browser`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -365,18 +465,30 @@ async function sendToApp(message) {
       signal: AbortSignal.timeout(8000)
     });
 
+    console.log('📥 Received response:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    });
+
     if (response.ok) {
       const result = await response.json();
+      console.log('✅ Message sent successfully, response:', result.command);
       handleAppMessage(result);
 
       // Update last successful connection
       lastSuccessfulConnection = Date.now();
+      isConnectedToApp = true; // Ensure global state is updated
       await saveConnectionState();
     } else {
       throw new Error(`HTTP ${response.status} ${response.statusText}`);
     }
   } catch (error) {
-    console.error('Error sending to Auto-Focus app:', error);
+    console.error('❌ Error sending to Auto-Focus app:', {
+      command: message.command,
+      error: error.message,
+      name: error.name
+    });
 
     // Mark as disconnected if send fails
     if (message.command !== 'handshake') {

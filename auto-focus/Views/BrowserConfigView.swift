@@ -88,6 +88,8 @@ private struct HeaderView: View {
 // }
 
 private struct ExtensionInstallationView: View {
+    @EnvironmentObject var focusManager: FocusManager
+
     var body: some View {
         GroupBox {
             VStack {
@@ -97,9 +99,28 @@ private struct ExtensionInstallationView: View {
 
                     Spacer()
 
+                    if focusManager.isExtensionConnected {
+                        if #available(macOS 14.0, *) {
+                            Label("Installed", systemImage: "checkmark.circle.fill")
+                                .foregroundStyle(.green.gradient)
+                        } else {
+                            Label("Installed", systemImage: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                        }
+                    } else {
+                        if #available(macOS 14.0, *) {
+                            Label("Not installed", systemImage: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.orange.gradient)
+                        } else {
+                            Label("Not installed", systemImage: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                        }
+                    }
+
                     Button("Install Extension") {
                         openExtensionInstallation()
                     }
+                    .disabled(focusManager.isExtensionConnected)
                 }
 
                 HStack {
@@ -226,10 +247,9 @@ private struct FocusURLsList: View {
                     }
                     .controlSize(.small)
                 }
-                .padding(.vertical, 6)
-                .padding(.horizontal, 8)
-                .background(Color.secondary.opacity(0.1))
-                .cornerRadius(6)
+                .padding(.vertical, 8)
+                .padding(.horizontal, 12)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
             }
         }
     }
@@ -311,9 +331,13 @@ private struct AddURLSheet: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Domain")
                         .font(.headline)
-                    TextField("e.g., github.com", text: $newURL.domain)
+                    TextField("e.g., github.com or *.google.com", text: $newURL.domain)
                         .textFieldStyle(.roundedBorder)
                         .autocorrectionDisabled()
+
+                    Text("Use *.domain.com to match all subdomains")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
 
                 Spacer()

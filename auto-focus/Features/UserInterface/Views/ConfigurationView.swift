@@ -50,10 +50,10 @@ struct AppsListView: View {
             if !licenseManager.isLicensed, selectedTab != nil {
                 HStack {
                     Image(systemName: "lock.fill")
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                     Text("Upgrade to Auto-Focus+ for unlimited apps")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
 
                     Spacer()
 
@@ -62,10 +62,9 @@ struct AppsListView: View {
                     }
                     .controlSize(.small)
                 }
-                .padding(.vertical, 6)
-                .padding(.horizontal, 8)
-                .background(Color.secondary.opacity(0.1))
-                .cornerRadius(6)
+                .padding(.vertical, 8)
+                .padding(.horizontal, 12)
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
                 .padding(.top, 8)
             }
         }
@@ -213,11 +212,21 @@ struct GeneralSettingsView: View {
                     Spacer()
 
                     if focusManager.isShortcutInstalled {
-                        Text("✓ Installed")
-                            .foregroundColor(.green)
+                        if #available(macOS 14.0, *) {
+                            Label("Installed", systemImage: "checkmark.circle.fill")
+                                .foregroundStyle(.green.gradient)
+                        } else {
+                            Label("Installed", systemImage: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                        }
                     } else {
-                        Text("⚠️ Not installed")
-                            .foregroundColor(.red)
+                        if #available(macOS 14.0, *) {
+                            Label("Not installed", systemImage: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.orange.gradient)
+                        } else {
+                            Label("Not installed", systemImage: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                        }
                     }
 
                     Button("Add Shortcut") {

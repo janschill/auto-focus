@@ -9,8 +9,6 @@ import SwiftUI
 
 struct SessionListView: View {
     @EnvironmentObject var focusManager: FocusManager
-    @State private var showingSessionEditor = false
-    @State private var selectedSession: FocusSession?
     @State private var showingDeleteConfirmation = false
     @State private var sessionToDelete: FocusSession?
     @State private var sortOrder: SessionSortOrder = .newest
@@ -60,9 +58,6 @@ struct SessionListView: View {
             }
         }
         .padding()
-        .sheet(isPresented: $showingSessionEditor) {
-            sessionEditorSheet
-        }
         .alert(isPresented: $showingDeleteConfirmation) {
             deleteConfirmationAlert
         }
@@ -138,10 +133,6 @@ struct SessionListView: View {
                 ForEach(filteredAndSortedSessions) { session in
                     SessionRowView(
                         session: session,
-                        onEdit: {
-                            selectedSession = session
-                            showingSessionEditor = true
-                        },
                         onDelete: {
                             sessionToDelete = session
                             showingDeleteConfirmation = true
@@ -154,33 +145,7 @@ struct SessionListView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    // MARK: - Sheets and Alerts
-
-    private var sessionEditorSheet: some View {
-        Group {
-            if let session = selectedSession {
-                FocusSessionEditor(
-                    session: session,
-                    onSave: { updatedSession in
-                        focusManager.updateSession(updatedSession)
-                        selectedSession = nil
-                        showingSessionEditor = false
-                    },
-                    onCancel: {
-                        selectedSession = nil
-                        showingSessionEditor = false
-                    },
-                    onDelete: {
-                        if let sessionToDelete = selectedSession {
-                            focusManager.deleteSession(sessionToDelete)
-                            selectedSession = nil
-                            showingSessionEditor = false
-                        }
-                    }
-                )
-            }
-        }
-    }
+    // MARK: - Alerts
 
     private var deleteConfirmationAlert: Alert {
         Alert(
@@ -203,7 +168,6 @@ struct SessionListView: View {
 
 struct SessionRowView: View {
     let session: FocusSession
-    let onEdit: () -> Void
     let onDelete: () -> Void
 
     private var dateFormatter: DateFormatter {
@@ -224,9 +188,15 @@ struct SessionRowView: View {
     var body: some View {
         HStack(spacing: 12) {
             // Duration indicator
-            RoundedRectangle(cornerRadius: 2)
-                .fill(durationColor)
-                .frame(width: 4)
+            if #available(macOS 14.0, *) {
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(durationColor.gradient)
+                    .frame(width: 4)
+            } else {
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(durationColor)
+                    .frame(width: 4)
+            }
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
@@ -258,30 +228,20 @@ struct SessionRowView: View {
                 }
             }
 
-            // Action buttons
-            HStack(spacing: 8) {
-                Button(action: onEdit) {
-                    Image(systemName: "pencil")
-                        .foregroundColor(.blue)
-                }
-                .buttonStyle(.plain)
-                .help("Edit session")
-
-                Button(action: onDelete) {
-                    Image(systemName: "trash")
-                        .foregroundColor(.red)
-                }
-                .buttonStyle(.plain)
-                .help("Delete session")
+            // Action button
+            Button(action: onDelete) {
+                Image(systemName: "trash")
+                    .foregroundColor(.red)
             }
+            .buttonStyle(.plain)
+            .help("Delete session")
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(Color(.controlBackgroundColor))
-        .cornerRadius(8)
+        .padding(.vertical, 8)
+        .background(backgroundMaterial)
         .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(Color(.separatorColor), lineWidth: 0.5)
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(separatorColor, lineWidth: 0.5)
         )
     }
 
@@ -289,6 +249,22 @@ struct SessionRowView: View {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
         return formatter.string(from: date)
+    }
+
+    @ViewBuilder
+    private var backgroundMaterial: some View {
+        if #available(macOS 11.0, *) {
+            RoundedRectangle(cornerRadius: 10)
+                .fill(.regularMaterial)
+        } else {
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color(.controlBackgroundColor))
+        }
+    }
+
+    private var separatorColor: Color {
+        // Use NSColor.separatorColor which is available on macOS 10.14+
+        return Color(NSColor.separatorColor).opacity(0.5)
     }
 }
 
