@@ -32,6 +32,12 @@ struct FocusURL: Identifiable, Codable, Hashable {
         case .exact:
             return urlLowercase == domainLowercase
         case .domain:
+            // Check for wildcard pattern (e.g., *.google.com)
+            if domainLowercase.hasPrefix("*.") {
+                let baseDomain = String(domainLowercase.dropFirst(2)) // Remove "*."
+                return matchesWildcardDomain(url: urlLowercase, pattern: baseDomain)
+            }
+
             // Extract hostname from URL
             // Try parsing as-is first
             if let urlObj = URL(string: url) {
@@ -58,6 +64,33 @@ struct FocusURL: Identifiable, Codable, Hashable {
         case .startsWith:
             return urlLowercase.hasPrefix(domainLowercase)
         }
+    }
+
+    // Helper method to match wildcard domains (e.g., *.google.com matches docs.google.com, drive.google.com, etc.)
+    private func matchesWildcardDomain(url: String, pattern: String) -> Bool {
+        // Extract hostname from URL
+        var hostname: String?
+
+        if let urlObj = URL(string: url) {
+            hostname = urlObj.host
+        } else if !url.contains("://") {
+            // Try with http:// prefix
+            if let urlObj = URL(string: "http://" + url) {
+                hostname = urlObj.host
+            }
+        }
+
+        guard let host = hostname?.lowercased() else {
+            // Fallback: check if URL contains the pattern
+            return url.contains(pattern)
+        }
+
+        // Remove port if present
+        let hostWithoutPort = host.components(separatedBy: ":").first ?? host
+
+        // Check if hostname matches the pattern (e.g., docs.google.com matches *.google.com)
+        // This matches any subdomain of the pattern domain
+        return hostWithoutPort == pattern || hostWithoutPort.hasSuffix("." + pattern)
     }
 }
 

@@ -143,9 +143,11 @@ class HTTPServer: ObservableObject {
             return
         }
 
-        AppLogger.network.infoToFile("Received command from browser extension", metadata: [
+        AppLogger.network.infoToFile("📥 HTTP Server: Received command from browser extension", metadata: [
             "command": command,
-            "timestamp": ISO8601DateFormatter().string(from: Date())
+            "timestamp": ISO8601DateFormatter().string(from: Date()),
+            "message_keys": Array(message.keys).joined(separator: ","),
+            "full_message": String(describing: message)
         ])
 
         switch command {
@@ -173,7 +175,10 @@ class HTTPServer: ObservableObject {
     }
 
     private func handleBrowserLostFocus(_ message: [String: Any], connection: NWConnection) {
-        AppLogger.network.info("Browser lost focus")
+        AppLogger.network.infoToFile("📥 HTTP Server: Browser lost focus message received", metadata: [
+            "timestamp": ISO8601DateFormatter().string(from: Date()),
+            "message_keys": Array(message.keys).joined(separator: ",")
+        ])
 
         // Immediately notify browser manager that browser is no longer in focus
         DispatchQueue.main.async {
@@ -184,6 +189,9 @@ class HTTPServer: ObservableObject {
                 isFocusURL: false,
                 matchedFocusURL: nil
             )
+            AppLogger.network.infoToFile("📤 HTTP Server: Sending browser lost focus to BrowserManager", metadata: [
+                "url": tabInfo.url
+            ])
             self.browserManager?.updateFromExtension(tabInfo: tabInfo, isFocus: false)
         }
 
@@ -207,27 +215,36 @@ class HTTPServer: ObservableObject {
         // Support both old and new field names for backward compatibility
         let isBrowserFocused = message["isBrowserFocused"] as? Bool ??
                               message["isChromeFocused"] as? Bool ?? true // Default to true for backward compatibility
-        AppLogger.network.infoToFile("Tab changed", metadata: [
+        AppLogger.network.infoToFile("📥 HTTP Server: Tab changed message received", metadata: [
             "url": url,
             "forced_by_focus": String(forcedByFocus),
             "browser_focused": String(isBrowserFocused),
+            "title": message["title"] as? String ?? "unknown",
             "timestamp": ISO8601DateFormatter().string(from: Date())
         ])
 
         // Check if URL is a focus URL using BrowserManager
         let (isFocus, matchedURL) = browserManager?.checkIfURLIsFocus(url) ?? (false, nil)
-        AppLogger.network.info("URL check result", metadata: [
+        AppLogger.network.infoToFile("🔍 HTTP Server: URL check result", metadata: [
             "url": url,
             "is_focus": String(isFocus),
-            "matched_url": matchedURL?.name ?? "none"
+            "matched_url": matchedURL?.name ?? "none",
+            "matched_domain": matchedURL?.domain ?? "none"
         ])
 
         // Only activate focus mode if browser is actually focused
         // This prevents false positives when browser is in the background
         let effectiveIsFocus = isFocus && isBrowserFocused
 
+        AppLogger.network.infoToFile("🔍 HTTP Server: Calculating effective focus state", metadata: [
+            "url": url,
+            "is_focus": String(isFocus),
+            "browser_focused": String(isBrowserFocused),
+            "effective_is_focus": String(effectiveIsFocus)
+        ])
+
         if isFocus && !isBrowserFocused {
-            AppLogger.network.info("Focus URL detected but browser is not frontmost - suppressing focus activation", metadata: [
+            AppLogger.network.infoToFile("⚠️ HTTP Server: Focus URL detected but browser is not frontmost - suppressing focus activation", metadata: [
                 "url": url
             ])
         }
@@ -240,6 +257,12 @@ class HTTPServer: ObservableObject {
             matchedFocusURL: matchedURL
         )
 
+        AppLogger.network.infoToFile("📤 HTTP Server: Sending update to BrowserManager", metadata: [
+            "url": url,
+            "effective_is_focus": String(effectiveIsFocus),
+            "matched_url": matchedURL?.name ?? "none"
+        ])
+
         // Process update on main queue
         DispatchQueue.main.async {
             self.browserManager?.updateFromExtension(tabInfo: tabInfo, isFocus: effectiveIsFocus)
@@ -249,6 +272,10 @@ class HTTPServer: ObservableObject {
             "command": "focus_state_changed",
             "isFocusActive": effectiveIsFocus
         ] as [String: Any]
+
+        AppLogger.network.infoToFile("📤 HTTP Server: Sending response to extension", metadata: [
+            "response": String(describing: response)
+        ])
 
         sendJSONResponse(response, to: connection)
     }
@@ -388,6 +415,11 @@ class HTTPServer: ObservableObject {
     }
 
     private func handleHeartbeatMessage(_ message: [String: Any], connection: NWConnection) {
+        AppLogger.network.infoToFile("📥 HTTP Server: Heartbeat message received", metadata: [
+            "timestamp": ISO8601DateFormatter().string(from: Date()),
+            "message_keys": Array(message.keys).joined(separator: ",")
+        ])
+
         // Ignore heartbeats when system is sleeping (lid closed, etc.)
         // Check if browser manager exists and if system is sleeping
         if let browserManager = self.browserManager {
@@ -404,6 +436,10 @@ class HTTPServer: ObservableObject {
             // This prevents the connection from being marked as disconnected when only heartbeats are received
             // BrowserManager will skip this if system is sleeping
             DispatchQueue.main.async {
+                AppLogger.network.infoToFile("💓 HTTP Server: Processing heartbeat - resetting timeout timer", metadata: [
+                    "extension_connected": String(browserManager.isExtensionConnected),
+                    "system_sleeping": String(browserManager.isSystemSleeping)
+                ])
                 browserManager.resetConnectionTimeoutTimer()
 
                 // Also ensure connection state is marked as connected if we're receiving heartbeats

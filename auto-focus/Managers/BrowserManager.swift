@@ -31,7 +31,17 @@ protocol BrowserManagerDelegate: AnyObject {
 }
 
 class BrowserManager: ObservableObject, BrowserManaging {
-    @Published var focusURLs: [FocusURL] = []
+    @Published var focusURLs: [FocusURL] = [] {
+        didSet {
+            // Sort alphabetically by name
+            let sorted = focusURLs.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            if sorted.map({ $0.id }) != focusURLs.map({ $0.id }) {
+                // Only update if order changed to avoid infinite recursion
+                focusURLs = sorted
+                return // This will trigger didSet again, but with sorted array
+            }
+        }
+    }
     @Published var currentBrowserTab: BrowserTabInfo?
     @Published var isBrowserInFocus: Bool = false
     @Published var isExtensionConnected: Bool = false
@@ -67,6 +77,8 @@ class BrowserManager: ObservableObject, BrowserManaging {
     private let connectionTimeoutInterval: TimeInterval = AppConfiguration.connectionTimeoutInterval
     private var serverHealthTimer: Timer?
     private let serverHealthCheckInterval: TimeInterval = AppConfiguration.serverHealthCheckInterval
+    private var lastTabUpdateTime: Date?
+    private var heartbeatWithoutTabUpdateCount: Int = 0
 
     init(userDefaultsManager: any PersistenceManaging, licenseManager: LicenseManager = LicenseManager()) {
         self.userDefaultsManager = userDefaultsManager
@@ -102,6 +114,7 @@ class BrowserManager: ObservableObject, BrowserManaging {
             return
         }
 
+        // Append and let didSet handle sorting
         focusURLs.append(focusURL)
         saveFocusURLs()
         delegate?.browserManager(self, didUpdateFocusURLs: focusURLs)
@@ -186,10 +199,15 @@ class BrowserManager: ObservableObject, BrowserManaging {
     }
 
     func updateFromExtension(tabInfo: BrowserTabInfo, isFocus: Bool) {
-        AppLogger.browser.infoToFile("Received update from extension", metadata: [
+        // Track when we last received a tab update
+        lastTabUpdateTime = Date()
+        heartbeatWithoutTabUpdateCount = 0
+
+        AppLogger.browser.infoToFile("📥 BrowserManager: Received update from extension", metadata: [
             "url": tabInfo.url,
             "is_focus": String(isFocus),
             "was_connected": String(isExtensionConnected),
+            "current_browser_focus_state": String(self.isBrowserInFocus),
             "matched_url": tabInfo.matchedFocusURL?.name ?? "none",
             "timestamp": ISO8601DateFormatter().string(from: Date())
         ])
@@ -216,32 +234,63 @@ class BrowserManager: ObservableObject, BrowserManaging {
         // Check if we should suppress focus activation
         let shouldSuppressFocus = shouldSuppressFocusActivation()
 
+        AppLogger.browser.infoToFile("🔍 BrowserManager: Evaluating focus conditions", metadata: [
+            "url": tabInfo.url,
+            "is_focus": String(isFocus),
+            "should_suppress": String(shouldSuppressFocus),
+            "chrome_frontmost": String(isChromeFrontmost),
+            "previous_focus_state": String(previousFocusState)
+        ])
+
         // Only activate focus if:
         // 1. URL matches a focus domain
         // 2. We're not suppressing activation (recently added URL)
         // 3. Chrome is actually the frontmost app (double-check)
         let effectiveIsFocus = isFocus && !shouldSuppressFocus && isChromeFrontmost
 
+        AppLogger.browser.infoToFile("🔍 BrowserManager: Effective focus calculation", metadata: [
+            "url": tabInfo.url,
+            "is_focus": String(isFocus),
+            "!should_suppress": String(!shouldSuppressFocus),
+            "chrome_frontmost": String(isChromeFrontmost),
+            "effective_is_focus": String(effectiveIsFocus),
+            "calculation": "isFocus(\(isFocus)) && !shouldSuppress(\(!shouldSuppressFocus)) && chromeFrontmost(\(isChromeFrontmost)) = \(effectiveIsFocus)"
+        ])
+
         if isFocus && !isChromeFrontmost {
-            AppLogger.browser.info("Focus URL detected but Chrome is not frontmost - suppressing focus activation", metadata: [
+            AppLogger.browser.infoToFile("⚠️ BrowserManager: Focus URL detected but Chrome is not frontmost - suppressing focus activation", metadata: [
                 "url": tabInfo.url
             ])
         }
 
         if shouldSuppressFocus && isFocus {
-            AppLogger.browser.info("Suppressing focus activation for recently added URL", metadata: [
+            AppLogger.browser.infoToFile("⚠️ BrowserManager: Suppressing focus activation for recently added URL", metadata: [
                 "url": tabInfo.url
             ])
         }
 
         // Update focus state if changed
         if self.isBrowserInFocus != effectiveIsFocus {
+            AppLogger.browser.infoToFile("🔄 BrowserManager: Focus state CHANGING", metadata: [
+                "url": tabInfo.url,
+                "from": String(self.isBrowserInFocus),
+                "to": String(effectiveIsFocus),
+                "previous_state": String(self.isBrowserInFocus),
+                "new_state": String(effectiveIsFocus)
+            ])
+
             AppLogger.browser.stateChange(
                 from: String(self.isBrowserInFocus),
                 to: String(effectiveIsFocus),
                 metadata: ["url": tabInfo.url]
             )
             self.isBrowserInFocus = effectiveIsFocus
+
+            AppLogger.browser.infoToFile("📤 BrowserManager: Notifying delegate of focus state change", metadata: [
+                "url": tabInfo.url,
+                "new_focus_state": String(effectiveIsFocus),
+                "delegate_exists": String(self.delegate != nil)
+            ])
 
             // Immediately notify delegate of focus state change
             self.delegate?.browserManager(self, didChangeFocusState: effectiveIsFocus)
@@ -260,11 +309,17 @@ class BrowserManager: ObservableObject, BrowserManaging {
             // State is already true and we're still on a focus URL
             // Ensure delegate is notified to restart timer if needed
             // This handles the case where timer was stopped but we're still in focus
-            AppLogger.browser.infoToFile("Browser focus already active, ensuring timer is running", metadata: [
+            AppLogger.browser.infoToFile("✅ BrowserManager: Browser focus already active, ensuring timer is running", metadata: [
                 "url": tabInfo.url,
-                "matched_url": tabInfo.matchedFocusURL?.name ?? "none"
+                "matched_url": tabInfo.matchedFocusURL?.name ?? "none",
+                "current_state": String(self.isBrowserInFocus),
+                "effective_focus": String(effectiveIsFocus)
             ])
             // Notify delegate to ensure timer is running
+            AppLogger.browser.infoToFile("📤 BrowserManager: Notifying delegate to ensure timer running", metadata: [
+                "url": tabInfo.url,
+                "delegate_exists": String(self.delegate != nil)
+            ])
             self.delegate?.browserManager(self, didChangeFocusState: true)
         } else {
             // Log when state doesn't change but we received a focus URL
@@ -387,20 +442,23 @@ class BrowserManager: ObservableObject, BrowserManaging {
     }
 
     private func loadFocusURLs() {
-        focusURLs = userDefaultsManager.load([FocusURL].self, forKey: "focusURLs") ?? []
+        var loadedURLs = userDefaultsManager.load([FocusURL].self, forKey: "focusURLs") ?? []
 
         // Add default free presets if no URLs exist
-        if focusURLs.isEmpty {
-            focusURLs = FocusURL.freePresets
+        if loadedURLs.isEmpty {
+            loadedURLs = FocusURL.freePresets
             saveFocusURLs()
             AppLogger.browser.info("Loaded default focus URLs", metadata: [
-                "count": String(focusURLs.count)
+                "count": String(loadedURLs.count)
             ])
         } else {
             AppLogger.browser.info("Loaded saved focus URLs", metadata: [
-                "count": String(focusURLs.count)
+                "count": String(loadedURLs.count)
             ])
         }
+
+        // Sort alphabetically by name
+        focusURLs = loadedURLs.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
 
         // Notify delegate of initial URLs (after delegate is set)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -439,6 +497,37 @@ class BrowserManager: ObservableObject, BrowserManaging {
         guard !isSystemSleeping else {
             AppLogger.browser.debug("Skipping connection timeout reset - system is sleeping")
             return
+        }
+
+        // Check if we're receiving heartbeats but no tab_changed messages
+        // This indicates the extension might not be sending tab updates
+        let isChromeFrontmost = isChromeBrowserFrontmost()
+        if isChromeFrontmost && isExtensionConnected {
+            heartbeatWithoutTabUpdateCount += 1
+
+            if let lastUpdate = lastTabUpdateTime {
+                let timeSinceLastUpdate = Date().timeIntervalSince(lastUpdate)
+                if timeSinceLastUpdate > 5.0 { // More than 5 seconds since last tab update
+                    AppLogger.browser.infoToFile("⚠️ BrowserManager: Chrome is frontmost but no tab_changed messages received", metadata: [
+                        "time_since_last_update": String(format: "%.1f", timeSinceLastUpdate),
+                        "heartbeat_count_without_update": String(heartbeatWithoutTabUpdateCount),
+                        "chrome_frontmost": String(isChromeFrontmost),
+                        "extension_connected": String(isExtensionConnected),
+                        "current_browser_focus": String(isBrowserInFocus)
+                    ])
+                }
+            } else {
+                // Never received a tab update
+                if heartbeatWithoutTabUpdateCount >= 3 {
+                    AppLogger.browser.infoToFile("⚠️ BrowserManager: Extension connected but NEVER sent tab_changed messages", metadata: [
+                        "heartbeat_count_without_update": String(heartbeatWithoutTabUpdateCount),
+                        "chrome_frontmost": String(isChromeFrontmost),
+                        "extension_connected": String(isExtensionConnected),
+                        "current_browser_focus": String(isBrowserInFocus),
+                        "message": "Extension may not be detecting tab changes properly"
+                    ])
+                }
+            }
         }
 
         connectionTimeoutTimer?.invalidate()
@@ -539,17 +628,25 @@ class BrowserManager: ObservableObject, BrowserManaging {
     }
 
     private func performServerHealthCheck() {
+        // Only log health check start in debug builds to reduce noise
+        #if DEBUG
         AppLogger.browser.debugToFile("Performing server health check", metadata: [
             "extension_connected": String(isExtensionConnected),
             "connection_quality": connectionQuality.rawValue
         ])
+        #endif
 
         let task = URLSession.shared.dataTask(with: URLRequest(url: URL(string: "http://localhost:8942/browser")!)) { [weak self] _, response, error in
             DispatchQueue.main.async {
                 if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 404 {
-                    AppLogger.browser.debugToFile("Server health check passed", metadata: [
-                        "status_code": String(httpResponse.statusCode)
+                    // 404 is expected - server is running but GET requests aren't supported (only POST)
+                    // Only log in debug builds to reduce log noise
+                    #if DEBUG
+                    AppLogger.browser.debugToFile("Server health check OK (404 expected - server running)", metadata: [
+                        "status_code": String(httpResponse.statusCode),
+                        "note": "GET requests return 404, only POST is accepted"
                     ])
+                    #endif
                 } else {
                     let statusCode = (response as? HTTPURLResponse)?.statusCode.description ?? "unknown"
                     AppLogger.browser.errorToFile("Server health check failed", error: error, metadata: [

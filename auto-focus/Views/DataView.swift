@@ -153,7 +153,7 @@ struct DataSessionManagementView: View {
     var body: some View {
         GroupBox(label: Text("Session Management").font(.headline)) {
             VStack(spacing: 16) {
-                Text("View and edit your focus sessions. Correct any incorrect session entries or remove unwanted sessions.")
+                Text("View and manage your focus sessions. Remove unwanted sessions if needed.")
                     .font(.callout)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.leading)
@@ -237,24 +237,48 @@ struct DataStatCard: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(color)
+            if #available(macOS 14.0, *) {
+                Image(systemName: icon)
+                    .font(.title2)
+                    .foregroundStyle(color.gradient)
+                    .symbolEffect(.pulse, options: .repeating)
+            } else {
+                Image(systemName: icon)
+                    .font(.title2)
+                    .foregroundColor(color)
+            }
 
             Text(value)
                 .font(.title3)
                 .fontWeight(.bold)
 
-            Text(title)
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
+            if #available(macOS 14.0, *) {
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            } else {
+                Text(title)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
         }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 8)
+        .padding(.vertical, 16)
+        .padding(.horizontal, 12)
         .frame(maxWidth: .infinity)
-        .background(Color(.controlBackgroundColor))
-        .cornerRadius(8)
+        .background(backgroundMaterial)
+    }
+
+    @ViewBuilder
+    private var backgroundMaterial: some View {
+        if #available(macOS 11.0, *) {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.regularMaterial)
+        } else {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(.controlBackgroundColor))
+        }
     }
 }
 
@@ -415,10 +439,20 @@ struct PremiumRequiredView: View {
             }
             .controlSize(.small)
         }
-        .padding(.vertical, 6)
-        .padding(.horizontal, 8)
-        .background(Color.secondary.opacity(0.1))
-        .cornerRadius(6)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .background(backgroundMaterial)
+    }
+
+    @ViewBuilder
+    private var backgroundMaterial: some View {
+        if #available(macOS 11.0, *) {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(.regularMaterial)
+        } else {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(.controlBackgroundColor))
+        }
     }
 }
 
@@ -490,8 +524,18 @@ struct ExportPreviewCard: View {
             }
         }
         .padding()
-        .background(Color(.controlBackgroundColor))
-        .cornerRadius(8)
+        .background(backgroundMaterial)
+    }
+
+    @ViewBuilder
+    private var backgroundMaterial: some View {
+        if #available(macOS 11.0, *) {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.regularMaterial)
+        } else {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(.controlBackgroundColor))
+        }
     }
 }
 
