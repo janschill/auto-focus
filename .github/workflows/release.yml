@@ -62,16 +62,13 @@ jobs:
         if: steps.version_check.outputs.version_changed == 'true'
         run: sudo xcode-select -switch /Applications/Xcode.app/Contents/Developer
 
-      - name: Cache Swift packages
+      - name: Clear DerivedData cache for fresh build
         if: steps.version_check.outputs.version_changed == 'true'
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/Library/Developer/Xcode/DerivedData
-            .build
-          key: ${{ runner.os }}-swift-${{ hashFiles('**/Package.resolved') }}
-          restore-keys: |
-            ${{ runner.os }}-swift-
+        run: |
+          # Remove any cached DerivedData to ensure fresh build
+          rm -rf ~/Library/Developer/Xcode/DerivedData/auto-focus-*
+          rm -rf build/DerivedData
+          echo "✅ Cleared DerivedData cache for fresh build"
 
       - name: Resolve package dependencies
         if: steps.version_check.outputs.version_changed == 'true'
@@ -112,6 +109,37 @@ jobs:
           echo "tag=v$PROJECT_VERSION" >> $GITHUB_OUTPUT
           echo "✅ Using MARKETING_VERSION: $PROJECT_VERSION"
 
+      - name: Auto-increment build number
+        if: steps.version_check.outputs.version_changed == 'true'
+        run: |
+          # Get current build number from project file
+          CURRENT_BUILD=$(grep -m 1 "CURRENT_PROJECT_VERSION = " auto-focus.xcodeproj/project.pbxproj | sed 's/.*CURRENT_PROJECT_VERSION = \([^;]*\);.*/\1/' | head -n 1 | tr -d ' ')
+
+          # Increment build number
+          NEW_BUILD=$((CURRENT_BUILD + 1))
+
+          echo "📦 Incrementing build number: $CURRENT_BUILD -> $NEW_BUILD"
+
+          # Update build number in all configurations (Debug, Release, Test targets)
+          # Use sed to replace all occurrences of CURRENT_PROJECT_VERSION = <number> with the new build number
+          sed -i.bak "s/CURRENT_PROJECT_VERSION = [0-9]*/CURRENT_PROJECT_VERSION = $NEW_BUILD/g" auto-focus.xcodeproj/project.pbxproj
+          rm -f auto-focus.xcodeproj/project.pbxproj.bak
+
+          # Verify the change
+          VERIFIED_BUILD=$(grep -m 1 "CURRENT_PROJECT_VERSION = " auto-focus.xcodeproj/project.pbxproj | sed 's/.*CURRENT_PROJECT_VERSION = \([^;]*\);.*/\1/' | head -n 1 | tr -d ' ')
+          if [ "$VERIFIED_BUILD" = "$NEW_BUILD" ]; then
+            echo "✅ Build number updated successfully to $NEW_BUILD"
+          else
+            echo "❌ Failed to update build number. Expected $NEW_BUILD, got $VERIFIED_BUILD"
+            exit 1
+          fi
+
+          # Commit the build number change
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add auto-focus.xcodeproj/project.pbxproj
+          git commit -m "chore: Auto-increment build number to $NEW_BUILD" || echo "No changes to commit (build number already updated)"
+
       - name: Build and archive app
         if: steps.version_check.outputs.version_changed == 'true'
         env:
@@ -121,7 +149,14 @@ jobs:
           echo "Checking for signing certificate before build..."
           security find-identity -v -p codesigning | grep "Developer ID Application" || echo "Warning: Certificate not found"
 
-          xcodebuild clean archive \
+          # Clean build to ensure no stale artifacts
+          xcodebuild clean \
+            -project auto-focus.xcodeproj \
+            -scheme auto-focus \
+            -configuration Release || true
+
+          # Build archive with fresh DerivedData
+          xcodebuild archive \
             -project auto-focus.xcodeproj \
             -scheme auto-focus \
             -configuration Release \
@@ -131,6 +166,8 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM=LKQJ2JG34Y \
             HMAC_SECRET="$HMAC_SECRET" || exit $?
+
+          echo "✅ Archive built successfully"
 
       - name: Extract app from archive
         if: steps.version_check.outputs.version_changed == 'true'
