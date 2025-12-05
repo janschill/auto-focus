@@ -8,10 +8,15 @@ class ConfigurationViewModel: ObservableObject {
 
     init(focusManager: FocusManager = FocusManager.shared) {
         self.focusManager = focusManager
-        self.shortcutInstalled = focusManager.checkShortcutExists()
+        // Use cached value from FocusManager (avoids synchronous AppleScript during init)
+        self.shortcutInstalled = focusManager.isShortcutInstalled
     }
 
     func updateShortcutInstalled() {
-        self.shortcutInstalled = focusManager.checkShortcutExists()
+        // Refresh the shortcut status asynchronously, then update local state
+        focusManager.refreshShortcutStatus()
+        // The FocusManager will update isShortcutInstalled asynchronously
+        // For immediate use, we can observe focusManager.isShortcutInstalled
+        self.shortcutInstalled = focusManager.isShortcutInstalled
     }
 }

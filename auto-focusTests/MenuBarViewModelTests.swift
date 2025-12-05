@@ -36,14 +36,30 @@ final class FocusManagerStateTests: XCTestCase {
         XCTAssertEqual(focusManager.isPaused, !initialPauseState)
     }
 
-    func testShortcutStatusComputed() {
-        // Test computed property returns correct value
+    func testShortcutStatusCached() {
+        // Test cached property is updated via refreshShortcutStatus()
+        // Initial state depends on mock setup during init
         mockFocusModeManager.shouldFailShortcutCheck = false
-        XCTAssertTrue(focusManager.isShortcutInstalled)
 
-        mockFocusModeManager.shouldFailShortcutCheck = true
+        // refreshShortcutStatus() runs async, so we need to wait
+        let expectation = expectation(description: "Shortcut status updated")
         focusManager.refreshShortcutStatus()
-        XCTAssertFalse(focusManager.isShortcutInstalled)
+
+        // Wait a bit for async update to complete
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            XCTAssertTrue(self.focusManager.isShortcutInstalled)
+
+            // Now test when shortcut doesn't exist
+            self.mockFocusModeManager.shouldFailShortcutCheck = true
+            self.focusManager.refreshShortcutStatus()
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                XCTAssertFalse(self.focusManager.isShortcutInstalled)
+                expectation.fulfill()
+            }
+        }
+
+        wait(for: [expectation], timeout: 1.0)
     }
 
     func testFocusThresholdPersistence() {

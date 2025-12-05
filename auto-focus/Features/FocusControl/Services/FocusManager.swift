@@ -70,6 +70,7 @@ class FocusManager: ObservableObject {
     @Published var isExtensionConnected: Bool = false
     @Published var extensionHealth: ExtensionHealth?
     @Published var connectionQuality: ConnectionQuality = .unknown
+    @Published var isShortcutInstalled: Bool = false
 
     private var freeAppLimit: Int = AppConfiguration.freeAppLimit
     @Published var isPremiumUser: Bool = false
@@ -104,11 +105,7 @@ class FocusManager: ObservableObject {
         return sessionManager.weekSessions
     }
 
-    // MARK: - Shortcut Status
-    var isShortcutInstalled: Bool {
-        // Remove dependency trigger to prevent AttributeGraph cycles
-        return focusModeController.checkShortcutExists()
-    }
+    // MARK: - Shortcut Status (cached - use refreshShortcutStatus() to update)
 
     var monthSessions: [FocusSession] {
         return sessionManager.monthSessions
@@ -208,6 +205,9 @@ class FocusManager: ObservableObject {
         self.focusTimer.onTick = { [weak self] elapsedTime in
             self?.handleTimerTick(elapsedTime: elapsedTime)
         }
+
+        // Check shortcut status asynchronously to avoid AppleScript blocking
+        refreshShortcutStatus()
     }
 
     func togglePause() {
@@ -362,9 +362,14 @@ class FocusManager: ObservableObject {
     }
 
     func refreshShortcutStatus() {
-        // Defer notification to avoid triggering during view updates
-        DispatchQueue.main.async { [weak self] in
-            self?.objectWillChange.send()
+        // Run AppleScript check on background thread to avoid blocking UI
+        // and prevent crashes from re-entrancy during SwiftUI view updates
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
+            let exists = self.focusModeController.checkShortcutExists()
+            DispatchQueue.main.async {
+                self.isShortcutInstalled = exists
+            }
         }
     }
 

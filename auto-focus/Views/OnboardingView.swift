@@ -76,6 +76,9 @@ struct OnboardingView: View {
         .onChange(of: focusManager.focusURLs.count) { _ in
             hasSetupBrowser = !focusManager.focusURLs.isEmpty
         }
+        .onChange(of: focusManager.isShortcutInstalled) { newValue in
+            hasInstalledShortcut = newValue
+        }
     }
 
     @ViewBuilder
@@ -271,12 +274,12 @@ struct InstallShortcutStepView: View {
                 if !hasInstalled {
                     Button("Install Shortcut") {
                         installShortcut()
-                        // Use Task for proper async handling without forcing view updates
+                        // Check shortcut status after a delay to allow user to complete installation
+                        // The onChange handler will update hasInstalled when isShortcutInstalled changes
                         Task {
-                            try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+                            try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
                             await MainActor.run {
                                 focusManager.refreshShortcutStatus()
-                                hasInstalled = focusManager.isShortcutInstalled
                             }
                         }
                     }
