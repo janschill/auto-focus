@@ -14,12 +14,12 @@ on:
 jobs:
   release:
     name: Build, Sign, Notarize, and Release
-    runs-on: macos-15
+    runs-on: macos-latest
     timeout-minutes: 60
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0 # Full history needed for git tags
           token: ${{ secrets.GITHUB_TOKEN }}
