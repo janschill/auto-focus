@@ -58,9 +58,17 @@ jobs:
             echo "   To release, bump MARKETING_VERSION in auto-focus.xcodeproj/project.pbxproj"
           fi
 
+      - name: Show the currently detailed version of Xcode for CLI
+        shell: bash
+        run: xcodebuild -version
+
       - name: Select Xcode version
         if: steps.version_check.outputs.version_changed == 'true'
-        run: sudo xcode-select -switch /Applications/Xcode.app/Contents/Developer
+        run: sudo xcode-select -switch /Applications/Xcode_26.1.app
+
+      - name: Show Build Version
+        shell: bash
+        run: xcodebuild -version
 
       - name: Clear DerivedData cache for fresh build
         if: steps.version_check.outputs.version_changed == 'true'

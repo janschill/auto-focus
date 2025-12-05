@@ -2,7 +2,7 @@ import SwiftUI
 
 struct MenuBarView: View {
     @EnvironmentObject var focusManager: FocusManager
-    @StateObject private var versionCheckManager = VersionCheckManager()
+    @ObservedObject private var versionCheckManager = VersionCheckManager.shared
 
     var version: String {
     #if DEBUG
@@ -11,12 +11,12 @@ struct MenuBarView: View {
             return Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
     #endif
     }
-    
+
     // Calculate total focus time today
     var totalFocusTimeToday: TimeInterval {
         return focusManager.todaysSessions.reduce(0) { $0 + $1.duration }
     }
-    
+
     // Calculate average daily focus time (last 7 days)
     var averageDailyFocus: TimeInterval {
         let lastWeekSessions = focusManager.weekSessions
@@ -25,21 +25,21 @@ struct MenuBarView: View {
         let totalTime = lastWeekSessions.reduce(0) { $0 + $1.duration }
         return totalTime / Double(daysWithSessions)
     }
-    
+
     // Calculate focus streak (consecutive days with focus sessions)
     var focusStreak: Int {
         let calendar = Calendar.current
         var streak = 0
         var currentDate = Date()
-        
+
         while true {
             let dayStart = calendar.startOfDay(for: currentDate)
             let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart)!
-            
+
             let hasSessions = focusManager.focusSessions.contains { session in
                 session.startTime >= dayStart && session.startTime < dayEnd
             }
-            
+
             if hasSessions {
                 streak += 1
                 currentDate = calendar.date(byAdding: .day, value: -1, to: currentDate)!
@@ -47,26 +47,26 @@ struct MenuBarView: View {
                 break
             }
         }
-        
+
         return streak
     }
-    
+
     // Get best session duration
     var bestSessionDuration: TimeInterval {
         return focusManager.weekSessions.map { $0.duration }.max() ?? 0
     }
-    
+
     // Progress to DND activation
     var progressToDND: Double {
         guard focusManager.isInOverallFocus && !focusManager.isInFocusMode else { return 0 }
         return min(focusManager.timeSpent / (focusManager.focusThreshold * 60), 1.0)
     }
-    
+
     // Get current app name
     var currentAppName: String? {
         return focusManager.currentAppInfo?.name
     }
-    
+
     // Get primary status with icon
     var primaryStatus: (icon: String, text: String, color: Color) {
         if focusManager.isPaused {
@@ -86,7 +86,7 @@ struct MenuBarView: View {
             return ("circle", "Out of Focus", .secondary)
         }
     }
-    
+
     // Get next action hint
     var nextActionHint: String? {
         if focusManager.isInOverallFocus && !focusManager.isInFocusMode {
@@ -131,13 +131,13 @@ struct MenuBarView: View {
                             .font(.system(size: 11))
                             .foregroundStyle(.secondary)
                     }
-                    
+
                     GeometryReader { geometry in
                         ZStack(alignment: .leading) {
                             RoundedRectangle(cornerRadius: 2)
                                 .fill(Color.gray.opacity(0.2))
                                 .frame(height: 4)
-                            
+
                             RoundedRectangle(cornerRadius: 2)
                                 .fill(Color.blue)
                                 .frame(width: geometry.size.width * progressToDND, height: 4)
@@ -147,9 +147,9 @@ struct MenuBarView: View {
                 }
                 .padding(.vertical, 4)
             }
-            
+
             Divider()
-            
+
             // Today's Focus Summary
             if totalFocusTimeToday > 0 {
                 VStack(alignment: .leading, spacing: 6) {
@@ -159,23 +159,23 @@ struct MenuBarView: View {
                         Spacer()
                         Text(TimeFormatter.duration(totalFocusTimeToday))
                             .font(.system(size: 12, weight: .semibold))
-                        
+
                         // Show comparison to average
                         if averageDailyFocus > 0 {
                             let percentChange = ((totalFocusTimeToday - averageDailyFocus) / averageDailyFocus) * 100
                             let changeSymbol = percentChange >= 0 ? "↑" : "↓"
                             let changeColor = percentChange >= 0 ? Color.green : Color.red
-                            
+
                             Text("(\(changeSymbol) \(Int(abs(percentChange)))% vs avg)")
                                 .font(.system(size: 11))
                                 .foregroundStyle(changeColor)
                         }
                     }
                 }
-                
+
                 Divider()
             }
-            
+
             // Quick Stats Section
             VStack(alignment: .leading, spacing: 6) {
                 if focusStreak > 0 {
@@ -191,7 +191,7 @@ struct MenuBarView: View {
                             .font(.system(size: 12, weight: .medium))
                     }
                 }
-                
+
                 HStack {
                     Image(systemName: "chart.bar.fill")
                         .foregroundStyle(.blue)
@@ -203,7 +203,7 @@ struct MenuBarView: View {
                     Text(TimeFormatter.duration(focusManager.weekSessions.reduce(0) { $0 + $1.duration }))
                         .font(.system(size: 12, weight: .medium))
                 }
-                
+
                 if bestSessionDuration > 0 {
                     HStack {
                         Image(systemName: "star.fill")
@@ -218,11 +218,11 @@ struct MenuBarView: View {
                     }
                 }
             }
-            
+
             // Next Action Hint
             if let hint = nextActionHint {
                 Divider()
-                
+
                 HStack(spacing: 6) {
                     Image(systemName: "lightbulb.fill")
                         .foregroundStyle(.yellow)
@@ -232,11 +232,11 @@ struct MenuBarView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            
+
             // App limit status for free users
             if focusManager.isPremiumRequired {
                 Divider()
-                
+
                 HStack {
                     Image(systemName: "star.fill")
                         .foregroundStyle(.yellow)
@@ -250,7 +250,7 @@ struct MenuBarView: View {
             // Update notification
             if versionCheckManager.isUpdateAvailable {
                 Divider()
-                
+
                 HStack {
                     Image(systemName: "arrow.up.circle.fill")
                         .foregroundStyle(.blue)
@@ -258,9 +258,9 @@ struct MenuBarView: View {
                     Text("Update v\(versionCheckManager.latestVersion) available")
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
-                    
+
                     Spacer()
-                    
+
                     Button("Download") {
                         versionCheckManager.openDownloadPage()
                     }

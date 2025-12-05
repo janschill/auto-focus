@@ -9,6 +9,10 @@ import SwiftUI
 /// matches the format used in `version.json` (currently date-based: YYYY.MM.DD).
 /// The Makefile generates date-based versions automatically.
 class VersionCheckManager: ObservableObject {
+    /// Shared instance for app-wide version checking.
+    /// All views should use this shared instance to ensure consistent update state.
+    static let shared = VersionCheckManager()
+
     @Published var isUpdateAvailable: Bool = false
     @Published var latestVersion: String = ""
     @Published var currentVersion: String = ""

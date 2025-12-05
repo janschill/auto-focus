@@ -96,7 +96,7 @@ private struct HeaderView: View {
 struct GeneralSettingsView: View {
     @EnvironmentObject var licenseManager: LicenseManager
     @EnvironmentObject var focusManager: FocusManager
-    @StateObject private var versionCheckManager = VersionCheckManager()
+    @ObservedObject private var versionCheckManager = VersionCheckManager.shared
 
     var body: some View {
         GroupBox {
