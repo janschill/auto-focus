@@ -73,4 +73,14 @@ privacy).
   - configuration updates
 - **Rationale**: Enables unit testing of buffer behavior and uninterrupted timing without wall-clock flakiness.
 
+## Decision: Licensing (license key + API validation)
+
+- **Decision**: Use a license key entered by the user and validated via an API call. Cache the last-known-good license status and treat offline/validation failures as non-blocking (core focus still works, premium gates do not unlock).
+- **Rationale**: Matches previously working behavior and enables day-1 premium gating without App Store complexity.
+- **Alternatives considered**:
+  - App Store subscription/receipt: different distribution model and significantly more integration work.
+  - Local-only “license file”: easier but weaker controls and harder to manage revocations.
+
+**UX requirement**: Validation status must be visible and actionable (e.g., “offline”, “invalid key”, “service unavailable”).
+
 

@@ -11,6 +11,7 @@ A macOS SwiftUI app that:
 - Counts time spent in configured focus entities (apps + domains)
 - After the configured duration, silently disables notifications by running a provided Shortcut
 - Records sessions/events into SQLite and shows insights
+- Supports license-key validation to unlock premium features (more focus entities, deeper insights, export)
 
 ## Build & run (developer)
 
@@ -33,6 +34,10 @@ The app MUST guide the user through permission prompts and show clear “blocked
   - (If domain extraction uses Apple Events) allow control of the browser (Safari/Chrome)
 - **Accessibility**: only required if we adopt an accessibility-based fallback. Prefer avoiding it.
 
+### 2b) (Optional) Enter license key for premium
+- Enter a license key in settings during onboarding or later.
+- Confirm the app shows a clear “licensed” status and premium features unlock immediately.
+
 ### 3) Configure focus entities and timers
 - Add focus applications (bundle-based selection)
 - Add focus domains (domain strings)
@@ -50,5 +55,6 @@ The app MUST guide the user through permission prompts and show clear “blocked
 - Leaving focus entities ends focus mode; buffer prevents immediate session loss while buffering.
 - Domain tracking shows “unavailable” rather than wrong data if permissions are missing.
 - Insights persist across app restarts (SQLite).
+- Free tier enforces limits (max entities, limited insights depth, no export) and premium unlocks after license validation.
 
 

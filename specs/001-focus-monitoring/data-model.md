@@ -60,6 +60,26 @@ Optional join table allowing many-to-many between sessions and entities involved
 - **focusEntityId**: UUID
 - **secondsAttributed**: integer (optional; computed or updated over time)
 
+### LicenseStatus
+Represents the current license state used for premium gating.
+
+- **state**: enum `{unlicensed, licensed, unknown, validationFailed, offline}`
+- **lastValidatedAt**: nullable timestamp
+- **expiresAt**: nullable timestamp (if the licensing model includes expiry)
+- **entitlements**: logical set (e.g., maxEntities, exportEnabled, insightsDepthDays)
+
+**Note**: The license key itself should be treated as sensitive and should be stored securely (not in plain SQLite). The database may store derived, non-sensitive license status for UX and offline behavior.
+
+### ExportJob
+Represents an export operation (primarily for user-facing history and debugging).
+
+- **id**: UUID
+- **createdAt**: timestamp
+- **status**: enum `{started, succeeded, failed}`
+- **rangeStartAt** / **rangeEndAt**: nullable timestamps
+- **format**: enum `{csv, json}` (extend as needed)
+- **outputLocation**: string (path or bookmark reference; avoid storing file contents in DB)
+
 ## SQLite schema (proposed)
 
 ### Table: focus_settings
@@ -115,6 +135,25 @@ Optional join table allowing many-to-many between sessions and entities involved
 - `seconds_attributed INTEGER NOT NULL DEFAULT 0`
 - `PRIMARY KEY(session_id, focus_entity_id)`
 - foreign keys (optional in SQLite, but recommended if enabled)
+
+### Table: license_status (optional, single row)
+- `id INTEGER PRIMARY KEY CHECK(id = 1)`
+- `state TEXT NOT NULL`
+- `last_validated_at INTEGER NULL`
+- `expires_at INTEGER NULL`
+- `entitlements_json TEXT NULL` (non-sensitive derived entitlements)
+
+### Table: export_jobs
+- `id TEXT PRIMARY KEY`
+- `created_at INTEGER NOT NULL`
+- `status TEXT NOT NULL`
+- `range_start_at INTEGER NULL`
+- `range_end_at INTEGER NULL`
+- `format TEXT NOT NULL`
+- `output_location TEXT NULL`
+
+**Indexes**
+- `idx_export_jobs_created_at` on `(created_at)`
 
 ## Insight queries (examples, not implementation)
 

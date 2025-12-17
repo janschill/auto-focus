@@ -15,6 +15,9 @@ notifications (via running a provided Shortcuts automation through AppleScript).
 focus sessions and events in SQLite to power insights (daily totals, per-entity breakdowns, and
 session history).
 
+Premium (day 1): enforce free-tier limits (max focus entities, limited insights depth, no export)
+and support license-key validation via API to unlock premium immediately.
+
 ## Technical Context
 
 <!--
@@ -30,7 +33,7 @@ session history).
 **Target Platform**: macOS 13+ (assumption; adjust if the Xcode project targets a different minimum)
 **Project Type**: single (macOS app + tests)
 **Performance Goals**: Near-real-time status updates (foreground changes reflected within ~2s; focus activation within 5s of threshold)
-**Constraints**: Offline-capable; no sensitive browsing content stored (domain only); minimal CPU usage while monitoring
+**Constraints**: Offline-capable; no sensitive browsing content stored (domain only); minimal CPU usage while monitoring; license validation failures must not block core focus functionality
 **Scale/Scope**: Single-user local app; months/years of events; thousands of sessions and entities without noticeable UI lag
 
 ## Constitution Check
@@ -75,10 +78,11 @@ auto-focus2/                       # New greenfield macOS app implementation (Sw
 ├── UI/                            # SwiftUI views + view models
 └── Resources/                     # Assets / misc
 
-auto-focus2Tests/                  # XCTest unit tests
-├── DomainTests/
-├── PersistenceTests/
-└── AdapterTests/
+├── Tests/                         # XCTest unit tests
+│   ├── DomainTests/
+│   ├── PersistenceTests/
+│   └── AdapterTests/
+└── AutoFocus2.xcodeproj/          # New Xcode project for the rewrite
 ```
 
 **Structure Decision**: Create a new greenfield module tree under `auto-focus2/` with a separate test target `auto-focus2Tests/`. The existing codebase remains as reference; new implementation uses protocol-driven adapters and a deterministic core to satisfy the constitution gates.
