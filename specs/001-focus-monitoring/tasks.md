@@ -41,17 +41,17 @@ description: "Task list for Foreground Focus Monitoring"
 - [x] T008 Create domain state machine in auto-focus2/Domain/FocusStateMachine.swift (counting → focusMode → buffer → idle)
 - [x] T009 Create controllable clock/ticker abstraction in auto-focus2/Domain/Clock.swift (testable time progression)
 - [x] T010 Create protocols for side effects in auto-focus2/Domain/Ports.swift (ForegroundProvider, BrowserDomainProvider, NotificationsController, Persistence)
-- [ ] T011 Create app composition root wiring in auto-focus2/App/CompositionRoot.swift (dependency injection)
-- [ ] T012 Create logging façade in auto-focus2/App/Logging.swift (no sensitive data, domain-only)
+- [x] T011 Create app composition root wiring in auto-focus2/App/CompositionRoot.swift (dependency injection)
+- [x] T012 Create logging façade in auto-focus2/App/Logging.swift (no sensitive data, domain-only)
 
-- [ ] T013 Create SQLite database wrapper and migration runner in auto-focus2/Persistence/SQLite/SQLiteDatabase.swift
-- [ ] T014 Create schema + migrations in auto-focus2/Persistence/SQLite/Migrations.swift (PRAGMA user_version, forward-only migrations)
-- [ ] T015 Create repositories in auto-focus2/Persistence/Repositories/ (FocusSettingsRepository, FocusEntityRepository, FocusEventRepository, FocusSessionRepository)
+- [x] T013 Create SQLite database wrapper and migration runner in auto-focus2/Persistence/SQLite/SQLiteDatabase.swift
+- [x] T014 Create schema + migrations in auto-focus2/Persistence/SQLite/Migrations.swift (PRAGMA user_version, forward-only migrations)
+- [x] T015 Create repositories in auto-focus2/Persistence/Repositories/ (FocusSettingsRepository, FocusEntityRepository, FocusEventRepository, FocusSessionRepository)
 
-- [ ] T016 Create “Launch on Login” service interface + implementation in auto-focus2/Adapters/LaunchOnLogin/LaunchOnLoginService.swift
-- [ ] T017 Create AppleScript shortcut runner in auto-focus2/Adapters/Shortcuts/ShortcutRunner.swift (per specs/001-focus-monitoring/contracts/shortcut-toggle.md)
-- [ ] T018 Create foreground app monitor adapter in auto-focus2/Adapters/Foreground/ForegroundAppMonitor.swift (polling NSWorkspace)
-- [ ] T019 Create browser domain provider adapter in auto-focus2/Adapters/Browser/BrowserDomainProvider.swift (Safari + Chrome strategy + unavailable states; per specs/001-focus-monitoring/contracts/browser-domain.md)
+- [x] T016 Create “Launch on Login” service interface + implementation in auto-focus2/Adapters/LaunchOnLogin/LaunchOnLoginService.swift
+- [x] T017 Create AppleScript shortcut runner in auto-focus2/Adapters/Shortcuts/ShortcutRunner.swift (per specs/001-focus-monitoring/contracts/shortcut-toggle.md)
+- [x] T018 Create foreground app monitor adapter in auto-focus2/Adapters/Foreground/ForegroundAppMonitor.swift (polling NSWorkspace)
+- [x] T019 Create browser domain provider adapter in auto-focus2/Adapters/Browser/BrowserDomainProvider.swift (Safari + Chrome strategy + unavailable states; per specs/001-focus-monitoring/contracts/browser-domain.md)
 
 **Checkpoint**: Foundation ready — the app can observe current context, simulate time in tests, persist, and toggle notifications via the shortcut adapter.
 
