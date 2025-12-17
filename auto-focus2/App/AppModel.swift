@@ -5,6 +5,7 @@ import SwiftUI
 final class AppModel: ObservableObject {
     @Published private(set) var compositionRoot: CompositionRoot?
     @Published private(set) var initError: String?
+    @Published private(set) var orchestrator: FocusOrchestrator?
 
     @Published var showsSettings: Bool = false
     @Published var showsOnboarding: Bool = false
@@ -14,6 +15,18 @@ final class AppModel: ObservableObject {
             let appSupport = try Self.ensureAppSupportDirectory()
             let root = try CompositionRoot(appSupportDirectory: appSupport)
             self.compositionRoot = root
+            self.orchestrator = FocusOrchestrator(
+                clock: root.clock,
+                stateMachine: root.stateMachine,
+                settingsStore: root.settingsStore,
+                entityStore: root.entityStore,
+                eventStore: root.eventStore,
+                sessionStore: root.sessionStore,
+                foregroundProvider: root.foregroundProvider,
+                domainProvider: root.domainProvider,
+                notificationsController: root.notificationsController
+            )
+            self.orchestrator?.start()
             self.showsOnboarding = true
         } catch {
             self.initError = String(describing: error)

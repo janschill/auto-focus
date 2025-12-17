@@ -7,30 +7,41 @@ struct AutoFocus2App: App {
 
     var body: some Scene {
         MenuBarExtra("AutoFocus2", systemImage: "scope") {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("AutoFocus2")
-                    .font(.headline)
-
-                Divider()
-
+            Group {
                 if let error = appModel.initError {
-                    Text("Init failed: \(error)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                } else if appModel.compositionRoot == nil {
-                    Button("Initialize") { appModel.start() }
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("AutoFocus2")
+                            .font(.headline)
+                        Text("Init failed: \(error)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Divider()
+                        Button("Retry") { appModel.start() }
+                        Button("Quit") { NSApplication.shared.terminate(nil) }
+                    }
+                    .padding(12)
+                    .frame(minWidth: 280)
+                } else if appModel.compositionRoot == nil || appModel.orchestrator == nil {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("AutoFocus2")
+                            .font(.headline)
+                        Text("Not initialized.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Divider()
+                        Button("Initialize") { appModel.start() }
+                        Button("Quit") { NSApplication.shared.terminate(nil) }
+                    }
+                    .padding(12)
+                    .frame(minWidth: 280)
                 } else {
-                    Button("Onboarding") { appModel.showsOnboarding = true }
-                    Button("Settings") { appModel.showsSettings = true }
-                        .keyboardShortcut(",", modifiers: .command)
-                }
-
-                Button("Quit") {
-                    NSApplication.shared.terminate(nil)
+                    MenuBarView(
+                        orchestrator: appModel.orchestrator!,
+                        onShowOnboarding: { appModel.showsOnboarding = true },
+                        onShowSettings: { appModel.showsSettings = true }
+                    )
                 }
             }
-            .padding(12)
-            .frame(minWidth: 260)
             .sheet(isPresented: $appModel.showsSettings) {
                 if let root = appModel.compositionRoot {
                     SettingsView(viewModel: SettingsViewModel(root: root))

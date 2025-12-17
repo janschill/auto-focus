@@ -74,7 +74,7 @@ description: "Task list for Foreground Focus Monitoring"
 
 ### Implementation for User Story 1
 
-- [ ] T024 [US1] Implement configuration storage for activationMinutes + bufferSeconds in auto-focus2/Persistence/Repositories/FocusSettingsRepository.swift
+- [x] T024 [US1] Implement configuration storage for activationMinutes + bufferSeconds in auto-focus2/Persistence/Repositories/FocusSettingsRepository.swift
 - [x] T025 [US1] Implement focus entity CRUD (apps + domains) with max-entities enforcement in auto-focus2/Persistence/Repositories/FocusEntityRepository.swift
 - [x] T026 [US1] Implement LicenseService + local secure key storage + cached status in auto-focus2/App/LicenseService.swift
 - [x] T027 [US1] Implement license validation API client adapter per specs/001-focus-monitoring/contracts/license-api.md in auto-focus2/Adapters/License/LicenseClient.swift
@@ -97,17 +97,17 @@ description: "Task list for Foreground Focus Monitoring"
 
 ### Tests for User Story 2 (REQUIRED unless explicitly waived) ⚠️
 
-- [ ] T033 [P] [US2] Add FocusStateMachine unit tests for threshold activation in auto-focus2/Tests/DomainTests/FocusStateMachine_ActivationTests.swift
-- [ ] T034 [P] [US2] Add FocusStateMachine unit tests for leaving focus during countdown (resets) in auto-focus2/Tests/DomainTests/FocusStateMachine_CountdownResetTests.swift
-- [ ] T035 [P] [US2] Add FocusStateMachine unit tests for buffer behavior during active focus session in auto-focus2/Tests/DomainTests/FocusStateMachine_BufferTests.swift
+- [x] T033 [P] [US2] Add FocusStateMachine unit tests for threshold activation in auto-focus2/Tests/DomainTests/FocusStateMachine_ActivationTests.swift
+- [x] T034 [P] [US2] Add FocusStateMachine unit tests for leaving focus during countdown (resets) in auto-focus2/Tests/DomainTests/FocusStateMachine_CountdownResetTests.swift
+- [x] T035 [P] [US2] Add FocusStateMachine unit tests for buffer behavior during active focus session in auto-focus2/Tests/DomainTests/FocusStateMachine_BufferTests.swift
 
 ### Implementation for User Story 2
 
-- [ ] T036 [US2] Implement orchestrator/service that binds adapters → domain → persistence in auto-focus2/App/FocusOrchestrator.swift
-- [ ] T037 [US2] Wire shortcut notifications toggling into orchestrator in auto-focus2/App/FocusOrchestrator.swift (calls ShortcutRunner)
-- [ ] T038 [US2] Record focus events (app/domain changes and state transitions) in auto-focus2/Persistence/Repositories/FocusEventRepository.swift
-- [ ] T039 [US2] Record focus sessions start/end in auto-focus2/Persistence/Repositories/FocusSessionRepository.swift
-- [ ] T040 [US2] Build Menu bar status UI in auto-focus2/UI/MenuBar/MenuBarView.swift (shows counting/focus/buffer/unavailable)
+- [x] T036 [US2] Implement orchestrator/service that binds adapters → domain → persistence in auto-focus2/App/FocusOrchestrator.swift
+- [x] T037 [US2] Wire shortcut notifications toggling into orchestrator in auto-focus2/App/FocusOrchestrator.swift (calls ShortcutRunner)
+- [x] T038 [US2] Record focus events (app/domain changes and state transitions) in auto-focus2/Persistence/Repositories/FocusEventRepository.swift
+- [x] T039 [US2] Record focus sessions start/end in auto-focus2/Persistence/Repositories/FocusSessionRepository.swift
+- [x] T040 [US2] Build Menu bar status UI in auto-focus2/UI/MenuBar/MenuBarView.swift (shows counting/focus/buffer/unavailable)
 
 **Checkpoint**: User Stories 1 and 2 both work; focus automation + buffer works with shortcut-based notifications control.
 
