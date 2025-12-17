@@ -1,0 +1,29 @@
+# auto-focus Development Guidelines
+
+Auto-generated from all feature plans. Last updated: 2025-12-16
+
+## Active Technologies
+
+- Swift 5.9+ (Xcode-managed; exact version pinned by Xcode project) + SwiftUI (minimal dependencies; prefer system frameworks) (001-focus-monitoring)
+
+## Project Structure
+
+```text
+src/
+tests/
+```
+
+## Commands
+
+# Add commands for Swift 5.9+ (Xcode-managed; exact version pinned by Xcode project)
+
+## Code Style
+
+Swift 5.9+ (Xcode-managed; exact version pinned by Xcode project): Follow standard conventions
+
+## Recent Changes
+
+- 001-focus-monitoring: Added Swift 5.9+ (Xcode-managed; exact version pinned by Xcode project) + SwiftUI (minimal dependencies; prefer system frameworks)
+
+<!-- MANUAL ADDITIONS START -->
+<!-- MANUAL ADDITIONS END -->
