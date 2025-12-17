@@ -3,6 +3,7 @@
 Auto-generated from all feature plans. Last updated: 2025-12-16
 
 ## Active Technologies
+- SQLite (local file DB; schema versioned and migrated) (001-focus-monitoring)
 
 - Swift 5.9+ (Xcode-managed; exact version pinned by Xcode project) + SwiftUI (minimal dependencies; prefer system frameworks) (001-focus-monitoring)
 
@@ -22,6 +23,7 @@ tests/
 Swift 5.9+ (Xcode-managed; exact version pinned by Xcode project): Follow standard conventions
 
 ## Recent Changes
+- 001-focus-monitoring: Added Swift 5.9+ (Xcode-managed; exact version pinned by Xcode project) + SwiftUI (minimal dependencies; prefer system frameworks)
 
 - 001-focus-monitoring: Added Swift 5.9+ (Xcode-managed; exact version pinned by Xcode project) + SwiftUI (minimal dependencies; prefer system frameworks)
 

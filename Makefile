@@ -59,6 +59,16 @@ build:
 		xcodebuild -scheme $(SCHEME) -configuration $(CONFIGURATION) -derivedDataPath $(BUILD_DIR) build; \
 	fi
 
+.PHONY: build-autofocus2 test-autofocus2
+
+build-autofocus2:
+	@echo "Building AutoFocus2 (project: auto-focus2/AutoFocus2.xcodeproj, scheme: AutoFocus2)..."
+	xcodebuild -project auto-focus2/AutoFocus2.xcodeproj -scheme AutoFocus2 -configuration Release build
+
+test-autofocus2:
+	@echo "Testing AutoFocus2 (project: auto-focus2/AutoFocus2.xcodeproj, scheme: AutoFocus2Tests)..."
+	xcodebuild -project auto-focus2/AutoFocus2.xcodeproj -scheme AutoFocus2Tests -configuration Debug test
+
 clean:
 	@echo "Cleaning build artifacts..."
 	rm -rf $(BUILD_DIR)
