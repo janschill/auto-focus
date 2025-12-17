@@ -67,16 +67,16 @@ description: "Task list for Foreground Focus Monitoring"
 
 > NOTE: Write these tests FIRST, ensure they FAIL before implementation.
 
-- [ ] T020 [P] [US1] Add license validation client tests (success/invalid/offline) in auto-focus2/Tests/AdapterTests/LicenseClientTests.swift
-- [ ] T021 [P] [US1] Add premium gating tests for max focus entities in auto-focus2/Tests/DomainTests/PremiumGating_MaxEntitiesTests.swift
-- [ ] T022 [P] [US1] Add ShortcutRunner adapter tests with a mock runner in auto-focus2/Tests/AdapterTests/ShortcutRunnerTests.swift
-- [ ] T023 [P] [US1] Add onboarding state machine/view model tests in auto-focus2/Tests/DomainTests/OnboardingFlowTests.swift
+- [x] T020 [P] [US1] Add license validation client tests (success/invalid/offline) in auto-focus2/Tests/AdapterTests/LicenseClientTests.swift
+- [x] T021 [P] [US1] Add premium gating tests for max focus entities in auto-focus2/Tests/DomainTests/PremiumGating_MaxEntitiesTests.swift
+- [x] T022 [P] [US1] Add ShortcutRunner adapter tests with a mock runner in auto-focus2/Tests/AdapterTests/ShortcutRunnerTests.swift
+- [x] T023 [P] [US1] Add onboarding state machine/view model tests in auto-focus2/Tests/DomainTests/OnboardingFlowTests.swift
 
 ### Implementation for User Story 1
 
 - [ ] T024 [US1] Implement configuration storage for activationMinutes + bufferSeconds in auto-focus2/Persistence/Repositories/FocusSettingsRepository.swift
-- [ ] T025 [US1] Implement focus entity CRUD (apps + domains) with max-entities enforcement in auto-focus2/Persistence/Repositories/FocusEntityRepository.swift
-- [ ] T026 [US1] Implement LicenseService + local secure key storage + cached status in auto-focus2/App/LicenseService.swift
+- [x] T025 [US1] Implement focus entity CRUD (apps + domains) with max-entities enforcement in auto-focus2/Persistence/Repositories/FocusEntityRepository.swift
+- [x] T026 [US1] Implement LicenseService + local secure key storage + cached status in auto-focus2/App/LicenseService.swift
 - [ ] T027 [US1] Implement license validation API client adapter per specs/001-focus-monitoring/contracts/license-api.md in auto-focus2/Adapters/License/LicenseClient.swift
 - [ ] T028 [US1] Add Settings UI sections for license key + premium status in auto-focus2/UI/Settings/LicenseView.swift
 - [ ] T029 [US1] Build onboarding flow UI in auto-focus2/UI/Onboarding/OnboardingView.swift (permissions + shortcut + license + initial config)

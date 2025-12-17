@@ -3,9 +3,11 @@ import SQLite3
 
 final class SQLiteFocusEntityStore: FocusEntityStoring {
     private let db: SQLiteDatabase
+    private let licenseStateProvider: () -> LicenseState
 
-    init(database: SQLiteDatabase) {
+    init(database: SQLiteDatabase, licenseStateProvider: @escaping () -> LicenseState = { .unlicensed }) {
         self.db = database
+        self.licenseStateProvider = licenseStateProvider
     }
 
     func list() throws -> [FocusEntity] {
@@ -48,6 +50,12 @@ final class SQLiteFocusEntityStore: FocusEntityStoring {
     }
 
     func upsert(_ entity: FocusEntity) throws {
+        // Enforce max entities for free tier.
+        let currentCount = (try? list().count) ?? 0
+        if !PremiumGating.canAddFocusEntity(currentCount: currentCount, licenseState: licenseStateProvider()) {
+            throw FocusEntityStoreError.limitReached(maxAllowed: PremiumGating.entitlements(for: licenseStateProvider()).maxFocusEntities)
+        }
+
         let now = Int(Date().timeIntervalSince1970)
         let enabled = entity.isEnabled ? 1 : 0
         try db.execute("""
@@ -68,6 +76,17 @@ final class SQLiteFocusEntityStore: FocusEntityStoring {
 
     private func escape(_ value: String) -> String {
         value.replacingOccurrences(of: "'", with: "''")
+    }
+}
+
+enum FocusEntityStoreError: Error, LocalizedError {
+    case limitReached(maxAllowed: Int)
+
+    var errorDescription: String? {
+        switch self {
+        case .limitReached(let maxAllowed):
+            return "Focus entity limit reached (max \(maxAllowed))"
+        }
     }
 }
 

@@ -5,6 +5,7 @@ struct CompositionRoot {
 
     // Domain
     let stateMachine: FocusStateMachine
+    let licenseService: LicenseService
 
     // Persistence
     let database: SQLiteDatabase
@@ -22,13 +23,21 @@ struct CompositionRoot {
     init(appSupportDirectory: URL) throws {
         self.clock = SystemClock()
         self.stateMachine = FocusStateMachine()
+        self.licenseService = LicenseService(
+            client: LicenseClient(clock: clock),
+            clock: clock,
+            keychain: KeychainStore(service: "auto-focus.AutoFocus2")
+        )
 
         let dbURL = appSupportDirectory.appendingPathComponent("autofocus2.sqlite")
         self.database = try SQLiteDatabase(path: dbURL.path)
         try Migrations.migrate(database: database)
 
         self.settingsStore = SQLiteFocusSettingsStore(database: database)
-        self.entityStore = SQLiteFocusEntityStore(database: database)
+        self.entityStore = SQLiteFocusEntityStore(database: database, licenseStateProvider: { [licenseService] in
+            // Free-tier until license validated.
+            licenseService.status.state
+        })
         self.eventStore = SQLiteFocusEventStore(database: database)
         self.sessionStore = SQLiteFocusSessionStore(database: database)
 
