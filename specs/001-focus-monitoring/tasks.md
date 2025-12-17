@@ -77,13 +77,13 @@ description: "Task list for Foreground Focus Monitoring"
 - [ ] T024 [US1] Implement configuration storage for activationMinutes + bufferSeconds in auto-focus2/Persistence/Repositories/FocusSettingsRepository.swift
 - [x] T025 [US1] Implement focus entity CRUD (apps + domains) with max-entities enforcement in auto-focus2/Persistence/Repositories/FocusEntityRepository.swift
 - [x] T026 [US1] Implement LicenseService + local secure key storage + cached status in auto-focus2/App/LicenseService.swift
-- [ ] T027 [US1] Implement license validation API client adapter per specs/001-focus-monitoring/contracts/license-api.md in auto-focus2/Adapters/License/LicenseClient.swift
-- [ ] T028 [US1] Add Settings UI sections for license key + premium status in auto-focus2/UI/Settings/LicenseView.swift
-- [ ] T029 [US1] Build onboarding flow UI in auto-focus2/UI/Onboarding/OnboardingView.swift (permissions + shortcut + license + initial config)
+- [x] T027 [US1] Implement license validation API client adapter per specs/001-focus-monitoring/contracts/license-api.md in auto-focus2/Adapters/License/LicenseClient.swift
+- [x] T028 [US1] Add Settings UI sections for license key + premium status in auto-focus2/UI/Settings/LicenseView.swift
+- [x] T029 [US1] Build onboarding flow UI in auto-focus2/UI/Onboarding/OnboardingView.swift (permissions + shortcut + license + initial config)
 
-- [ ] T030 [US1] Build Settings UI for focus entities and timers in auto-focus2/UI/Settings/SettingsView.swift
-- [ ] T031 [US1] Build ViewModel for Settings UI in auto-focus2/UI/Settings/SettingsViewModel.swift (binds to repositories + license status)
-- [ ] T032 [US1] Add “Launch on Login” toggle UI and wiring in auto-focus2/UI/Settings/LaunchOnLoginRow.swift
+- [x] T030 [US1] Build Settings UI for focus entities and timers in auto-focus2/UI/Settings/SettingsView.swift
+- [x] T031 [US1] Build ViewModel for Settings UI in auto-focus2/UI/Settings/SettingsViewModel.swift (binds to repositories + license status)
+- [x] T032 [US1] Add “Launch on Login” toggle UI and wiring in auto-focus2/UI/Settings/LaunchOnLoginRow.swift
 
 **Checkpoint**: User Story 1 works independently — onboarding + configuration works, free-tier limits enforced, license validation unlocks premium immediately.
 
