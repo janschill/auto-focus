@@ -8,33 +8,44 @@ final class OnboardingFlowTests: XCTestCase {
     }
 
     func testCannotAdvanceWithoutPermissions() {
-        var state = OnboardingState(step: .permissions, hasPermissions: false, hasShortcutConfigured: false, hasCompletedConfiguration: false)
+        var state = OnboardingState(step: .permissions, hasPermissions: false, hasAddedApps: false, hasAddedDomains: false)
         state = OnboardingFlow.reduce(state, event: .next)
         XCTAssertEqual(state.step, .permissions)
     }
 
-    func testPermissionsGrantedAdvancesToShortcut() {
+    func testPermissionsGrantedAdvancesToLicense() {
         var state = OnboardingState()
         state = OnboardingFlow.reduce(state, event: .permissionsGranted(true))
-        XCTAssertEqual(state.step, .shortcut)
-    }
-
-    func testShortcutConfiguredAdvancesToLicense() {
-        var state = OnboardingState()
-        state = OnboardingFlow.reduce(state, event: .permissionsGranted(true))
-        state = OnboardingFlow.reduce(state, event: .shortcutConfigured(true))
         XCTAssertEqual(state.step, .license)
     }
 
-    func testNextFromLicenseGoesToConfiguration() {
-        var state = OnboardingState(step: .license, hasPermissions: true, hasShortcutConfigured: true, hasCompletedConfiguration: false)
+    func testNextFromLicenseGoesToApps() {
+        var state = OnboardingState(step: .license, hasPermissions: true, hasAddedApps: false, hasAddedDomains: false)
         state = OnboardingFlow.reduce(state, event: .next)
-        XCTAssertEqual(state.step, .configuration)
+        XCTAssertEqual(state.step, .apps)
     }
 
-    func testConfigurationCompletedEnds() {
-        var state = OnboardingState(step: .configuration, hasPermissions: true, hasShortcutConfigured: true, hasCompletedConfiguration: false)
-        state = OnboardingFlow.reduce(state, event: .configurationCompleted(true))
+    func testAppsAddedAdvancesToDomains() {
+        var state = OnboardingState(step: .apps, hasPermissions: true, hasAddedApps: false, hasAddedDomains: false)
+        state = OnboardingFlow.reduce(state, event: .appsAdded(true))
+        XCTAssertEqual(state.step, .domains)
+    }
+
+    func testDomainsAddedEnds() {
+        var state = OnboardingState(step: .domains, hasPermissions: true, hasAddedApps: true, hasAddedDomains: false)
+        state = OnboardingFlow.reduce(state, event: .domainsAdded(true))
+        XCTAssertEqual(state.step, .done)
+    }
+
+    func testNextFromAppsGoesToDomainsEvenIfNoAppsAdded() {
+        var state = OnboardingState(step: .apps, hasPermissions: true, hasAddedApps: false, hasAddedDomains: false)
+        state = OnboardingFlow.reduce(state, event: .next)
+        XCTAssertEqual(state.step, .domains)
+    }
+
+    func testNextFromDomainsGoesToDoneEvenIfNoDomainsAdded() {
+        var state = OnboardingState(step: .domains, hasPermissions: true, hasAddedApps: true, hasAddedDomains: false)
+        state = OnboardingFlow.reduce(state, event: .next)
         XCTAssertEqual(state.step, .done)
     }
 }

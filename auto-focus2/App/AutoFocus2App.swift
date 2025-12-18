@@ -42,17 +42,16 @@ struct AutoFocus2App: App {
                     )
                 }
             }
-            .sheet(isPresented: $appModel.showsSettings) {
-                if let root = appModel.compositionRoot {
-                    SettingsView(viewModel: SettingsViewModel(root: root))
-                } else {
-                    Text("Not initialized")
-                        .padding()
-                }
-            }
-            .sheet(isPresented: $appModel.showsOnboarding) {
-                OnboardingView()
-            }
+        }
+
+        WindowGroup("Settings", id: "settings") {
+            SettingsWindow()
+                .environmentObject(appModel)
+        }
+
+        WindowGroup("Onboarding", id: "onboarding") {
+            OnboardingWindow()
+                .environmentObject(appModel)
         }
     }
 }

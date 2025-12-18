@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import SwiftUI
 
@@ -7,11 +8,7 @@ final class SettingsViewModel: ObservableObject {
     @Published var activationMinutes: Int = 12
     @Published var bufferSeconds: Int = 30
 
-    @Published var newDomainName: String = ""
     @Published var newDomainValue: String = ""
-
-    @Published var newAppName: String = ""
-    @Published var newAppBundleId: String = ""
 
     // State
     @Published private(set) var focusEntities: [FocusEntity] = []
@@ -23,10 +20,17 @@ final class SettingsViewModel: ObservableObject {
     // Launch on login
     @Published var launchOnLoginEnabled: Bool = false
 
+    // System prerequisites / permissions
+    @Published private(set) var prerequisites: SystemPrerequisitesStatus = SystemPrerequisitesStatus()
+    @Published private(set) var isCheckingPrerequisites: Bool = false
+
     private let settingsStore: FocusSettingsStoring
     private let entityStore: FocusEntityStoring
     private let launchOnLogin: LaunchOnLoginServicing
     let licenseService: LicenseService
+
+    private let permissionProbe = AppleEventsPermissionProbe()
+    private let shortcutsCLI = ShortcutsCLI()
 
     init(root: CompositionRoot) {
         self.settingsStore = root.settingsStore
@@ -35,6 +39,14 @@ final class SettingsViewModel: ObservableObject {
         self.licenseService = root.licenseService
 
         reload()
+    }
+
+    var focusApps: [FocusEntity] {
+        focusEntities.filter { $0.type == .app }.sorted { $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending }
+    }
+
+    var focusDomains: [FocusEntity] {
+        focusEntities.filter { $0.type == .domain }.sorted { $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending }
     }
 
     func reload() {
@@ -51,6 +63,31 @@ final class SettingsViewModel: ObservableObject {
         }
     }
 
+    func refreshPrerequisitesSilently() {
+        var next = prerequisites
+        next.systemEventsAutomation = permissionProbe.checkSilently(.systemEvents)
+        next.shortcutsAutomation = permissionProbe.checkSilently(.shortcutsEvents)
+        next.safariAutomation = permissionProbe.checkSilently(.safari)
+        next.chromeAutomation = permissionProbe.checkSilently(.chrome)
+        next.shortcutInstalled = shortcutsCLI.isShortcutInstalled(named: next.shortcutName)
+        prerequisites = next
+    }
+
+    func requestAutomationPermissions() async {
+        if isCheckingPrerequisites { return }
+        isCheckingPrerequisites = true
+        defer { isCheckingPrerequisites = false }
+
+        var next = prerequisites
+        next.systemEventsAutomation = await permissionProbe.requestPrompt(.systemEvents)
+        next.shortcutsAutomation = await permissionProbe.requestPrompt(.shortcutsEvents)
+        // Browser permissions are optional, but we probe so status is visible.
+        next.safariAutomation = permissionProbe.checkSilently(.safari)
+        next.chromeAutomation = permissionProbe.checkSilently(.chrome)
+        next.shortcutInstalled = shortcutsCLI.isShortcutInstalled(named: next.shortcutName)
+        prerequisites = next
+    }
+
     func saveTimers() {
         do {
             try settingsStore.save(FocusSettings(activationMinutes: activationMinutes, bufferSeconds: bufferSeconds))
@@ -61,14 +98,12 @@ final class SettingsViewModel: ObservableObject {
     }
 
     func addDomain() {
-        let name = newDomainName.trimmingCharacters(in: .whitespacesAndNewlines)
         let value = newDomainValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !name.isEmpty, !value.isEmpty else { return }
+        guard !value.isEmpty else { return }
 
-        let entity = FocusEntity(type: .domain, displayName: name, matchValue: value)
+        let entity = FocusEntity(type: .domain, displayName: value, matchValue: value)
         do {
             try entityStore.upsert(entity)
-            newDomainName = ""
             newDomainValue = ""
             reload()
         } catch {
@@ -76,19 +111,39 @@ final class SettingsViewModel: ObservableObject {
         }
     }
 
-    func addApp() {
-        let name = newAppName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let bundleId = newAppBundleId.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty, !bundleId.isEmpty else { return }
+    func addApp(from bundleURL: URL) {
+        guard let bundle = Bundle(url: bundleURL),
+              let bundleId = bundle.bundleIdentifier,
+              !bundleId.isEmpty
+        else {
+            lastError = "Could not read app bundle identifier."
+            return
+        }
+
+        let name = (bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String)
+            ?? (bundle.object(forInfoDictionaryKey: "CFBundleName") as? String)
+            ?? bundleURL.deletingPathExtension().lastPathComponent
 
         let entity = FocusEntity(type: .app, displayName: name, matchValue: bundleId)
         do {
             try entityStore.upsert(entity)
-            newAppName = ""
-            newAppBundleId = ""
             reload()
         } catch {
             lastError = error.localizedDescription
+        }
+    }
+
+    func presentAppPickerAndAdd() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.allowedContentTypes = [.application]
+        panel.directoryURL = URL(fileURLWithPath: "/Applications", isDirectory: true)
+        panel.prompt = "Add App"
+
+        if panel.runModal() == .OK, let url = panel.url {
+            addApp(from: url)
         }
     }
 

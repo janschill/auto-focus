@@ -2,6 +2,8 @@ import AppKit
 import SwiftUI
 
 struct MenuBarView: View {
+    @Environment(\.openWindow) private var openWindow
+
     @ObservedObject var orchestrator: FocusOrchestrator
     let onShowOnboarding: () -> Void
     let onShowSettings: () -> Void
@@ -29,8 +31,14 @@ struct MenuBarView: View {
 
             Divider()
 
-            Button("Onboarding") { onShowOnboarding() }
-            Button("Settings") { onShowSettings() }
+            Button("Onboarding") {
+                onShowOnboarding()
+                openWindow(id: "onboarding")
+            }
+            Button("Settings") {
+                onShowSettings()
+                openWindow(id: "settings")
+            }
                 .keyboardShortcut(",", modifiers: .command)
 
             Divider()

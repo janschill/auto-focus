@@ -2,35 +2,35 @@ import Foundation
 
 public enum OnboardingStep: String, Codable, Hashable, Sendable {
     case permissions
-    case shortcut
     case license
-    case configuration
+    case apps
+    case domains
     case done
 }
 
 public struct OnboardingState: Codable, Hashable, Sendable {
     public var step: OnboardingStep
     public var hasPermissions: Bool
-    public var hasShortcutConfigured: Bool
-    public var hasCompletedConfiguration: Bool
+    public var hasAddedApps: Bool
+    public var hasAddedDomains: Bool
 
     public init(
         step: OnboardingStep = .permissions,
         hasPermissions: Bool = false,
-        hasShortcutConfigured: Bool = false,
-        hasCompletedConfiguration: Bool = false
+        hasAddedApps: Bool = false,
+        hasAddedDomains: Bool = false
     ) {
         self.step = step
         self.hasPermissions = hasPermissions
-        self.hasShortcutConfigured = hasShortcutConfigured
-        self.hasCompletedConfiguration = hasCompletedConfiguration
+        self.hasAddedApps = hasAddedApps
+        self.hasAddedDomains = hasAddedDomains
     }
 }
 
 public enum OnboardingEvent: Sendable {
     case permissionsGranted(Bool)
-    case shortcutConfigured(Bool)
-    case configurationCompleted(Bool)
+    case appsAdded(Bool)
+    case domainsAdded(Bool)
     case next
     case back
 }
@@ -44,18 +44,18 @@ public enum OnboardingFlow {
         case .permissionsGranted(let granted):
             next.hasPermissions = granted
             if granted && next.step == .permissions {
-                next.step = .shortcut
-            }
-
-        case .shortcutConfigured(let configured):
-            next.hasShortcutConfigured = configured
-            if configured && next.step == .shortcut {
                 next.step = .license
             }
 
-        case .configurationCompleted(let completed):
-            next.hasCompletedConfiguration = completed
-            if completed && next.step == .configuration {
+        case .appsAdded(let added):
+            next.hasAddedApps = added
+            if added && next.step == .apps {
+                next.step = .domains
+            }
+
+        case .domainsAdded(let added):
+            next.hasAddedDomains = added
+            if added && next.step == .domains {
                 next.step = .done
             }
 
@@ -68,18 +68,16 @@ public enum OnboardingFlow {
 
         // If prerequisites not met, clamp to earliest required step.
         if !next.hasPermissions { next.step = .permissions }
-        else if !next.hasShortcutConfigured { next.step = .shortcut }
-        else if next.step == .done && !next.hasCompletedConfiguration { next.step = .configuration }
 
         return next
     }
 
     private static func advance(from step: OnboardingStep, state: OnboardingState) -> OnboardingStep {
         switch step {
-        case .permissions: return state.hasPermissions ? .shortcut : .permissions
-        case .shortcut: return state.hasShortcutConfigured ? .license : .shortcut
-        case .license: return .configuration
-        case .configuration: return state.hasCompletedConfiguration ? .done : .configuration
+        case .permissions: return state.hasPermissions ? .license : .permissions
+        case .license: return .apps
+        case .apps: return .domains
+        case .domains: return .done
         case .done: return .done
         }
     }
@@ -87,10 +85,10 @@ public enum OnboardingFlow {
     private static func retreat(from step: OnboardingStep) -> OnboardingStep {
         switch step {
         case .permissions: return .permissions
-        case .shortcut: return .permissions
-        case .license: return .shortcut
-        case .configuration: return .license
-        case .done: return .configuration
+        case .license: return .permissions
+        case .apps: return .license
+        case .domains: return .apps
+        case .done: return .domains
         }
     }
 }
