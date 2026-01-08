@@ -413,6 +413,18 @@ class FocusManager: ObservableObject {
     var focusURLs: [FocusURL] {
         return browserManager.focusURLs
     }
+    
+    var hasBrowserAccessibilityPermission: Bool {
+        return browserManager.hasAccessibilityPermission
+    }
+    
+    func requestBrowserAccessibilityPermission() {
+        browserManager.requestAccessibilityPermission()
+    }
+    
+    func checkBrowserAccessibilityPermission() {
+        browserManager.checkAccessibilityPermission()
+    }
 
     func addFocusURL(_ focusURL: FocusURL) {
         browserManager.addFocusURL(focusURL)
@@ -881,25 +893,9 @@ extension FocusManager: BrowserManagerDelegate {
         }
     }
 
-    func browserManager(_ manager: any BrowserManaging, didChangeConnectionState isConnected: Bool) {
-        batchUpdate {
-            self.isExtensionConnected = isConnected
-            AppLogger.browser.info("Browser extension connection state changed", metadata: [
-                "connected": String(isConnected)
-            ])
-        }
-    }
-
-    func browserManager(_ manager: any BrowserManaging, didUpdateExtensionHealth health: ExtensionHealth?) {
-        batchUpdate {
-            self.extensionHealth = health
-        }
-    }
-
-    func browserManager(_ manager: any BrowserManaging, didUpdateConnectionQuality quality: ConnectionQuality) {
-        batchUpdate {
-            self.connectionQuality = quality
-        }
+    func browserManager(_ manager: any BrowserManaging, didUpdateFocusURLs urls: [FocusURL]) {
+        // Trigger UI updates for focus URLs
+        objectWillChange.send()
     }
 
     private func handleBrowserFocusActivated() {
