@@ -4,8 +4,10 @@
 <dict>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>Auto-Focus needs to control Focus modes</string>
+    <key>NSAccessibilityUsageDescription</key>
+    <string>Auto-Focus uses Accessibility to monitor your browser's current URL for focus tracking. This data never leaves your computer and is processed entirely locally. No browsing data is sent anywhere.</string>
     <key>Privacy - Accessibility Usage Description</key>
-    <string>Auto-Focus needs accessibility access to manage Do Not Disturb settings</string>
+    <string>Auto-Focus uses Accessibility to monitor your browser's current URL for focus tracking. This data never leaves your computer and is processed entirely locally. No browsing data is sent anywhere.</string>
     <key>com.apple.security.automation.apple-events</key>
     <true/>
     <key>LSUIElement</key>
