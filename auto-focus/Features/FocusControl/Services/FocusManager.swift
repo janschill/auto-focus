@@ -67,9 +67,6 @@ class FocusManager: ObservableObject {
     @Published var hasCompletedOnboarding: Bool = false
     @Published var isBrowserInFocus: Bool = false
     @Published var currentBrowserTab: BrowserTabInfo?
-    @Published var isExtensionConnected: Bool = false
-    @Published var extensionHealth: ExtensionHealth?
-    @Published var connectionQuality: ConnectionQuality = .unknown
     @Published var isShortcutInstalled: Bool = false
 
     private var freeAppLimit: Int = AppConfiguration.freeAppLimit
@@ -194,9 +191,6 @@ class FocusManager: ObservableObject {
         // Sync browser state
         self.isBrowserInFocus = self.browserManager.isBrowserInFocus
         self.currentBrowserTab = self.browserManager.currentBrowserTab
-        self.isExtensionConnected = self.browserManager.isExtensionConnected
-        self.extensionHealth = self.browserManager.extensionHealth
-        self.connectionQuality = self.browserManager.connectionQuality
 
         // Set up callbacks after all initialization is complete
         self.stateMachine.onStateChanged = { [weak self] transition in
@@ -749,7 +743,6 @@ extension FocusManager: AppMonitorDelegate {
                 // Browser became active - let browser manager handle focus state
                 AppLogger.focus.infoToFile("🌐 FocusManager: Browser became active during focus session - waiting for browser focus check", metadata: [
                     "browser": currentApp,
-                    "extension_connected": String(self.isExtensionConnected),
                     "current_browser_focus": String(self.isBrowserInFocus),
                     "current_tab_url": self.currentBrowserTab?.url ?? "unknown"
                 ])
@@ -758,15 +751,13 @@ extension FocusManager: AppMonitorDelegate {
                     AppLogger.focus.infoToFile("🌐 FocusManager: Checking browser focus state after delay", metadata: [
                         "browser": currentApp,
                         "is_browser_in_focus": String(self.isBrowserInFocus),
-                        "extension_connected": String(self.isExtensionConnected),
                         "current_tab_url": self.currentBrowserTab?.url ?? "unknown"
                     ])
                     if !self.isBrowserInFocus {
                         // No browser focus detected, proceed with normal non-focus handling
                         AppLogger.focus.infoToFile("⚠️ FocusManager: No browser focus detected - proceeding with non-focus handling", metadata: [
                             "browser": currentApp,
-                            "extension_connected": String(self.isExtensionConnected),
-                            "message": "Extension may not be sending tab_changed messages"
+                            "message": "Browser URL monitor may not have detected focus URL"
                         ])
                         self.handleNonFocusAppInFront()
                     } else {
@@ -811,12 +802,12 @@ extension FocusManager: AppMonitorDelegate {
                     }
                 }
             } else {
-                // Switched to a browser app - check if extension is connected
-                if !isExtensionConnected {
-                    AppLogger.focus.warning("Switched to browser without extension - ending browser focus", metadata: [
+                // Switched to a browser app - check if we have accessibility permission
+                if !browserManager.hasAccessibilityPermission {
+                    AppLogger.focus.warning("Switched to browser without accessibility permission - ending browser focus", metadata: [
                         "browser": bundleIdentifier ?? "unknown"
                     ])
-                    // No extension means we can't track browser focus, so set it to false
+                    // No accessibility permission means we can't track browser focus, so set it to false
                     batchUpdate {
                         self.isBrowserInFocus = false
                     }
