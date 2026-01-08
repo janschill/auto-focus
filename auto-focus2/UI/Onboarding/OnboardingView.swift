@@ -4,6 +4,8 @@ import SwiftUI
 struct OnboardingView: View {
     @State private var state = OnboardingState()
     @State private var settingsModel: SettingsViewModel?
+    @State private var showTestShortcutConfirm: Bool = false
+    @State private var shortcutTestMessage: String?
 
     @EnvironmentObject private var appModel: AppModel
 
@@ -46,6 +48,7 @@ struct OnboardingView: View {
                             }
                         }
                         .keyboardShortcut(.defaultAction)
+                        .disabled(!canProceedFromCurrentStep)
 
                         Spacer()
                     }
@@ -59,6 +62,26 @@ struct OnboardingView: View {
             if settingsModel == nil, let root = appModel.compositionRoot {
                 settingsModel = SettingsViewModel(root: root)
             }
+            settingsModel?.refreshPrerequisitesSilently()
+            if let model = settingsModel, model.prerequisites.requirementsSatisfied {
+                state = OnboardingFlow.reduce(state, event: .permissionsGranted(true))
+            }
+        }
+        .alert("Test Shortcut", isPresented: $showTestShortcutConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Run Test") {
+                Task {
+                    do {
+                        shortcutTestMessage = nil
+                        try await settingsModel?.testShortcutRoundTrip()
+                        shortcutTestMessage = "Success. The shortcut ran twice (toggle + toggle back)."
+                    } catch {
+                        shortcutTestMessage = "Failed: \(error.localizedDescription)"
+                    }
+                }
+            }
+        } message: {
+            Text("This will run your shortcut twice so the net effect should be no change. You may see Do Not Disturb briefly toggle.")
         }
     }
 
@@ -96,7 +119,7 @@ struct OnboardingView: View {
                     }
 
                     HStack(spacing: 10) {
-                        Button(model.isCheckingPrerequisites ? "Requesting…" : "Request permissions") {
+                        Button(model.isCheckingPrerequisites ? "Enabling…" : "Enable permissions") {
                             Task {
                                 await model.requestAutomationPermissions()
                                 state = OnboardingFlow.reduce(state, event: .permissionsGranted(model.prerequisites.requirementsSatisfied))
@@ -109,6 +132,12 @@ struct OnboardingView: View {
                             state = OnboardingFlow.reduce(state, event: .permissionsGranted(model.prerequisites.requirementsSatisfied))
                         }
 
+                        if model.prerequisites.requirementsSatisfied, model.prerequisites.shortcutInstalled == true {
+                            Button("Test Shortcut") {
+                                showTestShortcutConfirm = true
+                            }
+                        }
+
                         Spacer()
 
                         Button("Open System Settings") {
@@ -119,6 +148,12 @@ struct OnboardingView: View {
                         }
                     }
                     .padding(.top, 4)
+
+                    if let msg = shortcutTestMessage {
+                        Text(msg)
+                            .font(.caption)
+                            .foregroundStyle(msg.hasPrefix("Failed") ? .red : .secondary)
+                    }
                 } else {
                     Text("Not initialized")
                         .foregroundStyle(.secondary)
@@ -284,6 +319,15 @@ struct OnboardingView: View {
         case .granted: return "Allowed"
         case .notGranted: return "Not allowed"
         case .unknown: return "Unknown"
+        }
+    }
+
+    private var canProceedFromCurrentStep: Bool {
+        switch state.step {
+        case .permissions:
+            return state.hasPermissions
+        case .license, .apps, .domains, .done:
+            return true
         }
     }
 }

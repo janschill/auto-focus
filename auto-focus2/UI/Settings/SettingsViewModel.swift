@@ -27,6 +27,7 @@ final class SettingsViewModel: ObservableObject {
     private let settingsStore: FocusSettingsStoring
     private let entityStore: FocusEntityStoring
     private let launchOnLogin: LaunchOnLoginServicing
+    private let notificationsController: NotificationsControlling
     let licenseService: LicenseService
 
     private let permissionProbe = AppleEventsPermissionProbe()
@@ -36,6 +37,7 @@ final class SettingsViewModel: ObservableObject {
         self.settingsStore = root.settingsStore
         self.entityStore = root.entityStore
         self.launchOnLogin = root.launchOnLoginService
+        self.notificationsController = root.notificationsController
         self.licenseService = root.licenseService
 
         reload()
@@ -86,6 +88,13 @@ final class SettingsViewModel: ObservableObject {
         next.chromeAutomation = permissionProbe.checkSilently(.chrome)
         next.shortcutInstalled = shortcutsCLI.isShortcutInstalled(named: next.shortcutName)
         prerequisites = next
+    }
+
+    /// Runs the configured shortcut twice (toggle + toggle back) so the net effect should be no change.
+    /// This is best-effort and still depends on the user's Shortcut behavior.
+    func testShortcutRoundTrip() async throws {
+        try await notificationsController.setNotifications(.disabled)
+        try await notificationsController.setNotifications(.enabled)
     }
 
     func saveTimers() {
