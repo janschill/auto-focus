@@ -714,11 +714,27 @@ extension FocusManager: BufferManagerDelegate {
 
     func bufferManagerDidTimeout(_ manager: any BufferManaging) {
         // Buffer timed out - end session and exit focus mode
+        AppLogger.focus.infoToFile("⏰ Buffer timeout - ending focus session", metadata: [
+            "time_spent_before_reset": String(format: "%.1f", timeSpent),
+            "is_in_focus_mode": String(isInFocusMode),
+            "is_notifications_enabled": String(isNotificationsEnabled),
+            "will_toggle_dnd": String(!isNotificationsEnabled)
+        ])
         sessionManager.endSession()
         stateMachine.transitionToIdle()
         resetFocusState()
         if !isNotificationsEnabled {
+            AppLogger.focus.infoToFile("🔕 Turning off Do Not Disturb after buffer timeout", metadata: [
+                "is_notifications_enabled_before": String(isNotificationsEnabled)
+            ])
             focusModeController.setFocusMode(enabled: false)
+            AppLogger.focus.infoToFile("✅ Do Not Disturb toggle requested", metadata: [
+                "is_notifications_enabled_after": String(isNotificationsEnabled)
+            ])
+        } else {
+            AppLogger.focus.infoToFile("ℹ️ Skipping DND toggle (already off or notifications enabled)", metadata: [
+                "is_notifications_enabled": String(isNotificationsEnabled)
+            ])
         }
     }
 }
@@ -976,16 +992,26 @@ extension FocusManager: BrowserManagerDelegate {
     }
 
     private func handleBrowserFocusDeactivated() {
-        AppLogger.focus.info("Browser focus deactivated")
+        AppLogger.focus.infoToFile("🌐 Browser focus deactivated", metadata: [
+            "is_in_focus_mode": String(isInFocusMode),
+            "time_spent": String(format: "%.1f", timeSpent),
+            "state": stateMachine.currentState.name
+        ])
         // Similar to handleNonFocusAppInFront but for browser
         if isInFocusMode {
-            AppLogger.focus.info("Starting buffer period after browser focus loss", metadata: [
+            AppLogger.focus.infoToFile("✅ Starting buffer period after browser focus loss", metadata: [
                 "buffer_duration": String(format: "%.1f", focusLossBuffer),
-                "time_spent": String(format: "%.1f", timeSpent)
+                "time_spent": String(format: "%.1f", timeSpent),
+                "state_before": stateMachine.currentState.name
             ])
             focusTimer.pause()
             stateMachine.transitionToBuffer(timeRemaining: focusLossBuffer)
             bufferManager.startBuffer(duration: focusLossBuffer)
+            AppLogger.focus.infoToFile("✅ Buffer started successfully", metadata: [
+                "state_after": stateMachine.currentState.name,
+                "is_in_buffer_period": String(isInBufferPeriod),
+                "buffer_time_remaining": String(format: "%.1f", bufferTimeRemaining)
+            ])
         } else {
             // Check if Chrome is still the frontmost app
             // If Chrome is still frontmost, we're just switching tabs - reset the timer
