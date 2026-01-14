@@ -685,12 +685,13 @@ class FocusManager: ObservableObject {
 extension FocusManager: FocusModeManagerDelegate {
     func focusModeController(_ controller: any FocusModeControlling, didChangeFocusMode enabled: Bool) {
         // Update notifications state when focus mode changes
+        let before = isNotificationsEnabled
+        self.isNotificationsEnabled = !enabled
         AppLogger.focus.infoToFile("🔔 Focus mode state changed", metadata: [
             "dnd_enabled": String(enabled),
-            "is_notifications_enabled_before": String(isNotificationsEnabled),
-            "is_notifications_enabled_after": String(!enabled)
+            "is_notifications_enabled_before": String(before),
+            "is_notifications_enabled_after": String(isNotificationsEnabled)
         ])
-        self.isNotificationsEnabled = !enabled
     }
 
     func focusModeController(_ controller: any FocusModeControlling, didFailWithError error: FocusModeError) {
@@ -746,7 +747,7 @@ extension FocusManager: BufferManagerDelegate {
             ])
             focusModeController.setFocusMode(enabled: false)
         } else {
-            AppLogger.focus.infoToFile("ℹ️ Skipping DND toggle (already off or notifications enabled)", metadata: [
+            AppLogger.focus.infoToFile("ℹ️ Skipping DND toggle (notifications already enabled, DND already off)", metadata: [
                 "is_notifications_enabled": String(isNotificationsEnabled)
             ])
         }
