@@ -334,6 +334,13 @@ class FocusManager: ObservableObject {
             // Only reset if we're not switching to browser focus
             // If we're switching to browser focus, preserve the time - it will be handled by handleBrowserFocusActivated()
             if !isBrowserInFocus {
+                // End session before resetting to save accumulated time
+                if sessionManager.isSessionActive {
+                    AppLogger.focus.info("Ending session before reset due to non-focus app", metadata: [
+                        "time_spent": String(format: "%.1f", timeSpent)
+                    ])
+                    sessionManager.endSession()
+                }
                 resetFocusState()
                 if !isNotificationsEnabled {
                     focusModeController.setFocusMode(enabled: false)
@@ -1009,10 +1016,21 @@ extension FocusManager: BrowserManagerDelegate {
             }
 
             // Reset in all other cases (switching tabs or leaving focus entirely)
+            // But first, end the session to save accumulated time
             AppLogger.focus.info("Resetting focus state after browser focus loss", metadata: [
                 "chrome_frontmost": String(isChromeStillFrontmost),
-                "time_spent": String(format: "%.1f", timeSpent)
+                "time_spent": String(format: "%.1f", timeSpent),
+                "session_active": String(sessionManager.isSessionActive)
             ])
+            
+            // End session before resetting to save accumulated time
+            if sessionManager.isSessionActive {
+                AppLogger.focus.info("Ending session before reset due to browser focus loss", metadata: [
+                    "time_spent": String(format: "%.1f", timeSpent)
+                ])
+                sessionManager.endSession()
+            }
+            
             resetFocusState()
             if !isNotificationsEnabled {
                 focusModeController.setFocusMode(enabled: false)
