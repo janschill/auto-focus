@@ -241,6 +241,89 @@ final class FocusManagerTests: XCTestCase {
 
     // --- MenuBarViewModel (example) ---
     // Moved to MenuBarViewModelTests.swift
+
+    // MARK: - Session Bug Fix Tests
+    
+    /// Test that sessions are saved when switching from focus to non-focus app
+    /// This addresses the bug where accumulated time was lost when switching contexts
+    func testSessionSavedWhenSwitchingToNonFocusApp() {
+        // Setup: Start a session by simulating focus app active
+        focusManager.isPaused = false
+        mockSessionManager.startSession()
+        focusManager.isFocusAppActive = true
+        focusManager.timeSpent = 10.0 // 10 seconds accumulated
+        
+        // Initial state: session should be active, no sessions saved yet
+        XCTAssertTrue(mockSessionManager.isSessionActive, "Session should be active")
+        XCTAssertEqual(mockSessionManager.focusSessions.count, 0, "No sessions should be saved yet")
+        
+        // Simulate switching to non-focus app (this triggers handleNonFocusAppInFront)
+        mockAppMonitor.simulateFocusAppInactive()
+        
+        // Verify: session should be ended and saved
+        XCTAssertFalse(mockSessionManager.isSessionActive, "Session should no longer be active")
+        XCTAssertEqual(mockSessionManager.focusSessions.count, 1, "One session should be saved")
+        XCTAssertEqual(focusManager.timeSpent, 0, "Time should be reset after session end")
+    }
+    
+    /// Test that sessions are preserved when switching between focus contexts
+    func testSessionPreservedWhenSwitchingBetweenFocusContexts() {
+        // Setup: Start a session with app focus
+        focusManager.isPaused = false
+        mockSessionManager.startSession()
+        focusManager.isFocusAppActive = true
+        focusManager.timeSpent = 15.0
+        
+        let initialSessionCount = mockSessionManager.focusSessions.count
+        
+        // Simulate switching to browser focus (preserves session)
+        focusManager.isBrowserInFocus = true
+        
+        // Verify: session should still be active, time preserved
+        XCTAssertTrue(mockSessionManager.isSessionActive, "Session should remain active when switching to browser focus")
+        XCTAssertEqual(mockSessionManager.focusSessions.count, initialSessionCount, "No new sessions should be created")
+        XCTAssertEqual(focusManager.timeSpent, 15.0, "Time should be preserved")
+    }
+    
+    /// Test that buffer period is triggered when in focus mode and switching to non-focus
+    func testBufferPeriodTriggeredInFocusMode() {
+        // Setup: Enter focus mode
+        focusManager.isPaused = false
+        mockSessionManager.startSession()
+        focusManager.isFocusAppActive = true
+        focusManager.isInFocusMode = true
+        focusManager.timeSpent = 60.0
+        
+        let initialSessionCount = mockSessionManager.focusSessions.count
+        
+        // Simulate switching to non-focus app while in focus mode
+        mockAppMonitor.simulateFocusAppInactive()
+        
+        // Verify: buffer period should start, session not yet ended
+        XCTAssertTrue(mockBufferManager.isInBufferPeriod, "Buffer period should start")
+        XCTAssertTrue(mockSessionManager.isSessionActive, "Session should remain active during buffer")
+        XCTAssertEqual(mockSessionManager.focusSessions.count, initialSessionCount, "Session should not be saved during buffer period")
+    }
+    
+    /// Test that session is saved after buffer timeout
+    func testSessionSavedAfterBufferTimeout() {
+        // Setup: Enter buffer period
+        focusManager.isPaused = false
+        mockSessionManager.startSession()
+        focusManager.isInFocusMode = true
+        focusManager.timeSpent = 45.0
+        mockBufferManager.startBuffer(duration: 2.0)
+        
+        let initialSessionCount = mockSessionManager.focusSessions.count
+        
+        // Simulate buffer timeout
+        mockBufferManager.simulateBufferTimeout()
+        
+        // Verify: session should be ended and saved
+        XCTAssertFalse(mockSessionManager.isSessionActive, "Session should be ended after buffer timeout")
+        XCTAssertEqual(mockSessionManager.focusSessions.count, initialSessionCount + 1, "Session should be saved after buffer timeout")
+        XCTAssertEqual(focusManager.timeSpent, 0, "Time should be reset after buffer timeout")
+    }
 }
 
 #endif
