@@ -685,6 +685,9 @@ class FocusManager: ObservableObject {
 extension FocusManager: FocusModeManagerDelegate {
     func focusModeController(_ controller: any FocusModeControlling, didChangeFocusMode enabled: Bool) {
         // Update notifications state when focus mode changes
+        // Note: isNotificationsEnabled is INVERSE of DND state:
+        // - When DND is ON (enabled=true), notifications are disabled (false)
+        // - When DND is OFF (enabled=false), notifications are enabled (true)
         let before = isNotificationsEnabled
         self.isNotificationsEnabled = !enabled
         AppLogger.focus.infoToFile("🔔 Focus mode state changed", metadata: [
@@ -740,15 +743,21 @@ extension FocusManager: BufferManagerDelegate {
         sessionManager.endSession()
         stateMachine.transitionToIdle()
         resetFocusState()
+        
+        // Note: isNotificationsEnabled is INVERSE of DND state
+        // - When isNotificationsEnabled = false, DND is ON (needs to be turned off)
+        // - When isNotificationsEnabled = true, DND is OFF (no toggle needed)
         if !isNotificationsEnabled {
             AppLogger.focus.infoToFile("🔕 Requesting Do Not Disturb toggle to turn off", metadata: [
                 "is_notifications_enabled": String(isNotificationsEnabled),
-                "expected_after_toggle": "true"
+                "dnd_is_currently": "on",
+                "expected_after_toggle": "off"
             ])
             focusModeController.setFocusMode(enabled: false)
         } else {
-            AppLogger.focus.infoToFile("ℹ️ Skipping DND toggle (notifications already enabled, DND already off)", metadata: [
-                "is_notifications_enabled": String(isNotificationsEnabled)
+            AppLogger.focus.infoToFile("ℹ️ Skipping DND toggle (DND already off)", metadata: [
+                "is_notifications_enabled": String(isNotificationsEnabled),
+                "dnd_is_currently": "off"
             ])
         }
     }
