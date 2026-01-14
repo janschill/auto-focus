@@ -689,15 +689,26 @@ extension FocusManager: FocusModeManagerDelegate {
     }
 
     func focusModeController(_ controller: any FocusModeControlling, didFailWithError error: FocusModeError) {
+        AppLogger.focus.errorToFile("❌ Focus mode toggle failed", error: error, metadata: [
+            "error_type": String(describing: type(of: error)),
+            "is_in_focus_mode": String(isInFocusMode),
+            "is_notifications_enabled": String(isNotificationsEnabled)
+        ])
         switch error {
         case .shortcutNotFound:
-            AppLogger.focus.error("Focus mode error: Toggle Do Not Disturb shortcut not found", error: error)
+            AppLogger.focus.error("Focus mode error: Toggle Do Not Disturb shortcut not found", error: error, metadata: [
+                "expected_shortcut_name": AppConfiguration.shortcutName,
+                "action": "User needs to install the Toggle Do Not Disturb shortcut"
+            ])
         case .appleScriptError(let message):
             AppLogger.focus.error("Focus mode AppleScript error", error: error, metadata: [
-                "message": message
+                "message": message,
+                "action": "Check Shortcuts app permissions and shortcut configuration"
             ])
         case .shortcutsAppNotInstalled:
-            AppLogger.focus.error("Focus mode error: Shortcuts app not installed", error: error)
+            AppLogger.focus.error("Focus mode error: Shortcuts app not installed", error: error, metadata: [
+                "action": "Shortcuts app is required for DND toggling"
+            ])
         }
     }
 }
