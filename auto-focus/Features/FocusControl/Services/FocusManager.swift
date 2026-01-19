@@ -334,6 +334,8 @@ class FocusManager: ObservableObject {
             // Only reset if we're not switching to browser focus
             // If we're switching to browser focus, preserve the time - it will be handled by handleBrowserFocusActivated()
             if !isBrowserInFocus {
+                // Save the session before resetting (prevents losing tracked time)
+                sessionManager.endSession()
                 resetFocusState()
                 if !isNotificationsEnabled {
                     focusModeController.setFocusMode(enabled: false)
@@ -1013,6 +1015,8 @@ extension FocusManager: BrowserManagerDelegate {
                 "chrome_frontmost": String(isChromeStillFrontmost),
                 "time_spent": String(format: "%.1f", timeSpent)
             ])
+            // Save the session before resetting (prevents losing tracked time)
+            sessionManager.endSession()
             resetFocusState()
             if !isNotificationsEnabled {
                 focusModeController.setFocusMode(enabled: false)

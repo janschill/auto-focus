@@ -6,68 +6,63 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		4B41B4932D58EA0000171A3C /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 4B41B4922D58EA0000171A3C /* LaunchAtLogin */; };
-		4B6156142D4AC4A900937136 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 4B6156132D4AC4A400937136 /* README.md */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXContainerItemProxy section */
-		4BA2A8D82D452D6B00F62E0A /* PBXContainerItemProxy */ = {
+		4BDDE7BE2F13F4E700EEA159 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = 4BA2A8BE2D452D6A00F62E0A /* Project object */;
+			containerPortal = 4BDDE7A82F13F4E500EEA159 /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = 4BA2A8C52D452D6A00F62E0A;
+			remoteGlobalIDString = 4BDDE7AF2F13F4E500EEA159;
+			remoteInfo = "auto-focus";
+		};
+		4BDDE7C82F13F4E700EEA159 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 4BDDE7A82F13F4E500EEA159 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4BDDE7AF2F13F4E500EEA159;
 			remoteInfo = "auto-focus";
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		4B6156132D4AC4A400937136 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		4BA2A8C62D452D6A00F62E0A /* auto-focus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "auto-focus.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		4BA2A8D72D452D6B00F62E0A /* auto-focusTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "auto-focusTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		4BDDE7B02F13F4E500EEA159 /* auto-focus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "auto-focus.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		4BDDE7BD2F13F4E700EEA159 /* auto-focusTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "auto-focusTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		4BDDE7C72F13F4E700EEA159 /* auto-focusUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "auto-focusUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		4B1614262DF4678200D19E5B /* Exceptions for "auto-focus" folder in "auto-focus" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 4BA2A8C52D452D6A00F62E0A /* auto-focus */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		4B6156112D4AC45300937136 /* workflows */ = {
+		4BDDE7B22F13F4E500EEA159 /* auto-focus */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = workflows;
-			sourceTree = "<group>";
-		};
-		4BA2A8C82D452D6A00F62E0A /* auto-focus */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				4B1614262DF4678200D19E5B /* Exceptions for "auto-focus" folder in "auto-focus" target */,
-			);
 			path = "auto-focus";
 			sourceTree = "<group>";
 		};
-		4BA2A8DA2D452D6B00F62E0A /* auto-focusTests */ = {
+		4BDDE7C02F13F4E700EEA159 /* auto-focusTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "auto-focusTests";
+			sourceTree = "<group>";
+		};
+		4BDDE7CA2F13F4E700EEA159 /* auto-focusUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "auto-focusUITests";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		4BA2A8C32D452D6A00F62E0A /* Frameworks */ = {
+		4BDDE7AD2F13F4E500EEA159 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4B41B4932D58EA0000171A3C /* LaunchAtLogin in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		4BA2A8D42D452D6B00F62E0A /* Frameworks */ = {
+		4BDDE7BA2F13F4E700EEA159 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4BDDE7C42F13F4E700EEA159 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -77,30 +72,22 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		4B6156102D4AC43900937136 /* .github */ = {
+		4BDDE7A72F13F4E500EEA159 = {
 			isa = PBXGroup;
 			children = (
-				4B6156112D4AC45300937136 /* workflows */,
-			);
-			path = .github;
-			sourceTree = "<group>";
-		};
-		4BA2A8BD2D452D6A00F62E0A = {
-			isa = PBXGroup;
-			children = (
-				4B6156132D4AC4A400937136 /* README.md */,
-				4BA2A8C82D452D6A00F62E0A /* auto-focus */,
-				4BA2A8DA2D452D6B00F62E0A /* auto-focusTests */,
-				4BA2A8C72D452D6A00F62E0A /* Products */,
-				4B6156102D4AC43900937136 /* .github */,
+				4BDDE7B22F13F4E500EEA159 /* auto-focus */,
+				4BDDE7C02F13F4E700EEA159 /* auto-focusTests */,
+				4BDDE7CA2F13F4E700EEA159 /* auto-focusUITests */,
+				4BDDE7B12F13F4E500EEA159 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		4BA2A8C72D452D6A00F62E0A /* Products */ = {
+		4BDDE7B12F13F4E500EEA159 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				4BA2A8C62D452D6A00F62E0A /* auto-focus.app */,
-				4BA2A8D72D452D6B00F62E0A /* auto-focusTests.xctest */,
+				4BDDE7B02F13F4E500EEA159 /* auto-focus.app */,
+				4BDDE7BD2F13F4E700EEA159 /* auto-focusTests.xctest */,
+				4BDDE7C72F13F4E700EEA159 /* auto-focusUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -108,104 +95,134 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		4BA2A8C52D452D6A00F62E0A /* auto-focus */ = {
+		4BDDE7AF2F13F4E500EEA159 /* auto-focus */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 4BA2A8EB2D452D6B00F62E0A /* Build configuration list for PBXNativeTarget "auto-focus" */;
+			buildConfigurationList = 4BDDE7D12F13F4E700EEA159 /* Build configuration list for PBXNativeTarget "auto-focus" */;
 			buildPhases = (
-				4BA2A8C22D452D6A00F62E0A /* Sources */,
-				4BA2A8C32D452D6A00F62E0A /* Frameworks */,
-				4BA2A8C42D452D6A00F62E0A /* Resources */,
+				4BDDE7AC2F13F4E500EEA159 /* Sources */,
+				4BDDE7AD2F13F4E500EEA159 /* Frameworks */,
+				4BDDE7AE2F13F4E500EEA159 /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				4BA2A8C82D452D6A00F62E0A /* auto-focus */,
+				4BDDE7B22F13F4E500EEA159 /* auto-focus */,
 			);
 			name = "auto-focus";
 			packageProductDependencies = (
-				4B41B4922D58EA0000171A3C /* LaunchAtLogin */,
 			);
 			productName = "auto-focus";
-			productReference = 4BA2A8C62D452D6A00F62E0A /* auto-focus.app */;
+			productReference = 4BDDE7B02F13F4E500EEA159 /* auto-focus.app */;
 			productType = "com.apple.product-type.application";
 		};
-		4BA2A8D62D452D6B00F62E0A /* auto-focusTests */ = {
+		4BDDE7BC2F13F4E700EEA159 /* auto-focusTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 4BA2A8EE2D452D6B00F62E0A /* Build configuration list for PBXNativeTarget "auto-focusTests" */;
+			buildConfigurationList = 4BDDE7D42F13F4E700EEA159 /* Build configuration list for PBXNativeTarget "auto-focusTests" */;
 			buildPhases = (
-				4BA2A8D32D452D6B00F62E0A /* Sources */,
-				4BA2A8D42D452D6B00F62E0A /* Frameworks */,
-				4BA2A8D52D452D6B00F62E0A /* Resources */,
+				4BDDE7B92F13F4E700EEA159 /* Sources */,
+				4BDDE7BA2F13F4E700EEA159 /* Frameworks */,
+				4BDDE7BB2F13F4E700EEA159 /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				4BA2A8D92D452D6B00F62E0A /* PBXTargetDependency */,
+				4BDDE7BF2F13F4E700EEA159 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				4BA2A8DA2D452D6B00F62E0A /* auto-focusTests */,
+				4BDDE7C02F13F4E700EEA159 /* auto-focusTests */,
 			);
 			name = "auto-focusTests";
 			packageProductDependencies = (
 			);
 			productName = "auto-focusTests";
-			productReference = 4BA2A8D72D452D6B00F62E0A /* auto-focusTests.xctest */;
+			productReference = 4BDDE7BD2F13F4E700EEA159 /* auto-focusTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		4BDDE7C62F13F4E700EEA159 /* auto-focusUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4BDDE7D72F13F4E700EEA159 /* Build configuration list for PBXNativeTarget "auto-focusUITests" */;
+			buildPhases = (
+				4BDDE7C32F13F4E700EEA159 /* Sources */,
+				4BDDE7C42F13F4E700EEA159 /* Frameworks */,
+				4BDDE7C52F13F4E700EEA159 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				4BDDE7C92F13F4E700EEA159 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				4BDDE7CA2F13F4E700EEA159 /* auto-focusUITests */,
+			);
+			name = "auto-focusUITests";
+			packageProductDependencies = (
+			);
+			productName = "auto-focusUITests";
+			productReference = 4BDDE7C72F13F4E700EEA159 /* auto-focusUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		4BA2A8BE2D452D6A00F62E0A /* Project object */ = {
+		4BDDE7A82F13F4E500EEA159 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1620;
-				LastUpgradeCheck = 1640;
+				LastSwiftUpdateCheck = 2620;
+				LastUpgradeCheck = 2620;
 				TargetAttributes = {
-					4BA2A8C52D452D6A00F62E0A = {
-						CreatedOnToolsVersion = 16.2;
+					4BDDE7AF2F13F4E500EEA159 = {
+						CreatedOnToolsVersion = 26.2;
 					};
-					4BA2A8D62D452D6B00F62E0A = {
-						CreatedOnToolsVersion = 16.2;
-						TestTargetID = 4BA2A8C52D452D6A00F62E0A;
+					4BDDE7BC2F13F4E700EEA159 = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = 4BDDE7AF2F13F4E500EEA159;
+					};
+					4BDDE7C62F13F4E700EEA159 = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = 4BDDE7AF2F13F4E500EEA159;
 					};
 				};
 			};
-			buildConfigurationList = 4BA2A8C12D452D6A00F62E0A /* Build configuration list for PBXProject "auto-focus" */;
+			buildConfigurationList = 4BDDE7AB2F13F4E500EEA159 /* Build configuration list for PBXProject "auto-focus" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
 			);
-			mainGroup = 4BA2A8BD2D452D6A00F62E0A;
+			mainGroup = 4BDDE7A72F13F4E500EEA159;
 			minimizedProjectReferenceProxies = 1;
-			packageReferences = (
-				4B41B4912D58E91B00171A3C /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */,
-			);
 			preferredProjectObjectVersion = 77;
-			productRefGroup = 4BA2A8C72D452D6A00F62E0A /* Products */;
+			productRefGroup = 4BDDE7B12F13F4E500EEA159 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				4BA2A8C52D452D6A00F62E0A /* auto-focus */,
-				4BA2A8D62D452D6B00F62E0A /* auto-focusTests */,
+				4BDDE7AF2F13F4E500EEA159 /* auto-focus */,
+				4BDDE7BC2F13F4E700EEA159 /* auto-focusTests */,
+				4BDDE7C62F13F4E700EEA159 /* auto-focusUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		4BA2A8C42D452D6A00F62E0A /* Resources */ = {
+		4BDDE7AE2F13F4E500EEA159 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4B6156142D4AC4A900937136 /* README.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		4BA2A8D52D452D6B00F62E0A /* Resources */ = {
+		4BDDE7BB2F13F4E700EEA159 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4BDDE7C52F13F4E700EEA159 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -215,14 +232,21 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		4BA2A8C22D452D6A00F62E0A /* Sources */ = {
+		4BDDE7AC2F13F4E500EEA159 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		4BA2A8D32D452D6B00F62E0A /* Sources */ = {
+		4BDDE7B92F13F4E700EEA159 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4BDDE7C32F13F4E700EEA159 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -232,15 +256,20 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		4BA2A8D92D452D6B00F62E0A /* PBXTargetDependency */ = {
+		4BDDE7BF2F13F4E700EEA159 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 4BA2A8C52D452D6A00F62E0A /* auto-focus */;
-			targetProxy = 4BA2A8D82D452D6B00F62E0A /* PBXContainerItemProxy */;
+			target = 4BDDE7AF2F13F4E500EEA159 /* auto-focus */;
+			targetProxy = 4BDDE7BE2F13F4E700EEA159 /* PBXContainerItemProxy */;
+		};
+		4BDDE7C92F13F4E700EEA159 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4BDDE7AF2F13F4E500EEA159 /* auto-focus */;
+			targetProxy = 4BDDE7C82F13F4E700EEA159 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		4BA2A8E92D452D6B00F62E0A /* Debug */ = {
+		4BDDE7CF2F13F4E700EEA159 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -274,7 +303,6 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -294,7 +322,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MACOSX_DEPLOYMENT_TARGET = 26.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -304,7 +332,7 @@
 			};
 			name = Debug;
 		};
-		4BA2A8EA2D452D6B00F62E0A /* Release */ = {
+		4BDDE7D02F13F4E700EEA159 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -338,7 +366,6 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -352,7 +379,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MACOSX_DEPLOYMENT_TARGET = 26.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
@@ -360,166 +387,186 @@
 			};
 			name = Release;
 		};
-		4BA2A8EC2D452D6B00F62E0A /* Debug */ = {
+		4BDDE7D22F13F4E700EEA159 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
-				CODE_SIGN_ENTITLEMENTS = "auto-focus/auto_focus.entitlements";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 6;
-				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_ASSET_PATHS = "\"auto-focus/Preview Content\"";
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = LKQJ2JG34Y;
-				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_APP_SANDBOX = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "auto-focus/Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Auto Focus Tracker";
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
-				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Auto-Focus needs to control Focus modes";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 14.6;
-				MARKETING_VERSION = 1.13.0;
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "auto-focus.auto-focus";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
 		};
-		4BA2A8ED2D452D6B00F62E0A /* Release */ = {
+		4BDDE7D32F13F4E700EEA159 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
-				CODE_SIGN_ENTITLEMENTS = "auto-focus/auto_focus.entitlements";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 6;
-				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_ASSET_PATHS = "\"auto-focus/Preview Content\"";
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = LKQJ2JG34Y;
-				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_APP_SANDBOX = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "auto-focus/Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "Auto Focus Tracker";
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
-				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Auto-Focus needs to control Focus modes";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 14.6;
-				MARKETING_VERSION = 1.13.0;
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "auto-focus.auto-focus";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
 		};
-		4BA2A8EF2D452D6B00F62E0A /* Debug */ = {
+		4BDDE7D52F13F4E700EEA159 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGNING_ALLOWED = NO;
-				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 6;
-				DEAD_CODE_STRIPPING = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.6;
-				MARKETING_VERSION = 1.13.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.1;
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "auto-focus.auto-focusTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/auto-focus.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/auto-focus";
 			};
 			name = Debug;
 		};
-		4BA2A8F02D452D6B00F62E0A /* Release */ = {
+		4BDDE7D62F13F4E700EEA159 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGNING_ALLOWED = NO;
-				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 6;
-				DEAD_CODE_STRIPPING = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 14.6;
-				MARKETING_VERSION = 1.13.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.1;
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "auto-focus.auto-focusTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/auto-focus.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/auto-focus";
+			};
+			name = Release;
+		};
+		4BDDE7D82F13F4E700EEA159 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "auto-focus.auto-focusUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = "auto-focus";
+			};
+			name = Debug;
+		};
+		4BDDE7D92F13F4E700EEA159 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "auto-focus.auto-focusUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = "auto-focus";
 			};
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		4BA2A8C12D452D6A00F62E0A /* Build configuration list for PBXProject "auto-focus" */ = {
+		4BDDE7AB2F13F4E500EEA159 /* Build configuration list for PBXProject "auto-focus" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				4BA2A8E92D452D6B00F62E0A /* Debug */,
-				4BA2A8EA2D452D6B00F62E0A /* Release */,
+				4BDDE7CF2F13F4E700EEA159 /* Debug */,
+				4BDDE7D02F13F4E700EEA159 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		4BA2A8EB2D452D6B00F62E0A /* Build configuration list for PBXNativeTarget "auto-focus" */ = {
+		4BDDE7D12F13F4E700EEA159 /* Build configuration list for PBXNativeTarget "auto-focus" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				4BA2A8EC2D452D6B00F62E0A /* Debug */,
-				4BA2A8ED2D452D6B00F62E0A /* Release */,
+				4BDDE7D22F13F4E700EEA159 /* Debug */,
+				4BDDE7D32F13F4E700EEA159 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		4BA2A8EE2D452D6B00F62E0A /* Build configuration list for PBXNativeTarget "auto-focusTests" */ = {
+		4BDDE7D42F13F4E700EEA159 /* Build configuration list for PBXNativeTarget "auto-focusTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				4BA2A8EF2D452D6B00F62E0A /* Debug */,
-				4BA2A8F02D452D6B00F62E0A /* Release */,
+				4BDDE7D52F13F4E700EEA159 /* Debug */,
+				4BDDE7D62F13F4E700EEA159 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		4BDDE7D72F13F4E700EEA159 /* Build configuration list for PBXNativeTarget "auto-focusUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4BDDE7D82F13F4E700EEA159 /* Debug */,
+				4BDDE7D92F13F4E700EEA159 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		4B41B4912D58E91B00171A3C /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/sindresorhus/LaunchAtLogin-Modern";
-			requirement = {
-				branch = main;
-				kind = branch;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		4B41B4922D58EA0000171A3C /* LaunchAtLogin */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 4B41B4912D58E91B00171A3C /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */;
-			productName = LaunchAtLogin;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
-	rootObject = 4BA2A8BE2D452D6A00F62E0A /* Project object */;
+	rootObject = 4BDDE7A82F13F4E500EEA159 /* Project object */;
 }
