@@ -13,7 +13,7 @@ struct BrowserConfigView: View {
         VStack(spacing: 10) {
             HeaderView()
 
-            ExtensionInstallationView()
+            AccessibilityPermissionView()
 
             FocusURLsManagementView(selectedTab: $selectedTab, selectedURLId: $selectedURLId, showingAddURL: $showingAddURL)
 
@@ -31,27 +31,30 @@ private struct HeaderView: View {
     var body: some View {
         GroupBox {
             VStack {
-                Text("Browser Integration").font(.title)
+                Text("Website Tracking").font(.title)
                     .fontDesign(.default)
                     .fontWeight(.bold)
                     .bold()
-                Text("Track focus time on specific websites and web apps. Add from a list of common categories or add your own URLs. Added websites will behave just like your focus apps")
+                Text("Track focus time on specific websites and web apps using macOS's native browser control. Add from a list of common categories or add your own URLs. Added websites will behave just like your focus apps - no browser extension needed!")
                     .font(.callout)
                     .fontDesign(.default)
                     .fontWeight(.regular)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
 
-                Text("💡 Tip: Don't add Chrome as a focus app - the extension handles website detection automatically!")
-                    .font(.caption)
-                    .fontDesign(.default)
-                    .fontWeight(.medium)
-                    .foregroundColor(.orange)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color.orange.opacity(0.1))
-                    .cornerRadius(6)
+                HStack(spacing: 8) {
+                    Image(systemName: "lock.shield.fill")
+                        .foregroundColor(.blue)
+                    Text("💡 All processing happens locally on your computer. Your browsing data never leaves your device.")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .multilineTextAlignment(.center)
+                }
+                .foregroundColor(.blue)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(Color.blue.opacity(0.1))
+                .cornerRadius(6)
             }
             .padding(.horizontal, 40)
             .padding(.vertical)
@@ -87,70 +90,107 @@ private struct HeaderView: View {
 //    }
 // }
 
-private struct ExtensionInstallationView: View {
+private struct AccessibilityPermissionView: View {
     @EnvironmentObject var focusManager: FocusManager
+    @State private var hasPermission: Bool = false
 
     var body: some View {
         GroupBox {
-            VStack {
+            VStack(spacing: 16) {
                 HStack {
-                    Text("Chrome Extension")
+                    Text("Accessibility Permission")
                         .frame(width: 150, alignment: .leading)
 
                     Spacer()
 
-                    if focusManager.isExtensionConnected {
+                    if hasPermission {
                         if #available(macOS 14.0, *) {
-                            Label("Installed", systemImage: "checkmark.circle.fill")
+                            Label("Granted", systemImage: "checkmark.circle.fill")
                                 .foregroundStyle(.green.gradient)
                         } else {
-                            Label("Installed", systemImage: "checkmark.circle.fill")
+                            Label("Granted", systemImage: "checkmark.circle.fill")
                                 .foregroundColor(.green)
                         }
                     } else {
                         if #available(macOS 14.0, *) {
-                            Label("Not installed", systemImage: "exclamationmark.triangle.fill")
+                            Label("Not granted", systemImage: "exclamationmark.triangle.fill")
                                 .foregroundStyle(.orange.gradient)
                         } else {
-                            Label("Not installed", systemImage: "exclamationmark.triangle.fill")
+                            Label("Not granted", systemImage: "exclamationmark.triangle.fill")
                                 .foregroundColor(.orange)
                         }
                     }
 
-                    Button("Install Extension") {
-                        openExtensionInstallation()
+                    Button("Grant Permission") {
+                        focusManager.requestBrowserAccessibilityPermission()
+                        // Check permission after a delay
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                            hasPermission = focusManager.hasBrowserAccessibilityPermission
+                        }
                     }
-                    .disabled(focusManager.isExtensionConnected)
+                    .disabled(hasPermission)
                 }
 
-                HStack {
-                    Text("Install the Chrome extension to monitor and track focus time on websites. The extension communicates with the app to coordinate focus sessions.")
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "lock.shield.fill")
+                            .foregroundColor(.blue)
+                        Text("Privacy First: Your browsing data never leaves your computer")
+                            .font(.callout)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.blue)
+                    }
+                    
+                    Text("Auto-Focus uses macOS's native browser control (Website context) to monitor your browser's URL locally. All processing happens on your computer - no data is sent anywhere.")
                         .font(.callout)
-                        .fontDesign(.default)
-                        .fontWeight(.regular)
                         .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 8)
+                .padding(.horizontal, 12)
+                .background(Color.blue.opacity(0.1))
+                .cornerRadius(8)
 
-                HStack {
-                    Text("Chrome will NOT be added as a focus app - the extension only activates for specific websites you configure.")
-                        .font(.caption)
-                        .fontDesign(.default)
-                        .fontWeight(.medium)
-                        .foregroundColor(.blue)
-                        .italic()
+                if !hasPermission {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("To enable browser tracking:")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                        
+                        HStack(alignment: .top, spacing: 8) {
+                            Text("1.")
+                                .foregroundColor(.secondary)
+                            Text("Click 'Grant Permission' to open System Settings")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        HStack(alignment: .top, spacing: 8) {
+                            Text("2.")
+                                .foregroundColor(.secondary)
+                            Text("Find Auto-Focus under Privacy & Security → Accessibility")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        HStack(alignment: .top, spacing: 8) {
+                            Text("3.")
+                                .foregroundColor(.secondary)
+                            Text("Toggle the switch to enable Accessibility permission")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding(.top, 8)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding(.horizontal, 5)
             .padding(.vertical)
         }
         .frame(maxWidth: .infinity)
-    }
-
-    private func openExtensionInstallation() {
-        if let url = URL(string: "https://chromewebstore.google.com/detail/ncmjhohihnjjmkfpcibbafakmlbfifih") {
-            NSWorkspace.shared.open(url)
+        .onAppear {
+            hasPermission = focusManager.hasBrowserAccessibilityPermission
         }
     }
 }

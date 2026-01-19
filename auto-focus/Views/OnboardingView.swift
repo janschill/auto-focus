@@ -402,102 +402,172 @@ struct BrowserIntegrationStepView: View {
     @EnvironmentObject var licenseManager: LicenseManager
     @Binding var hasSetupBrowser: Bool
     @State private var showingBrowserConfig = false
+    @State private var hasAccessibilityPermission: Bool = false
 
     var body: some View {
         VStack(spacing: 24) {
-            Image(systemName: hasSetupBrowser ? "checkmark.circle.fill" : "globe")
+            Image(systemName: hasAccessibilityPermission ? "checkmark.circle.fill" : "hand.raised")
                 .font(.system(size: 60))
-                .foregroundColor(hasSetupBrowser ? .green : .accentColor)
+                .foregroundColor(hasAccessibilityPermission ? .green : .accentColor)
 
             VStack(spacing: 16) {
-                Text("Browser Integration")
+                Text("Website Context & URL")
                     .font(.largeTitle)
                     .fontWeight(.bold)
+                
+                Text("(Browser Control)")
+                    .font(.title3)
+                    .foregroundColor(.secondary)
 
-                Text("Track focus time on websites like GitHub, Notion, Google Docs, and more. Auto-Focus can monitor your browser tabs and activate focus mode when you're on designated websites.")
+                Text("Auto-Focus uses macOS's native browser control to monitor your browser's URL and activate focus mode when you're on designated websites.")
                     .font(.title3)
                     .multilineTextAlignment(.center)
                     .foregroundColor(.secondary)
 
-                Text("Note: You don't need to add Chrome as a focus app. The extension handles website detection independently.")
-                    .font(.callout)
-                    .multilineTextAlignment(.center)
-                    .foregroundColor(.orange)
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
-                    .background(Color.orange.opacity(0.1))
-                    .cornerRadius(8)
+                HStack(spacing: 12) {
+                    Image(systemName: "lock.shield.fill")
+                        .foregroundColor(.blue)
+                    Text("Your browsing data never leaves your computer. All processing is done entirely locally.")
+                        .font(.callout)
+                        .fontWeight(.medium)
+                        .multilineTextAlignment(.center)
+                }
+                .foregroundColor(.blue)
+                .padding(.horizontal)
+                .padding(.vertical, 10)
+                .background(Color.blue.opacity(0.1))
+                .cornerRadius(8)
             }
 
             VStack(spacing: 16) {
+                // Permission status
                 HStack {
-                    Image(systemName: hasSetupBrowser ? "checkmark.circle.fill" : "circle")
-                        .foregroundColor(hasSetupBrowser ? .green : .gray)
+                    Image(systemName: hasAccessibilityPermission ? "checkmark.circle.fill" : "circle")
+                        .foregroundColor(hasAccessibilityPermission ? .green : .gray)
 
-                    Text(hasSetupBrowser ? browserStatusText : "Browser integration not set up")
+                    Text(hasAccessibilityPermission ? "Accessibility permission granted" : "Accessibility permission needed")
                         .font(.headline)
-                        .foregroundColor(hasSetupBrowser ? .green : .primary)
+                        .foregroundColor(hasAccessibilityPermission ? .green : .primary)
 
                     Spacer()
                 }
-
-                if !focusManager.focusURLs.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        ForEach(focusManager.focusURLs.prefix(3)) { url in
-                            HStack {
-                                Image(systemName: "globe")
-                                    .foregroundColor(.accentColor)
-                                Text(url.name)
-                                    .font(.body)
-                                Spacer()
-                            }
+                
+                if !hasAccessibilityPermission {
+                    Button("Grant Accessibility Permission") {
+                        focusManager.requestBrowserAccessibilityPermission()
+                        // Check permission after a delay
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                            hasAccessibilityPermission = focusManager.hasBrowserAccessibilityPermission
                         }
-
-                        if focusManager.focusURLs.count > 3 {
-                            Text("... and \(focusManager.focusURLs.count - 3) more")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("How it works:")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                        
+                        HStack(alignment: .top, spacing: 8) {
+                            Text("1.")
+                                .foregroundColor(.secondary)
+                            Text("Click the button above to open System Settings")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                                .padding(.leading, 24)
                         }
-                    }
-                    .padding(.top, 8)
-                }
-
-                Button(hasSetupBrowser ? "Configure Websites" : "Set Up Browser Integration") {
-                    showingBrowserConfig = true
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-
-                VStack(spacing: 12) {
-                    if !licenseManager.isLicensed {
-                        HStack {
-                            Image(systemName: "info.circle")
-                                .foregroundColor(.blue)
-                            Text("Free tier: 3 focus websites • Auto-Focus+ unlocks unlimited websites")
+                        
+                        HStack(alignment: .top, spacing: 8) {
+                            Text("2.")
+                                .foregroundColor(.secondary)
+                            Text("Find Auto-Focus in the Privacy & Security section")
                                 .font(.caption)
-                                .foregroundColor(.blue)
+                                .foregroundColor(.secondary)
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(Color.blue.opacity(0.1))
-                        .cornerRadius(8)
-                    }
-
-                    VStack(spacing: 8) {
-                        Text("Popular focus websites:")
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.secondary)
-
-                        HStack(spacing: 12) {
-                            RecommendedWebsiteTag(name: "GitHub")
-                            RecommendedWebsiteTag(name: "Notion")
-                            RecommendedWebsiteTag(name: "Google Docs")
-                            RecommendedWebsiteTag(name: "Figma")
+                        
+                        HStack(alignment: .top, spacing: 8) {
+                            Text("3.")
+                                .foregroundColor(.secondary)
+                            Text("Enable Accessibility permission")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                         }
                     }
                     .padding(.top, 8)
+                }
+
+                // Configuration section (only show if permission granted)
+                if hasAccessibilityPermission {
+                    Divider()
+                    
+                    HStack {
+                        Image(systemName: hasSetupBrowser ? "checkmark.circle.fill" : "circle")
+                            .foregroundColor(hasSetupBrowser ? .green : .gray)
+
+                        Text(hasSetupBrowser ? "\(focusManager.focusURLs.count) website(s) configured" : "Configure focus websites")
+                            .font(.headline)
+                            .foregroundColor(hasSetupBrowser ? .green : .primary)
+
+                        Spacer()
+                    }
+                    
+                    if !focusManager.focusURLs.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            ForEach(focusManager.focusURLs.prefix(3)) { url in
+                                HStack {
+                                    Image(systemName: "globe")
+                                        .foregroundColor(.accentColor)
+                                    Text(url.name)
+                                        .font(.body)
+                                    Spacer()
+                                }
+                            }
+
+                            if focusManager.focusURLs.count > 3 {
+                                Text("... and \(focusManager.focusURLs.count - 3) more")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .padding(.leading, 24)
+                            }
+                        }
+                        .padding(.top, 8)
+                    }
+
+                    Button(hasSetupBrowser ? "Configure Websites" : "Set Up Focus Websites") {
+                        showingBrowserConfig = true
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+
+                    VStack(spacing: 12) {
+                        if !licenseManager.isLicensed {
+                            HStack {
+                                Image(systemName: "info.circle")
+                                    .foregroundColor(.blue)
+                                Text("Free tier: 3 focus websites • Auto-Focus+ unlocks unlimited websites")
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(Color.blue.opacity(0.1))
+                            .cornerRadius(8)
+                        }
+
+                        VStack(spacing: 8) {
+                            Text("Popular focus websites:")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.secondary)
+
+                            HStack(spacing: 12) {
+                                RecommendedWebsiteTag(name: "GitHub")
+                                RecommendedWebsiteTag(name: "Notion")
+                                RecommendedWebsiteTag(name: "Google Docs")
+                                RecommendedWebsiteTag(name: "Figma")
+                            }
+                        }
+                        .padding(.top, 8)
+                    }
                 }
             }
             .padding(.horizontal, 20)
@@ -509,13 +579,8 @@ struct BrowserIntegrationStepView: View {
             OnboardingBrowserConfigSheet(hasSetupBrowser: $hasSetupBrowser)
                 .frame(minWidth: 700, minHeight: 600)
         }
-    }
-
-    private var browserStatusText: String {
-        if !focusManager.focusURLs.isEmpty {
-            return "\(focusManager.focusURLs.count) website(s) configured"
-        } else {
-            return "Ready to configure"
+        .onAppear {
+            hasAccessibilityPermission = focusManager.hasBrowserAccessibilityPermission
         }
     }
 }
