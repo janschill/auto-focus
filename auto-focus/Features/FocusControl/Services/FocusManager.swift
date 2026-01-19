@@ -687,19 +687,38 @@ class FocusManager: ObservableObject {
 extension FocusManager: FocusModeManagerDelegate {
     func focusModeController(_ controller: any FocusModeControlling, didChangeFocusMode enabled: Bool) {
         // Update notifications state when focus mode changes
+        // Note: isNotificationsEnabled is INVERSE of DND state:
+        // - When DND is ON (enabled=true), notifications are disabled (false)
+        // - When DND is OFF (enabled=false), notifications are enabled (true)
+        let before = isNotificationsEnabled
         self.isNotificationsEnabled = !enabled
+        AppLogger.focus.infoToFile("🔔 Focus mode state changed", metadata: [
+            "dnd_enabled": String(enabled),
+            "is_notifications_enabled_before": String(before),
+            "is_notifications_enabled_after": String(isNotificationsEnabled)
+        ])
     }
 
     func focusModeController(_ controller: any FocusModeControlling, didFailWithError error: FocusModeError) {
+        AppLogger.focus.errorToFile("❌ Focus mode toggle failed", error: error, metadata: [
+            "is_in_focus_mode": String(isInFocusMode),
+            "is_notifications_enabled": String(isNotificationsEnabled)
+        ])
         switch error {
         case .shortcutNotFound:
-            AppLogger.focus.error("Focus mode error: Toggle Do Not Disturb shortcut not found", error: error)
+            AppLogger.focus.errorToFile("Focus mode error: Toggle Do Not Disturb shortcut not found", error: error, metadata: [
+                "expected_shortcut_name": AppConfiguration.shortcutName,
+                "action": "User needs to install the Toggle Do Not Disturb shortcut"
+            ])
         case .appleScriptError(let message):
-            AppLogger.focus.error("Focus mode AppleScript error", error: error, metadata: [
-                "message": message
+            AppLogger.focus.errorToFile("Focus mode AppleScript error", error: error, metadata: [
+                "message": message,
+                "action": "Check Shortcuts app permissions and shortcut configuration"
             ])
         case .shortcutsAppNotInstalled:
-            AppLogger.focus.error("Focus mode error: Shortcuts app not installed", error: error)
+            AppLogger.focus.errorToFile("Focus mode error: Shortcuts app not installed", error: error, metadata: [
+                "action": "Shortcuts app is required for DND toggling"
+            ])
         }
     }
 }
@@ -716,11 +735,31 @@ extension FocusManager: BufferManagerDelegate {
 
     func bufferManagerDidTimeout(_ manager: any BufferManaging) {
         // Buffer timed out - end session and exit focus mode
+        AppLogger.focus.infoToFile("⏰ Buffer timeout - ending focus session", metadata: [
+            "time_spent_before_reset": String(format: "%.1f", timeSpent),
+            "is_in_focus_mode": String(isInFocusMode),
+            "is_notifications_enabled": String(isNotificationsEnabled),
+            "will_toggle_dnd": String(!isNotificationsEnabled)
+        ])
         sessionManager.endSession()
         stateMachine.transitionToIdle()
         resetFocusState()
+        
+        // Note: isNotificationsEnabled is INVERSE of DND state
+        // - When isNotificationsEnabled = false, DND is ON (needs to be turned off)
+        // - When isNotificationsEnabled = true, DND is OFF (no toggle needed)
         if !isNotificationsEnabled {
+            AppLogger.focus.infoToFile("🔕 Requesting Do Not Disturb toggle to turn off", metadata: [
+                "is_notifications_enabled": String(isNotificationsEnabled),
+                "dnd_is_currently": "on",
+                "expected_after_toggle": "off"
+            ])
             focusModeController.setFocusMode(enabled: false)
+        } else {
+            AppLogger.focus.infoToFile("ℹ️ Skipping DND toggle (DND already off)", metadata: [
+                "is_notifications_enabled": String(isNotificationsEnabled),
+                "dnd_is_currently": "off"
+            ])
         }
     }
 }
@@ -978,16 +1017,26 @@ extension FocusManager: BrowserManagerDelegate {
     }
 
     private func handleBrowserFocusDeactivated() {
-        AppLogger.focus.info("Browser focus deactivated")
+        AppLogger.focus.infoToFile("🌐 Browser focus deactivated", metadata: [
+            "is_in_focus_mode": String(isInFocusMode),
+            "time_spent": String(format: "%.1f", timeSpent),
+            "state": stateMachine.currentState.name
+        ])
         // Similar to handleNonFocusAppInFront but for browser
         if isInFocusMode {
-            AppLogger.focus.info("Starting buffer period after browser focus loss", metadata: [
+            AppLogger.focus.infoToFile("✅ Starting buffer period after browser focus loss", metadata: [
                 "buffer_duration": String(format: "%.1f", focusLossBuffer),
-                "time_spent": String(format: "%.1f", timeSpent)
+                "time_spent": String(format: "%.1f", timeSpent),
+                "state_before": stateMachine.currentState.name
             ])
             focusTimer.pause()
             stateMachine.transitionToBuffer(timeRemaining: focusLossBuffer)
             bufferManager.startBuffer(duration: focusLossBuffer)
+            AppLogger.focus.infoToFile("✅ Buffer started successfully", metadata: [
+                "state_after": stateMachine.currentState.name,
+                "is_in_buffer_period": String(isInBufferPeriod),
+                "buffer_time_remaining": String(format: "%.1f", bufferTimeRemaining)
+            ])
         } else {
             // Check if Chrome is still the frontmost app
             // If Chrome is still frontmost, we're just switching tabs - reset the timer
