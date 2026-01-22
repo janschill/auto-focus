@@ -161,6 +161,18 @@ jobs:
           rm -rf build/auto-focus.xcarchive
           rm -rf build/DerivedData
 
+          # Clean build first to ensure folder-based groups are properly recognized
+          echo "🧹 Running clean build..."
+          xcodebuild clean \
+            -project auto-focus.xcodeproj \
+            -scheme auto-focus \
+            -configuration Release || echo "Clean completed (may show warnings)"
+
+          # List source files to verify they're visible to xcodebuild
+          echo "📁 Checking source files in auto-focus directory..."
+          find auto-focus -name "*.swift" -type f | head -20
+          echo "Total Swift files: $(find auto-focus -name '*.swift' -type f | wc -l)"
+
           # Build archive with clean build forced
           # Using -destination to ensure proper platform targeting
           xcodebuild archive \
