@@ -241,13 +241,34 @@ class FocusManager: ObservableObject {
     }
 
     private func handleFocusAppInFront() {
+        AppLogger.focus.infoToFile("🟢 handleFocusAppInFront called", metadata: [
+            "is_focus_app_active": String(isFocusAppActive),
+            "is_browser_in_focus": String(isBrowserInFocus),
+            "is_in_buffer_period": String(bufferManager.isInBufferPeriod),
+            "time_spent": String(format: "%.1f", timeSpent),
+            "timer_running": String(focusTimer.isRunning),
+            "timer_current_time": String(format: "%.1f", focusTimer.currentTime)
+        ])
+
+        // Check if we're returning from a buffer period
+        let wasInBuffer = bufferManager.isInBufferPeriod
+
+        // Cancel buffer now that we're back in focus
         bufferManager.cancelBuffer()
 
         if !isFocusAppActive {
-            // Check if we're already tracking time in browser focus - if so, preserve it
-            // We preserve time if we're switching between focus contexts (browser ↔ app)
-            // Only reset if we're truly starting fresh (not in any focus context)
-            let preserveTime = isBrowserInFocus || (timeSpent > 0 && focusTimer.isRunning)
+            // Check if we're already tracking time in browser focus or returning from buffer - if so, preserve it
+            // We preserve time if we're switching between focus contexts (browser ↔ app) or returning from buffer
+            let hasAccumulatedTime = timeSpent > 0 || focusTimer.currentTime > 0
+            let preserveTime = isBrowserInFocus || wasInBuffer || hasAccumulatedTime
+
+            AppLogger.focus.infoToFile("🔍 handleFocusAppInFront: Preservation check", metadata: [
+                "was_in_buffer": String(wasInBuffer),
+                "is_browser_in_focus": String(isBrowserInFocus),
+                "has_accumulated_time": String(hasAccumulatedTime),
+                "preserve_time": String(preserveTime)
+            ])
+
             startFocusSession(preserveTime: preserveTime)
         } else {
             // Already in app focus - continue tracking
@@ -259,17 +280,42 @@ class FocusManager: ObservableObject {
     }
 
     private func startFocusSession(preserveTime: Bool = false) {
+        AppLogger.focus.infoToFile("📝 startFocusSession called", metadata: [
+            "preserve_time": String(preserveTime),
+            "time_spent": String(format: "%.1f", timeSpent),
+            "timer_current_time": String(format: "%.1f", focusTimer.currentTime),
+            "is_browser_in_focus": String(isBrowserInFocus)
+        ])
+
         isFocusAppActive = true
-        // Only reset timeSpent if we're not preserving time from browser focus
+
         if !preserveTime {
+            // Starting completely fresh
             timeSpent = 0
             focusTimer.reset()
             stateMachine.transitionToIdle()
+        } else {
+            // Preserve existing time - sync timeSpent with timer if needed
+            if timeSpent == 0 && focusTimer.currentTime > 0 {
+                timeSpent = focusTimer.currentTime
+                AppLogger.focus.infoToFile("🔄 startFocusSession: Syncing timeSpent from timer", metadata: [
+                    "synced_time_spent": String(format: "%.1f", timeSpent)
+                ])
+            }
         }
-        // Only start a new session if we're not already in one (from browser focus)
-        if !isBrowserInFocus {
+
+        // Only start a new session if we're not already in one (from browser focus or returning from buffer)
+        // Session continues if we were in browser focus or if we have accumulated time being preserved
+        if !isBrowserInFocus && !preserveTime {
             sessionManager.startSession()
+            AppLogger.focus.infoToFile("📝 startFocusSession: Started new session", metadata: [:])
+        } else {
+            AppLogger.focus.infoToFile("📝 startFocusSession: Continuing existing session", metadata: [
+                "is_browser_in_focus": String(isBrowserInFocus),
+                "preserve_time": String(preserveTime)
+            ])
         }
+
         focusTimer.start(preserveTime: preserveTime)
         stateMachine.transitionToCounting(timeSpent: timeSpent)
     }
@@ -325,28 +371,45 @@ class FocusManager: ObservableObject {
     }
 
     private func handleNonFocusAppInFront() {
-        if isInFocusMode {
-            // Pause time tracking when entering buffer period
+        AppLogger.focus.infoToFile("🔴 handleNonFocusAppInFront called", metadata: [
+            "is_in_focus_mode": String(isInFocusMode),
+            "time_spent": String(format: "%.1f", timeSpent),
+            "timer_running": String(focusTimer.isRunning),
+            "is_browser_in_focus": String(isBrowserInFocus)
+        ])
+
+        // If browser focus is active, preserve time - it will continue in browser context
+        if isBrowserInFocus {
+            AppLogger.focus.infoToFile("App focus deactivated but browser focus is active - preserving time", metadata: [
+                "time_spent": String(format: "%.1f", timeSpent)
+            ])
+            // Don't reset - we're switching to browser focus, time will be preserved
+            // Just mark app focus as inactive, but keep timeSpent and timer
+            isFocusAppActive = false
+            return
+        }
+
+        // Start buffer period if we have accumulated time OR are in focus mode
+        // This preserves time even before reaching the focus threshold
+        if isInFocusMode || timeSpent > 0 {
+            AppLogger.focus.infoToFile("Starting buffer period after app focus loss", metadata: [
+                "buffer_duration": String(format: "%.1f", focusLossBuffer),
+                "time_spent": String(format: "%.1f", timeSpent),
+                "is_in_focus_mode": String(isInFocusMode),
+                "reason": isInFocusMode ? "in_focus_mode" : "has_accumulated_time"
+            ])
             focusTimer.pause()
             stateMachine.transitionToBuffer(timeRemaining: focusLossBuffer)
             bufferManager.startBuffer(duration: focusLossBuffer)
         } else {
-            // Only reset if we're not switching to browser focus
-            // If we're switching to browser focus, preserve the time - it will be handled by handleBrowserFocusActivated()
-            if !isBrowserInFocus {
-                // Save the session before resetting (prevents losing tracked time)
-                sessionManager.endSession()
-                resetFocusState()
-                if !isNotificationsEnabled {
-                    focusModeController.setFocusMode(enabled: false)
-                }
-            } else {
-                AppLogger.focus.info("App focus deactivated but browser focus is active - preserving time", metadata: [
-                    "time_spent": String(format: "%.1f", timeSpent)
-                ])
-                // Don't reset - we're switching to browser focus, time will be preserved
-                // Just mark app focus as inactive, but keep timeSpent and timer
-                isFocusAppActive = false
+            // No accumulated time and not in focus mode - reset immediately
+            AppLogger.focus.infoToFile("Resetting focus state after app focus loss (no time accumulated)", metadata: [
+                "time_spent": String(format: "%.1f", timeSpent)
+            ])
+            sessionManager.endSession()
+            resetFocusState()
+            if !isNotificationsEnabled {
+                focusModeController.setFocusMode(enabled: false)
             }
         }
     }
@@ -908,51 +971,72 @@ extension FocusManager: BrowserManagerDelegate {
         AppLogger.focus.infoToFile("🎯 FocusManager: handleBrowserFocusActivated() called", metadata: [
             "time_spent": String(format: "%.1f", timeSpent),
             "timer_running": String(focusTimer.isRunning),
+            "timer_current_time": String(format: "%.1f", focusTimer.currentTime),
             "is_focus_app_active": String(isFocusAppActive),
             "is_browser_in_focus": String(isBrowserInFocus),
-            "is_in_focus_mode": String(isInFocusMode)
+            "is_in_focus_mode": String(isInFocusMode),
+            "is_in_buffer_period": String(bufferManager.isInBufferPeriod)
         ])
 
-        // Browser focus logic - separate from app focus
+        // Check if we're returning from a buffer period (preserves time)
+        let wasInBuffer = bufferManager.isInBufferPeriod
+
+        // Cancel buffer now that we're back in focus
         bufferManager.cancelBuffer()
 
-        // Check if we're switching from app focus to browser focus
-        // We preserve time if we were tracking in app focus
+        // Determine if we should preserve time:
+        // 1. We were in a buffer period (returning from brief departure)
+        // 2. We were tracking in an app focus context
+        // 3. Timer has accumulated time (even if paused)
         let wasTrackingInApp = isFocusAppActive && timeSpent > 0 && focusTimer.isRunning
-        let preserveTime = wasTrackingInApp
+        let hasAccumulatedTime = timeSpent > 0 || focusTimer.currentTime > 0
+        let preserveTime = wasInBuffer || wasTrackingInApp || hasAccumulatedTime
 
-        AppLogger.focus.infoToFile("🔍 FocusManager: Evaluating timer start conditions", metadata: [
+        AppLogger.focus.infoToFile("🔍 FocusManager: Evaluating timer preservation conditions", metadata: [
+            "was_in_buffer": String(wasInBuffer),
             "was_tracking_in_app": String(wasTrackingInApp),
+            "has_accumulated_time": String(hasAccumulatedTime),
             "preserve_time": String(preserveTime),
             "timer_running": String(focusTimer.isRunning),
-            "time_spent": String(format: "%.1f", timeSpent)
+            "time_spent": String(format: "%.1f", timeSpent),
+            "timer_current_time": String(format: "%.1f", focusTimer.currentTime)
         ])
 
         if !focusTimer.isRunning {
-            AppLogger.focus.infoToFile("▶️ FocusManager: Starting timer for browser focus", metadata: [
+            AppLogger.focus.infoToFile("▶️ FocusManager: Timer not running, will start", metadata: [
                 "time_spent": String(format: "%.1f", timeSpent),
                 "preserve_time": String(preserveTime),
                 "will_reset": String(!preserveTime)
             ])
-            // Start timer - preserve time if switching from app focus
+
             if !preserveTime {
-                // Starting fresh - reset time
+                // Starting completely fresh - no accumulated time
                 AppLogger.focus.infoToFile("🔄 FocusManager: Resetting timer (starting fresh)", metadata: [
                     "old_time_spent": String(format: "%.1f", timeSpent)
                 ])
                 timeSpent = 0
                 focusTimer.reset()
                 stateMachine.transitionToIdle()
+            } else {
+                // Preserve existing time - sync timeSpent with timer if needed
+                if timeSpent == 0 && focusTimer.currentTime > 0 {
+                    timeSpent = focusTimer.currentTime
+                    AppLogger.focus.infoToFile("🔄 FocusManager: Syncing timeSpent from timer", metadata: [
+                        "synced_time_spent": String(format: "%.1f", timeSpent)
+                    ])
+                }
             }
-            // Start a new session if we're not already in one (from app focus)
-            if !isFocusAppActive {
+
+            // Start a new session if we're not already in one
+            if !isFocusAppActive && !wasInBuffer {
                 AppLogger.focus.infoToFile("📝 FocusManager: Starting new session", metadata: [
-                    "reason": "not_in_app_focus"
+                    "reason": "not_in_app_focus_and_not_from_buffer"
                 ])
                 sessionManager.startSession()
             } else {
-                AppLogger.focus.infoToFile("📝 FocusManager: Skipping session start (already in app focus)", metadata: [
-                    "is_focus_app_active": String(isFocusAppActive)
+                AppLogger.focus.infoToFile("📝 FocusManager: Continuing existing session", metadata: [
+                    "is_focus_app_active": String(isFocusAppActive),
+                    "was_in_buffer": String(wasInBuffer)
                 ])
             }
 
@@ -978,51 +1062,55 @@ extension FocusManager: BrowserManagerDelegate {
     }
 
     private func handleBrowserFocusDeactivated() {
-        AppLogger.focus.info("Browser focus deactivated")
-        // Similar to handleNonFocusAppInFront but for browser
-        if isInFocusMode {
-            AppLogger.focus.info("Starting buffer period after browser focus loss", metadata: [
+        AppLogger.focus.infoToFile("🔴 handleBrowserFocusDeactivated called", metadata: [
+            "is_in_focus_mode": String(isInFocusMode),
+            "time_spent": String(format: "%.1f", timeSpent),
+            "timer_running": String(focusTimer.isRunning)
+        ])
+
+        // Check if Chrome is still the frontmost app
+        let isChromeStillFrontmost = isChromeBrowserFrontmost()
+
+        if !isChromeStillFrontmost {
+            // Chrome is not frontmost - check if we're switching to a focus app
+            let currentApp = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+            let isSwitchingToFocusApp = currentApp != nil && focusApps.contains { $0.bundleIdentifier == currentApp }
+
+            if isSwitchingToFocusApp {
+                AppLogger.focus.infoToFile("Browser focus deactivated, switching to focus app - preserving time", metadata: [
+                    "target_app": currentApp ?? "unknown",
+                    "time_spent": String(format: "%.1f", timeSpent)
+                ])
+                // Don't reset - we're switching to app focus, time will be preserved
+                // Just mark browser focus as inactive, but keep timeSpent and timer
+                return
+            }
+        }
+
+        // Start buffer period if we have accumulated time OR are in focus mode
+        // This preserves time even before reaching the focus threshold
+        if isInFocusMode || timeSpent > 0 {
+            AppLogger.focus.infoToFile("Starting buffer period after browser focus loss", metadata: [
                 "buffer_duration": String(format: "%.1f", focusLossBuffer),
-                "time_spent": String(format: "%.1f", timeSpent)
+                "time_spent": String(format: "%.1f", timeSpent),
+                "is_in_focus_mode": String(isInFocusMode),
+                "reason": isInFocusMode ? "in_focus_mode" : "has_accumulated_time"
             ])
             focusTimer.pause()
             stateMachine.transitionToBuffer(timeRemaining: focusLossBuffer)
             bufferManager.startBuffer(duration: focusLossBuffer)
         } else {
-            // Check if Chrome is still the frontmost app
-            // If Chrome is still frontmost, we're just switching tabs - reset the timer
-            // If Chrome is not frontmost, check if we're switching to a focus app
-            let isChromeStillFrontmost = isChromeBrowserFrontmost()
-
-            if !isChromeStillFrontmost {
-                // Chrome is not frontmost - check if we're switching to a focus app
-                let currentApp = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
-                let isSwitchingToFocusApp = currentApp != nil && focusApps.contains { $0.bundleIdentifier == currentApp }
-
-                if isSwitchingToFocusApp {
-                    AppLogger.focus.info("Browser focus deactivated, switching to focus app - preserving time", metadata: [
-                        "target_app": currentApp ?? "unknown",
-                        "time_spent": String(format: "%.1f", timeSpent)
-                    ])
-                    // Don't reset - we're switching to app focus, time will be preserved
-                    // Just mark browser focus as inactive, but keep timeSpent and timer
-                    return
-                }
-            }
-
-            // Reset in all other cases (switching tabs or leaving focus entirely)
-            AppLogger.focus.info("Resetting focus state after browser focus loss", metadata: [
+            // No accumulated time and not in focus mode - reset immediately
+            AppLogger.focus.infoToFile("Resetting focus state after browser focus loss (no time accumulated)", metadata: [
                 "chrome_frontmost": String(isChromeStillFrontmost),
                 "time_spent": String(format: "%.1f", timeSpent)
             ])
-            // Save the session before resetting (prevents losing tracked time)
             sessionManager.endSession()
             resetFocusState()
             if !isNotificationsEnabled {
                 focusModeController.setFocusMode(enabled: false)
             }
         }
-
     }
 
     private func isChromeBrowserFrontmost() -> Bool {
