@@ -5,82 +5,90 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Purchase Canceled - Auto-Focus</title>
-    <meta name="description" content="Your Auto-Focus purchase was canceled. You can return to complete your purchase anytime.">
+    <meta name="description" content="Your Auto-Focus purchase was canceled. You can return anytime.">
     <script defer data-domain="auto-focus.app" src="https://nsa.janschill.de/js/script.file-downloads.js"></script>
     <script>window.plausible = window.plausible || function () { (window.plausible.q = window.plausible.q || []).push(arguments) }</script>
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <style>
         :root {
-            --primary-color: rgb(123, 170, 191);
-            --primary-hover: rgb(98, 136, 153);
-            --primary-light: rgba(123, 170, 191, 0.1);
-            --accent-color: #4f46e5;
-            --accent-hover: #4338ca;
+            --bg: #FFFEF5;
+            --text: #1A1A1A;
+            --accent: #7BAABF;
+            --border: #1A1A1A;
         }
 
-        .gradient-bg {
-            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, sans-serif;
         }
 
-        .primary-btn {
-            background-color: var(--primary-color);
-            transition: all 0.3s ease;
+        .border-brutal {
+            border: 3px solid var(--border);
         }
 
-        .primary-btn:hover {
-            background-color: var(--primary-hover);
-            transform: translateY(-1px);
-            box-shadow: 0 10px 25px rgba(119, 119, 119, 0.2);
+        .shadow-brutal {
+            box-shadow: 4px 4px 0 var(--border);
         }
 
-        .primary-text {
-            color: var(--primary-color);
+        .btn-primary {
+            background: var(--accent);
+            color: var(--text);
+            border: 3px solid var(--border);
+            box-shadow: 4px 4px 0 var(--border);
+            transition: all 0.1s ease;
         }
 
-        .fade-in {
-            animation: fadeIn 0.8s ease-out;
+        .btn-primary:hover {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 var(--border);
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+        .btn-secondary {
+            background: var(--bg);
+            color: var(--text);
+            border: 3px solid var(--border);
+            box-shadow: 4px 4px 0 var(--border);
+            transition: all 0.1s ease;
+        }
+
+        .btn-secondary:hover {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 var(--border);
         }
     </style>
 </head>
 
-<body class="gradient-bg min-h-screen flex items-center justify-center px-4">
-    <div class="max-w-2xl w-full text-center fade-in">
-        <div class="bg-white rounded-2xl shadow-xl p-8 md:p-12">
-            <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg class="w-10 h-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+<body class="min-h-screen flex items-center justify-center px-6 py-12">
+    <div class="max-w-xl w-full">
+        <div class="border-brutal shadow-brutal p-8 md:p-12 bg-white text-center">
+
+            <!-- Cancel Icon -->
+            <div class="w-20 h-20 border-brutal bg-gray-100 flex items-center justify-center mx-auto mb-8">
+                <span class="text-4xl text-gray-400">&#x2717;</span>
             </div>
 
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                Purchase Canceled
+            <h1 class="text-4xl font-black mb-4">
+                Purchase canceled
             </h1>
 
-            <p class="text-lg text-gray-600 mb-8">
-                Your purchase was canceled. No charges were made to your payment method.
-                You can return to complete your purchase anytime.
+            <p class="text-lg mb-8">
+                No worries. No charges were made. You can come back anytime.
             </p>
 
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="/"
-                    class="primary-btn text-white px-6 py-3 rounded-lg font-semibold">
-                    Return to Home
+                <a href="/" class="btn-primary px-6 py-4 font-bold">
+                    Return Home
                 </a>
-                <a href="mailto:auto-focus@janschill.de?subject=Questions%20about%20Auto-Focus"
-                    class="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-50">
+                <a href="mailto:help@auto-focus.app?subject=Question%20about%20Auto-Focus"
+                   class="btn-secondary px-6 py-4 font-bold">
                     Contact Support
                 </a>
             </div>
 
-            <div class="mt-8 text-sm text-gray-500">
-                <p class="mb-2">Have questions about pricing or features?</p>
-                <p>Email us at <a href="mailto:auto-focus@janschill.de" class="primary-text hover:underline">auto-focus@janschill.de</a></p>
-            </div>
+            <p class="text-sm text-gray-500 mt-8">
+                Questions? <a href="mailto:help@auto-focus.app" class="underline">help@auto-focus.app</a>
+            </p>
         </div>
     </div>
 </body>

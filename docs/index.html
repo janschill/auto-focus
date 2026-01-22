@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auto-Focus - Intelligent Focus Management for macOS</title>
+    <title>Auto-Focus - Detects Focus. Disables Notifications.</title>
     <meta name="description"
-        content="Auto-Focus intelligently detects when you're in deep work and automatically manages Do Not Disturb mode. Track focus sessions, configure apps, and boost productivity on macOS.">
+        content="Auto-Focus detects when you're in deep work and automatically enables Do Not Disturb. No timers. No tracking. Just focus.">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
@@ -16,134 +16,69 @@
     <script src="https://js.stripe.com/v3"></script>
     <style>
         :root {
-            --primary-color: rgb(123, 170, 191);
-            --primary-hover: rgb(98, 136, 153);
-            --primary-light: rgba(123, 170, 191, 0.1);
-            --accent-color: #4f46e5;
-            --accent-hover: #4338ca;
+            --bg: #FFFEF5;
+            --text: #1A1A1A;
+            --accent: #7BAABF;
+            --accent-dark: #5a8a9d;
+            --border: #1A1A1A;
+            --success: #22C55E;
         }
 
-        .gradient-bg {
-            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        * {
+            box-sizing: border-box;
         }
 
-        .hero-gradient {
-            background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 50%, #e2e8f0 100%);
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, sans-serif;
         }
 
-        .primary-btn {
-            background-color: var(--primary-color);
-            transition: all 0.3s ease;
+        .border-brutal {
+            border: 3px solid var(--border);
         }
 
-        .primary-btn:hover {
-            background-color: var(--primary-hover);
-            transform: translateY(-1px);
-            box-shadow: 0 10px 25px rgba(119, 119, 119, 0.2);
+        .border-brutal-thin {
+            border: 2px solid var(--border);
         }
 
-        .accent-btn {
-            background-color: var(--accent-color);
+        .shadow-brutal {
+            box-shadow: 4px 4px 0 var(--border);
         }
 
-        .accent-btn:hover {
-            background-color: var(--accent-hover);
-            transform: translateY(-1px);
-            box-shadow: 0 10px 25px rgba(79, 70, 229, 0.2);
+        .shadow-brutal-sm {
+            box-shadow: 2px 2px 0 var(--border);
         }
 
-        .primary-text {
-            color: var(--primary-color);
+        .btn-primary {
+            background: var(--accent);
+            color: var(--text);
+            border: 3px solid var(--border);
+            box-shadow: 4px 4px 0 var(--border);
+            transition: all 0.1s ease;
         }
 
-        .primary-light {
-            background-color: var(--primary-light);
+        .btn-primary:hover {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 var(--border);
         }
 
-        .logo-container {
-            width: 120px;
-            height: 120px;
-            margin: 0 auto 2rem;
+        .btn-primary:active {
+            transform: translate(4px, 4px);
+            box-shadow: 0 0 0 var(--border);
         }
 
-        .feature-card {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 1rem;
-            padding: 2rem;
-            transition: all 0.3s ease;
+        .btn-secondary {
+            background: var(--bg);
+            color: var(--text);
+            border: 3px solid var(--border);
+            box-shadow: 4px 4px 0 var(--border);
+            transition: all 0.1s ease;
         }
 
-        .feature-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            background: rgba(255, 255, 255, 0.95);
-        }
-
-        .screenshot-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-            margin-top: 3rem;
-        }
-
-        .screenshot-item {
-            border-radius: 1rem;
-            overflow: hidden;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
-            transition: all 0.3s ease;
-            background: white;
-        }
-
-        .screenshot-item:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
-        }
-
-        .section-divider {
-            height: 1px;
-            background: linear-gradient(90deg, transparent 0%, rgba(119, 119, 119, 0.2) 50%, transparent 100%);
-            margin: 4rem 0;
-        }
-
-        .animate-fade-in {
-            animation: fadeIn 0.8s ease-out;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .icon-container {
-            width: 48px;
-            height: 48px;
-            background: var(--primary-light);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1rem;
-        }
-
-        @media (max-width: 768px) {
-            .screenshot-container {
-                grid-template-columns: 1fr;
-                gap: 1.5rem;
-            }
-
-            .logo-container {
-                width: 120px;
-                height: 120px;
-            }
+        .btn-secondary:hover {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 var(--border);
         }
 
         /* Demo Animation Styles */
@@ -177,631 +112,278 @@
         }
 
         @keyframes pulse {
-
-            0%,
-            100% {
-                transform: scale(1);
-            }
-
-            50% {
-                transform: scale(1.05);
-            }
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
         }
 
         .brain-active {
             animation: pulse 2s infinite;
         }
 
-        /* Screenshot Gallery Styles */
-        #featured-screenshot {
-            transition: opacity 0.3s ease;
+        /* Pricing highlight */
+        .pricing-highlight {
+            background: var(--accent);
         }
 
-        .screenshot-thumb {
-            transition: all 0.3s ease;
+        /* Monospace for emphasis */
+        .mono {
+            font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
         }
 
-        .screenshot-thumb:hover {
-            transform: scale(1.05);
-        }
-
-        #screenshot-title,
-        #screenshot-description {
-            transition: opacity 0.3s ease;
+        /* Strike-through animation */
+        .strike {
+            text-decoration: line-through;
+            text-decoration-thickness: 3px;
         }
     </style>
 </head>
 
-<body class="gradient-bg min-h-screen">
-    <div class="max-w-7xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
-        <!-- Hero Section -->
-        <div class="grid lg:grid-cols-2 gap-16 items-center mb-20 animate-fade-in">
-            <div class="text-left">
-                <h1 class="font-bold tracking-tight text-gray-900 mb-8 leading-tight" style="font-size: 3.5rem;">
-                    Detects Focus.<br>
-                    <span class="primary-text">Disables Notifications</span>
-                </h1>
+<body class="min-h-screen">
+    <div class="max-w-4xl mx-auto px-6 py-12">
 
-                <p class="text-gray-600 mb-8 leading-relaxed" style="font-size: 1.25rem;">
-                    Auto-Focus runs in the background, monitoring your active application. When you focus on configured
-                    apps for a set time, it automatically enables Do Not Disturb. Switch away, and notifications return
-                    after a buffer period.
-                </p>
-
-
-                <div class="flex flex-col sm:flex-row gap-4 mb-8">
-                    <a href="downloads/Auto-Focus.zip"
-                        class="primary-btn text-white px-8 py-4 rounded-xl text-lg font-semibold inline-flex items-center gap-3">
-                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Download Free
-                    </a>
-                    <a href="#pricing"
-                        class="accent-btn text-white px-8 py-4 rounded-xl text-lg font-semibold inline-flex items-center gap-3">
-                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Buy Auto-Focus+
-                    </a>
-                </div>
-            </div>
-
-            <div class="relative">
-                <img src="images/autofocusheader/Program.svg" alt="Auto-Focus Demo" class="w-full max-w-2xl mx-auto"
-                    id="demo-graphic">
-
-                <!-- Animated notifications -->
-                <div class="absolute top-4 -right-8 space-y-6" id="notification-container">
-                    <img src="images/autofocusheader/Notification 1.svg" alt="Notification 1"
-                        class="notification-bubble transform scale-125" id="notif-1">
-                    <img src="images/autofocusheader/Notification 2.svg" alt="Notification 2"
-                        class="notification-bubble transform scale-125" id="notif-2">
-                    <img src="images/autofocusheader/Notification 3.svg" alt="Notification 3"
-                        class="notification-bubble transform scale-125" id="notif-3">
-                </div>
-
-
-                <!-- Brain icon indicator -->
-                <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col items-center"
-                    id="brain-indicator">
-                    <div class="relative w-10 h-10 mb-1">
-                        <img src="images/autofocusheader/brain.head.profile-white.svg" alt="Auto-Focus Inactive"
-                            class="w-10 h-10" id="brain-outline">
-                        <img src="images/autofocusheader/brain.head.profile.fill-white.svg" alt="Auto-Focus Active"
-                            class="w-10 h-10 absolute top-0 left-0 opacity-0 transition-opacity duration-500"
-                            id="brain-filled">
-                    </div>
-                    <span class="text-xs font-semibold text-white opacity-0 transition-opacity duration-300"
-                        id="brain-text" style="text-shadow: 0 1px 3px rgba(0,0,0,0.8);">Auto-Focus Active</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="section-divider"></div>
-
-        <!-- Screenshots Section -->
-        <div class="max-w-5xl mx-auto mb-20">
-            <h2 class="text-4xl font-bold text-center text-gray-900 mb-8">
-                See Auto-Focus in Action
-            </h2>
-
-            <!-- Featured Screenshot -->
-            <div class="mb-8">
-                <div class="rounded-2xl overflow-hidden shadow-2xl bg-white"
-                    style="height: 600px; display: flex; align-items: center; justify-content: center;">
-                    <img id="featured-screenshot" src="images/auto-focus-menubar-window-in-focus-2.png"
-                        alt="Active Focus Mode" class="w-full h-full object-cover bg-white">
-                </div>
-                <div class="mt-6 text-center">
-                    <h3 id="screenshot-title" class="text-2xl font-semibold text-gray-900 mb-2">Active Focus Mode</h3>
-                    <p id="screenshot-description" class="text-lg text-gray-600 max-w-2xl mx-auto">
-                        When in focus, see your current session time and manual controls right from your menu bar.
+        <!-- HERO -->
+        <header class="mb-20">
+            <div class="grid lg:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h1 class="text-6xl md:text-7xl font-black tracking-tight mb-6 leading-none">
+                        Auto-Focus
+                    </h1>
+                    <p class="text-2xl md:text-3xl font-bold mb-8" style="color: var(--accent);">
+                        Detects Focus.<br>Disables Notifications.
                     </p>
+                    <p class="text-lg mb-8 max-w-md">
+                        A tiny macOS menu bar app that watches what you're working on and automatically enables Do Not Disturb when you're in the zone.
+                    </p>
+                    <div class="flex flex-wrap gap-4">
+                        <a href="downloads/Auto-Focus.zip"
+                            class="btn-primary px-8 py-4 font-bold text-lg inline-flex items-center gap-2">
+                            Download Free
+                        </a>
+                        <a href="#pricing"
+                            class="btn-secondary px-8 py-4 font-bold text-lg inline-flex items-center gap-2">
+                            Buy Plus &rarr;
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Animated Demo -->
+                <div class="relative">
+                    <img src="images/autofocusheader/Program.svg" alt="Auto-Focus Demo" class="w-full max-w-md mx-auto"
+                        id="demo-graphic">
+
+                    <!-- Animated notifications -->
+                    <div class="absolute top-4 -right-4 space-y-4" id="notification-container">
+                        <img src="images/autofocusheader/Notification 1.svg" alt="Notification"
+                            class="notification-bubble transform scale-110" id="notif-1">
+                        <img src="images/autofocusheader/Notification 2.svg" alt="Notification"
+                            class="notification-bubble transform scale-110" id="notif-2">
+                        <img src="images/autofocusheader/Notification 3.svg" alt="Notification"
+                            class="notification-bubble transform scale-110" id="notif-3">
+                    </div>
+
+                    <!-- Brain icon indicator -->
+                    <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col items-center"
+                        id="brain-indicator">
+                        <div class="relative w-10 h-10 mb-1">
+                            <img src="images/autofocusheader/brain.head.profile-white.svg" alt="Inactive"
+                                class="w-10 h-10" id="brain-outline">
+                            <img src="images/autofocusheader/brain.head.profile.fill-white.svg" alt="Active"
+                                class="w-10 h-10 absolute top-0 left-0 opacity-0 transition-opacity duration-500"
+                                id="brain-filled">
+                        </div>
+                        <span class="text-xs font-bold text-white opacity-0 transition-opacity duration-300"
+                            id="brain-text" style="text-shadow: 0 1px 3px rgba(0,0,0,0.8);">Focus Active</span>
+                    </div>
                 </div>
             </div>
+        </header>
 
-            <!-- Screenshot Thumbnails -->
-            <div class="grid grid-cols-3 md:grid-cols-7 gap-3">
-                <button onclick="changeScreenshot(0)"
-                    class="screenshot-thumb group relative rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-primary-color"
-                    id="thumb-0"
-                    style="height: 80px; display: flex; align-items: center; justify-content: center; background: white !important;">
-                    <img src="images/auto-focus-menubar-window-in-focus-2.png" alt="Active Focus Mode"
-                        class="max-w-full max-h-full object-cover"
-                        style="background: white !important; transform: scale(1.2);">
-                    <div class="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-10 transition-opacity"
-                        style="background: rgba(0,0,0,0) !important;"></div>
-                </button>
-                <button onclick="changeScreenshot(1)"
-                    class="screenshot-thumb group relative rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-transparent"
-                    id="thumb-1"
-                    style="height: 80px; display: flex; align-items: center; justify-content: center; background: white !important;">
-                    <img src="images/auto-focus-menubar-window-out-of-focus-2.png" alt="Menu Bar Overview"
-                        class="max-w-full max-h-full object-cover"
-                        style="background: white !important; transform: scale(1.2);">
-                    <div class="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-10 transition-opacity"
-                        style="background: rgba(0,0,0,0) !important;"></div>
-                </button>
-                <button onclick="changeScreenshot(2)"
-                    class="screenshot-thumb group relative rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-transparent"
-                    id="thumb-2"
-                    style="height: 80px; display: flex; align-items: center; justify-content: center; background: white !important;">
-                    <img src="images/auto-focus-configuration-view-2.png" alt="Configuration"
-                        class="max-w-full max-h-full object-cover"
-                        style="background: white !important; transform: scale(1.2);">
-                    <div class="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-10 transition-opacity"
-                        style="background: rgba(0,0,0,0) !important;"></div>
-                </button>
-                <button onclick="changeScreenshot(3)"
-                    class="screenshot-thumb group relative rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-transparent"
-                    id="thumb-3"
-                    style="height: 80px; display: flex; align-items: center; justify-content: center; background: white !important;">
-                    <img src="images/auto-focus-browser-view-2.png" alt="Browser Integration"
-                        class="max-w-full max-h-full object-cover"
-                        style="background: white !important; transform: scale(1.2);">
-                    <div class="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-10 transition-opacity"
-                        style="background: rgba(0,0,0,0) !important;"></div>
-                </button>
-                <button onclick="changeScreenshot(4)"
-                    class="screenshot-thumb group relative rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-transparent"
-                    id="thumb-4"
-                    style="height: 80px; display: flex; align-items: center; justify-content: center; background: white !important;">
-                    <img src="images/auto-focus-insights-view-2.png" alt="Focus Insights"
-                        class="max-w-full max-h-full object-cover"
-                        style="background: white !important; transform: scale(1.2);">
-                    <div class="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-10 transition-opacity"
-                        style="background: rgba(0,0,0,0) !important;"></div>
-                </button>
-                <button onclick="changeScreenshot(5)"
-                    class="screenshot-thumb group relative rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-transparent"
-                    id="thumb-5"
-                    style="height: 80px; display: flex; align-items: center; justify-content: center; background: white !important;">
-                    <img src="images/auto-focus-data-view-2.png" alt="Data Management"
-                        class="max-w-full max-h-full object-cover"
-                        style="background: white !important; transform: scale(1.2);">
-                    <div class="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-10 transition-opacity"
-                        style="background: rgba(0,0,0,0) !important;"></div>
-                </button>
-                <button onclick="changeScreenshot(6)"
-                    class="screenshot-thumb group relative rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-transparent"
-                    id="thumb-6"
-                    style="height: 80px; display: flex; align-items: center; justify-content: center; background: white !important;">
-                    <img src="images/auto-focus-license-view-2.png" alt="License Management"
-                        class="max-w-full max-h-full object-cover"
-                        style="background: white !important; transform: scale(1.2);">
-                    <div class="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-10 transition-opacity"
-                        style="background: rgba(0,0,0,0) !important;"></div>
-                </button>
-            </div>
-        </div>
+        <!-- DIVIDER -->
+        <hr class="border-t-3 border-current mb-20">
 
-        <div class="section-divider"></div>
-
-        <!-- Features Grid -->
-        <div class="mb-20">
-            <h2 class="text-4xl font-bold text-center text-gray-900 mb-16">
-                Everything You Need
-            </h2>
-            <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-8">
-                <div class="feature-card text-center">
-                    <div class="icon-container">
-                        <svg class="w-6 h-6 primary-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-semibold mb-3">Automatic Detection</h3>
-                    <p class="text-gray-600">Detects focus across native apps and browser tabs automatically</p>
+        <!-- WHAT IT IS -->
+        <section class="mb-20">
+            <h2 class="text-4xl font-black mb-12">How it works</h2>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="border-brutal p-6 shadow-brutal bg-white">
+                    <div class="text-4xl mb-4">1</div>
+                    <h3 class="text-xl font-bold mb-2">Watches your apps</h3>
+                    <p class="text-gray-700">Tell it which apps are "focus apps" (your IDE, Figma, writing app). It monitors which one is active.</p>
                 </div>
-
-                <div class="feature-card text-center">
-                    <div class="icon-container">
-                        <svg class="w-6 h-6 primary-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-semibold mb-3">Focus Analytics</h3>
-                    <p class="text-gray-600">Track sessions, patterns, and productivity insights with data export</p>
+                <div class="border-brutal p-6 shadow-brutal bg-white">
+                    <div class="text-4xl mb-4">2</div>
+                    <h3 class="text-xl font-bold mb-2">Waits 12 minutes</h3>
+                    <p class="text-gray-700">Stay in a focus app for 12 minutes and it automatically enables Do Not Disturb. No buttons to press.</p>
                 </div>
-
-                <div class="feature-card text-center">
-                    <div class="icon-container">
-                        <svg class="w-6 h-6 primary-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9" />
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-semibold mb-3">Browser Integration</h3>
-                    <p class="text-gray-600">Chrome extension tracks focus URLs like GitHub, Linear, and Figma</p>
-                </div>
-
-                <div class="feature-card text-center">
-                    <div class="icon-container">
-                        <svg class="w-6 h-6 primary-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-semibold mb-3">Privacy First</h3>
-                    <p class="text-gray-600">Fully offline operation with no data collection or tracking</p>
-                </div>
-
-                <div class="feature-card text-center">
-                    <div class="icon-container">
-                        <svg class="w-6 h-6 primary-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-semibold mb-3">Smart Configuration</h3>
-                    <p class="text-gray-600">Configurable thresholds, buffer times, and license management</p>
-                </div>
-
-                <div class="feature-card text-center">
-                    <div class="icon-container">
-                        <svg class="w-6 h-6 primary-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-semibold mb-3">Native macOS</h3>
-                    <p class="text-gray-600">Built with SwiftUI for optimal performance and system integration</p>
+                <div class="border-brutal p-6 shadow-brutal bg-white">
+                    <div class="text-4xl mb-4">3</div>
+                    <h3 class="text-xl font-bold mb-2">Brings them back</h3>
+                    <p class="text-gray-700">Switch away from focus apps? After a short buffer, notifications return. Seamless.</p>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <div class="section-divider"></div>
-
-        <!-- CTA Section -->
-        <div class="text-center mb-20">
-            <h2 class="text-4xl font-bold text-gray-900 mb-8">
-                Ready to Protect Your Focus?
-            </h2>
-
-            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
-                <a href="downloads/Auto-Focus.zip"
-                    class="primary-btn text-white px-10 py-5 rounded-xl text-xl font-semibold inline-flex items-center gap-3">
-                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    Download Free
-                </a>
-                <a href="#pricing"
-                    class="accent-btn text-white px-10 py-5 rounded-xl text-xl font-semibold inline-flex items-center gap-3">
-                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Buy Auto-Focus+
-                </a>
-                <a href="https://chromewebstore.google.com/detail/ncmjhohihnjjmkfpcibbafakmlbfifih" target="_blank"
-                    class="border-2 border-primary-color text-primary-color px-10 py-5 rounded-xl text-xl font-semibold inline-flex items-center gap-3 hover:bg-primary-light hover:transform hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
-                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9" />
-                    </svg>
-                    Chrome Extension
-                </a>
+        <!-- WHAT IT IS NOT -->
+        <section class="mb-20">
+            <h2 class="text-4xl font-black mb-8">What it is <span class="strike">not</span></h2>
+            <div class="border-brutal p-8 shadow-brutal bg-white">
+                <ul class="space-y-4 text-lg">
+                    <li class="flex items-start gap-4">
+                        <span class="text-2xl">&#x2717;</span>
+                        <div>
+                            <strong>Not a time tracker.</strong>
+                            <span class="text-gray-600">No Pomodoro timers. No sessions to start or stop.</span>
+                        </div>
+                    </li>
+                    <li class="flex items-start gap-4">
+                        <span class="text-2xl">&#x2717;</span>
+                        <div>
+                            <strong>Not a productivity score.</strong>
+                            <span class="text-gray-600">No judgment. No daily goals. No streaks to maintain.</span>
+                        </div>
+                    </li>
+                    <li class="flex items-start gap-4">
+                        <span class="text-2xl">&#x2717;</span>
+                        <div>
+                            <strong>Not a distraction blocker.</strong>
+                            <span class="text-gray-600">It doesn't block apps or websites. Just silences notifications.</span>
+                        </div>
+                    </li>
+                    <li class="flex items-start gap-4">
+                        <span class="text-2xl">&#x2717;</span>
+                        <div>
+                            <strong>Not cloud-based.</strong>
+                            <span class="text-gray-600">All data stays on your Mac. Nothing sent anywhere.</span>
+                        </div>
+                    </li>
+                </ul>
             </div>
-        </div>
+        </section>
 
-        <div class="section-divider"></div>
-
-        <!-- Getting Started -->
-        <div class="max-w-4xl mx-auto mb-20">
-            <h2 class="text-4xl font-bold text-center text-gray-900 mb-16">Getting Started</h2>
-
-            <div class="grid md:grid-cols-2 gap-8">
-                <div class="feature-card">
-                    <div class="flex items-center mb-4">
-                        <div
-                            class="w-8 h-8 primary-btn text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">
-                            1</div>
-                        <h3 class="text-xl font-semibold">Download & Install</h3>
-                    </div>
-                    <p class="text-gray-600 mb-4">Download Auto-Focus and the required "Toggle Do Not Disturb" shortcut.
-                        Install both to get started.</p>
-                    <ul class="text-sm text-gray-600 space-y-1">
-                        <li>• Extract the downloaded ZIP file</li>
-                        <li>• Drag Auto-Focus to Applications</li>
-                        <li>• Install the shortcut from the package</li>
-                    </ul>
-                </div>
-
-                <div class="feature-card">
-                    <div class="flex items-center mb-4">
-                        <div
-                            class="w-8 h-8 primary-btn text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">
-                            2</div>
-                        <h3 class="text-xl font-semibold">Configure Focus Apps</h3>
-                    </div>
-                    <p class="text-gray-600 mb-4">Launch Auto-Focus and select which applications should trigger focus
-                        mode when you're working.</p>
-                    <ul class="text-sm text-gray-600 space-y-1">
-                        <li>• Add your development tools</li>
-                        <li>• Configure browser focus URLs</li>
-                        <li>• Set focus thresholds and buffer times</li>
-                    </ul>
-                </div>
-
-                <div class="feature-card">
-                    <div class="flex items-center mb-4">
-                        <div
-                            class="w-8 h-8 primary-btn text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">
-                            3</div>
-                        <h3 class="text-xl font-semibold">Install Browser Extension</h3>
-                    </div>
-                    <p class="text-gray-600 mb-4">Install the Chrome extension from the Chrome Web Store to track focus
-                        URLs like GitHub, Linear, Figma, and other work sites.</p>
-                    <ul class="text-sm text-gray-600 space-y-1">
-                        <li>• <a href="https://chromewebstore.google.com/detail/ncmjhohihnjjmkfpcibbafakmlbfifih"
-                                target="_blank" class="primary-text hover:underline">Install from Chrome Web Store</a>
-                        </li>
-                        <li>• Automatically connects to Auto-Focus</li>
-                        <li>• Configure focus domains in the app</li>
-                    </ul>
-                </div>
-
-                <div class="feature-card">
-                    <div class="flex items-center mb-4">
-                        <div
-                            class="w-8 h-8 primary-btn text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">
-                            4</div>
-                        <h3 class="text-xl font-semibold">Start Focusing</h3>
-                    </div>
-                    <p class="text-gray-600 mb-4">Auto-Focus will now monitor your work and automatically manage Do Not
-                        Disturb mode.</p>
-                    <ul class="text-sm text-gray-600 space-y-1">
-                        <li>• Focus for 12 minutes to trigger DND</li>
-                        <li>• Track sessions in the insights view</li>
-                        <li>• Access controls from the menu bar</li>
-                    </ul>
-                </div>
+        <!-- SCREENSHOT -->
+        <section class="mb-20">
+            <h2 class="text-4xl font-black mb-8">See it in action</h2>
+            <div class="border-brutal shadow-brutal overflow-hidden bg-white">
+                <img src="images/auto-focus-menubar-window-in-focus-2.png"
+                     alt="Auto-Focus menu bar showing active focus session"
+                     class="w-full">
             </div>
-        </div>
+            <p class="mt-4 text-gray-600 text-center">The menu bar shows your focus status and session time.</p>
+        </section>
 
-        <!-- Pricing Section -->
-        <div id="pricing" class="mb-20">
-            <h2 class="text-4xl font-bold text-center text-gray-900 mb-6">Choose Your Focus Plan</h2>
-            <p class="text-xl text-gray-600 text-center mb-12 max-w-3xl mx-auto">
-                Start with our free version or upgrade to Auto-Focus+ for advanced features and unlimited usage.
-            </p>
-
-            <div class="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-                <!-- Free Plan -->
-                <div class="feature-card border-2 border-gray-200">
-                    <div class="text-center mb-6">
-                        <h3 class="text-2xl font-bold text-gray-900 mb-2">Auto-Focus Free</h3>
-                        <p class="text-4xl font-bold primary-text mb-1">$0</p>
-                        <p class="text-gray-600">Forever free</p>
-                    </div>
-
+        <!-- PRICING -->
+        <section id="pricing" class="mb-20">
+            <h2 class="text-4xl font-black mb-12">Simple pricing</h2>
+            <div class="grid md:grid-cols-2 gap-6">
+                <!-- Free -->
+                <div class="border-brutal p-8 shadow-brutal bg-white">
+                    <h3 class="text-2xl font-bold mb-2">Free</h3>
+                    <p class="text-5xl font-black mb-6">$0</p>
                     <ul class="space-y-3 mb-8">
-                        <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 primary-text mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M5 13l4 4L19 7" />
-                            </svg>
-                            <span class="text-gray-700">Automatic focus detection</span>
+                        <li class="flex items-center gap-2">
+                            <span style="color: var(--accent);">&#10003;</span>
+                            Automatic DND
                         </li>
-                        <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 primary-text mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M5 13l4 4L19 7" />
-                            </svg>
-                            <span class="text-gray-700">Do Not Disturb automation</span>
+                        <li class="flex items-center gap-2">
+                            <span style="color: var(--accent);">&#10003;</span>
+                            2 focus apps
                         </li>
-                        <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 primary-text mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M5 13l4 4L19 7" />
-                            </svg>
-                            <span class="text-gray-700">Up to 2 focus apps</span>
+                        <li class="flex items-center gap-2">
+                            <span style="color: var(--accent);">&#10003;</span>
+                            Basic insights
                         </li>
-                        <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 primary-text mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M5 13l4 4L19 7" />
-                            </svg>
-                            <span class="text-gray-700">Basic focus insights</span>
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 primary-text mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M5 13l4 4L19 7" />
-                            </svg>
-                            <span class="text-gray-700">Menu bar controls</span>
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 primary-text mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M5 13l4 4L19 7" />
-                            </svg>
-                            <span class="text-gray-700">Chrome extension included</span>
+                        <li class="flex items-center gap-2">
+                            <span style="color: var(--accent);">&#10003;</span>
+                            Chrome extension
                         </li>
                     </ul>
-
                     <a href="downloads/Auto-Focus.zip"
-                        class="primary-btn text-white w-full py-4 rounded-xl text-lg font-semibold inline-flex items-center justify-center gap-3">
-                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
+                        class="btn-secondary w-full py-4 font-bold text-center block">
                         Download Free
                     </a>
                 </div>
 
-                <!-- Pro Plan -->
-                <div class="feature-card border-2 border-accent-color bg-gradient-to-br from-purple-50 to-blue-50">
-                    <div class="text-center mb-6">
-                        <h3 class="text-2xl font-bold text-gray-900 mb-2">Auto-Focus+</h3>
-                        <p class="text-4xl font-bold text-accent-color mb-1">
-                            <span class="pricing-currency">$</span><span class="pricing-amount">9</span>
-                            <span class="text-lg font-normal text-gray-600">lifetime</span>
-                        </p>
-                        <p class="text-gray-600">One-time purchase</p>
-                    </div>
-
+                <!-- Plus -->
+                <div class="border-brutal p-8 shadow-brutal pricing-highlight">
+                    <h3 class="text-2xl font-bold mb-2">Plus</h3>
+                    <p class="text-5xl font-black mb-1">
+                        <span class="pricing-currency">$</span><span class="pricing-amount">9</span>
+                    </p>
+                    <p class="text-sm mb-6 font-medium">One-time. Lifetime.</p>
                     <ul class="space-y-3 mb-8">
-                        <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 text-accent-color mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M5 13l4 4L19 7" />
-                            </svg>
-                            <span class="text-gray-700"><strong>Everything in Free</strong></span>
+                        <li class="flex items-center gap-2">
+                            <span>&#10003;</span>
+                            Everything in Free
                         </li>
-                        <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 text-accent-color mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M5 13l4 4L19 7" />
-                            </svg>
-                            <span class="text-gray-700"><strong>Unlimited</strong> focus apps</span>
+                        <li class="flex items-center gap-2">
+                            <span>&#10003;</span>
+                            <strong>Unlimited</strong> focus apps
                         </li>
-                        <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 text-accent-color mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M5 13l4 4L19 7" />
-                            </svg>
-                            <span class="text-gray-700"><strong>Unlimited</strong> browser URLs</span>
+                        <li class="flex items-center gap-2">
+                            <span>&#10003;</span>
+                            <strong>Unlimited</strong> browser URLs
                         </li>
-                        <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 text-accent-color mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M5 13l4 4L19 7" />
-                            </svg>
-                            <span class="text-gray-700">Advanced analytics & trends</span>
+                        <li class="flex items-center gap-2">
+                            <span>&#10003;</span>
+                            Advanced analytics
                         </li>
-                        <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 text-accent-color mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M5 13l4 4L19 7" />
-                            </svg>
-                            <span class="text-gray-700">Export data (CSV/JSON)</span>
+                        <li class="flex items-center gap-2">
+                            <span>&#10003;</span>
+                            Export data (CSV/JSON)
                         </li>
-                        <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 text-accent-color mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M5 13l4 4L19 7" />
-                            </svg>
-                            <span class="text-gray-700">Priority support</span>
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <svg class="w-5 h-5 text-accent-color mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24"
-                                stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M5 13l4 4L19 7" />
-                            </svg>
-                            <span class="text-gray-700">Future updates included</span>
+                        <li class="flex items-center gap-2">
+                            <span>&#10003;</span>
+                            Future updates
                         </li>
                     </ul>
-
-                    <button
-                        class="accent-btn text-white w-full py-4 rounded-xl text-lg font-semibold inline-flex items-center justify-center gap-3"
-                        id="checkout-button" role="link" type="button">
-                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
+                    <button id="checkout-button" type="button"
+                        class="btn-primary w-full py-4 font-bold text-center">
                         Buy Auto-Focus+
                     </button>
+                    <div id="error-message" class="text-red-600 mt-2 text-center text-sm"></div>
 
-                    <!-- Staging Checkout Button (for testing only) -->
-                    <button
-                        class="bg-orange-500 hover:bg-orange-600 text-white w-full py-3 rounded-xl text-sm font-semibold inline-flex items-center justify-center gap-2 mt-3"
-                        id="staging-checkout-button" role="link" type="button" style="display: none;">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                        </svg>
-                        🧪 TEST CHECKOUT (Staging)
+                    <!-- Staging button (hidden by default) -->
+                    <button id="staging-checkout-button" type="button"
+                        class="w-full py-3 mt-3 font-bold text-center bg-orange-400 border-brutal text-sm"
+                        style="display: none;">
+                        TEST CHECKOUT (Staging)
                     </button>
-
-                    <div id="error-message" class="text-red-600 mt-2 text-center"></div>
-                    <div id="staging-error-message" class="text-red-600 mt-2 text-center"></div>
+                    <div id="staging-error-message" class="text-red-600 mt-2 text-center text-sm"></div>
                 </div>
             </div>
+        </section>
 
-            <div class="text-center mt-12">
-                <p class="text-sm text-gray-500">
-                    Questions? Email us at <a href="mailto:help@auto-focus.app"
-                        class="primary-text hover:underline">help@auto-focus.app</a>
+        <!-- BROWSER EXTENSION -->
+        <section class="mb-20">
+            <div class="border-brutal p-8 shadow-brutal bg-white">
+                <h3 class="text-2xl font-bold mb-4">Works with your browser too</h3>
+                <p class="mb-6 text-lg">
+                    Install the Chrome extension to track focus on web apps like GitHub, Linear, Figma, and Notion.
+                    Configure which URLs count as "focus" in the app.
                 </p>
+                <a href="https://chromewebstore.google.com/detail/ncmjhohihnjjmkfpcibbafakmlbfifih"
+                   target="_blank"
+                   class="btn-secondary px-6 py-3 font-bold inline-flex items-center gap-2">
+                    Get Chrome Extension &rarr;
+                </a>
             </div>
-        </div>
+        </section>
 
-        <div class="section-divider"></div>
-
-        <!-- FAQ Section -->
-        <div class="max-w-4xl mx-auto mb-20">
-            <h2 class="text-4xl font-bold text-center text-gray-900 mb-16">Frequently Asked Questions</h2>
-
-            <div class="space-y-6">
-                <div class="feature-card">
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3">How does Auto-Focus detect when I'm focused?</h3>
-                    <p class="text-gray-600">Auto-Focus monitors your active application and tracks how long you stay focused on configured "focus apps." When you focus for your set threshold time (default 12 minutes), it automatically enables Do Not Disturb mode.</p>
-                </div>
-
-                <div class="feature-card">
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3">What happens when I switch away from a focus app?</h3>
-                    <p class="text-gray-600">When you switch to a non-focus app, Auto-Focus starts a buffer timer (default 3 minutes). If you don't return to a focus app within this time, it ends the focus session and re-enables notifications.</p>
-                </div>
-
-                <div class="feature-card">
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Does Auto-Focus work with web applications?</h3>
-                    <p class="text-gray-600">Yes! The included Chrome extension tracks focus on specific websites like GitHub, Linear, Figma, and other productivity tools. Configure focus URLs in the main app to include web-based work.</p>
-                </div>
-
-                <div class="feature-card">
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Do I need to add Chrome as a focus app to track websites?</h3>
-                    <p class="text-gray-600">No! The Chrome extension works independently and handles website-specific focus detection. You should <strong>not</strong> add Chrome as a focus app - doing so would make Auto-Focus activate focus mode whenever Chrome is open, regardless of which websites you're visiting. The extension only activates focus mode when you're on your configured focus websites.</p>
-                </div>
-
-                <div class="feature-card">
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3">What's the difference between Free and Auto-Focus+?</h3>
-                    <p class="text-gray-600">Auto-Focus Free limits you to 2 focus apps and basic insights. Auto-Focus+ removes all limits, adds advanced analytics, data export capabilities, and includes priority support and future updates.</p>
-                </div>
-
-                <div class="feature-card">
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Is my data private and secure?</h3>
-                    <p class="text-gray-600">Absolutely. Auto-Focus operates completely offline with no data collection, tracking, or cloud sync. All your focus data stays on your Mac, and you can export it anytime in CSV or JSON format.</p>
-                </div>
-
-                <div class="feature-card">
-                    <h3 class="text-xl font-semibold text-gray-900 mb-3">What macOS versions are supported?</h3>
-                    <p class="text-gray-600">Auto-Focus requires macOS 12.0 (Monterey) or later. It's built with SwiftUI for optimal performance and native system integration, including proper Do Not Disturb control.</p>
-                </div>
+        <!-- FOOTER -->
+        <footer class="border-t-3 border-current pt-12">
+            <p class="text-xl font-bold mb-6" style="color: var(--accent);">
+                You don't need more time. You need more focus.
+            </p>
+            <div class="flex flex-wrap gap-6 mb-6 text-sm">
+                <a href="/guide.html" class="hover:underline font-bold">Guide & FAQ</a>
+                <a href="/privacy.html" class="hover:underline">Privacy</a>
+                <a href="/terms.html" class="hover:underline">Terms</a>
+                <a href="/refunds.html" class="hover:underline">Refunds</a>
+                <a href="mailto:help@auto-focus.app" class="hover:underline">Contact</a>
             </div>
-        </div>
-
-        <footer class="text-center text-gray-500 border-t border-gray-200 pt-12">
-            <p class="text-lg font-medium text-gray-700 mb-4">You don't need more time, you need more focus.</p>
-            <div class="flex flex-wrap justify-center gap-6 mb-4">
-                <a href="/privacy.html" class="text-gray-500 hover:text-primary-color transition-colors">Privacy Policy</a>
-                <a href="/terms.html" class="text-gray-500 hover:text-primary-color transition-colors">Terms of Service</a>
-                <a href="/refunds.html" class="text-gray-500 hover:text-primary-color transition-colors">Refund Policy</a>
-                <a href="mailto:help@auto-focus.app" class="text-gray-500 hover:text-primary-color transition-colors">Contact</a>
-            </div>
-            <p class="text-sm">© 2025 Auto-Focus. All rights reserved.</p>
+            <p class="text-sm text-gray-500">&copy; 2026 Auto-Focus. macOS 12.0+</p>
         </footer>
+
     </div>
 
     <script src="js/main.js"></script>

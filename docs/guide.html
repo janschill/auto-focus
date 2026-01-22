@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide - Auto-Focus</title>
+    <meta name="description" content="Learn how to set up Auto-Focus and get answers to frequently asked questions.">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <script defer data-domain="auto-focus.app" src="https://nsa.janschill.de/js/script.file-downloads.js"></script>
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <style>
+        :root {
+            --bg: #FFFEF5;
+            --text: #1A1A1A;
+            --accent: #7BAABF;
+            --border: #1A1A1A;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        .border-brutal {
+            border: 3px solid var(--border);
+        }
+
+        .shadow-brutal {
+            box-shadow: 4px 4px 0 var(--border);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: var(--text);
+            border: 3px solid var(--border);
+            box-shadow: 4px 4px 0 var(--border);
+            transition: all 0.1s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 var(--border);
+        }
+
+        a {
+            color: var(--accent);
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+    <div class="max-w-3xl mx-auto px-6 py-12">
+        <header class="mb-12">
+            <a href="/" class="font-bold hover:underline">&larr; Back to Auto-Focus</a>
+            <h1 class="text-5xl font-black mt-6 mb-2">Guide</h1>
+            <p class="text-xl text-gray-600">Get started and find answers</p>
+        </header>
+
+        <!-- GETTING STARTED -->
+        <section class="mb-16">
+            <h2 class="text-3xl font-black mb-8">Getting Started</h2>
+
+            <div class="space-y-6">
+                <div class="border-brutal shadow-brutal p-6 bg-white">
+                    <div class="flex items-start gap-4">
+                        <span class="text-3xl font-black" style="color: var(--accent);">1</span>
+                        <div>
+                            <h3 class="text-xl font-bold mb-2">Download & Install</h3>
+                            <p class="text-gray-700 mb-3">Download Auto-Focus and the required "Toggle Do Not Disturb" shortcut. Install both to get started.</p>
+                            <ul class="text-gray-600 space-y-1">
+                                <li>&#8226; Extract the downloaded ZIP file</li>
+                                <li>&#8226; Drag Auto-Focus to Applications</li>
+                                <li>&#8226; Install the shortcut from the package</li>
+                            </ul>
+                            <a href="downloads/Auto-Focus.zip" class="btn-primary inline-block px-4 py-2 font-bold mt-4 text-sm">
+                                Download Auto-Focus
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border-brutal shadow-brutal p-6 bg-white">
+                    <div class="flex items-start gap-4">
+                        <span class="text-3xl font-black" style="color: var(--accent);">2</span>
+                        <div>
+                            <h3 class="text-xl font-bold mb-2">Configure Focus Apps</h3>
+                            <p class="text-gray-700 mb-3">Launch Auto-Focus and select which applications should trigger focus mode when you're working.</p>
+                            <ul class="text-gray-600 space-y-1">
+                                <li>&#8226; Add your development tools (Xcode, VS Code, etc.)</li>
+                                <li>&#8226; Configure browser focus URLs</li>
+                                <li>&#8226; Set focus thresholds and buffer times</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border-brutal shadow-brutal p-6 bg-white">
+                    <div class="flex items-start gap-4">
+                        <span class="text-3xl font-black" style="color: var(--accent);">3</span>
+                        <div>
+                            <h3 class="text-xl font-bold mb-2">Install Browser Extension</h3>
+                            <p class="text-gray-700 mb-3">Install the Chrome extension to track focus URLs like GitHub, Linear, Figma, and other work sites.</p>
+                            <ul class="text-gray-600 space-y-1">
+                                <li>&#8226; <a href="https://chromewebstore.google.com/detail/ncmjhohihnjjmkfpcibbafakmlbfifih" target="_blank">Install from Chrome Web Store</a></li>
+                                <li>&#8226; Automatically connects to Auto-Focus</li>
+                                <li>&#8226; Configure focus domains in the app</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border-brutal shadow-brutal p-6 bg-white">
+                    <div class="flex items-start gap-4">
+                        <span class="text-3xl font-black" style="color: var(--accent);">4</span>
+                        <div>
+                            <h3 class="text-xl font-bold mb-2">Start Focusing</h3>
+                            <p class="text-gray-700 mb-3">Auto-Focus will now monitor your work and automatically manage Do Not Disturb mode.</p>
+                            <ul class="text-gray-600 space-y-1">
+                                <li>&#8226; Focus for 12 minutes to trigger DND</li>
+                                <li>&#8226; Track sessions in the insights view</li>
+                                <li>&#8226; Access controls from the menu bar</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ -->
+        <section class="mb-16">
+            <h2 class="text-3xl font-black mb-8">Frequently Asked Questions</h2>
+
+            <div class="space-y-6">
+                <div class="border-brutal shadow-brutal p-6 bg-white">
+                    <h3 class="text-xl font-bold mb-3">How does Auto-Focus detect when I'm focused?</h3>
+                    <p class="text-gray-700">Auto-Focus monitors your active application and tracks how long you stay focused on configured "focus apps." When you focus for your set threshold time (default 12 minutes), it automatically enables Do Not Disturb mode.</p>
+                </div>
+
+                <div class="border-brutal shadow-brutal p-6 bg-white">
+                    <h3 class="text-xl font-bold mb-3">What happens when I switch away from a focus app?</h3>
+                    <p class="text-gray-700">When you switch to a non-focus app, Auto-Focus starts a buffer timer (default 3 minutes). If you don't return to a focus app within this time, it ends the focus session and re-enables notifications.</p>
+                </div>
+
+                <div class="border-brutal shadow-brutal p-6 bg-white">
+                    <h3 class="text-xl font-bold mb-3">Does Auto-Focus work with web applications?</h3>
+                    <p class="text-gray-700">Yes! The included Chrome extension tracks focus on specific websites like GitHub, Linear, Figma, and other productivity tools. Configure focus URLs in the main app to include web-based work.</p>
+                </div>
+
+                <div class="border-brutal shadow-brutal p-6 bg-white">
+                    <h3 class="text-xl font-bold mb-3">Do I need to add Chrome as a focus app to track websites?</h3>
+                    <p class="text-gray-700">No! The Chrome extension works independently and handles website-specific focus detection. You should <strong>not</strong> add Chrome as a focus app - doing so would make Auto-Focus activate focus mode whenever Chrome is open, regardless of which websites you're visiting. The extension only activates focus mode when you're on your configured focus websites.</p>
+                </div>
+
+                <div class="border-brutal shadow-brutal p-6 bg-white">
+                    <h3 class="text-xl font-bold mb-3">What's the difference between Free and Auto-Focus+?</h3>
+                    <p class="text-gray-700">Auto-Focus Free limits you to 2 focus apps and basic insights. Auto-Focus+ removes all limits, adds advanced analytics, data export capabilities, and includes priority support and future updates.</p>
+                </div>
+
+                <div class="border-brutal shadow-brutal p-6 bg-white">
+                    <h3 class="text-xl font-bold mb-3">Is my data private and secure?</h3>
+                    <p class="text-gray-700">Absolutely. Auto-Focus operates completely offline with no data collection, tracking, or cloud sync. All your focus data stays on your Mac, and you can export it anytime in CSV or JSON format.</p>
+                </div>
+
+                <div class="border-brutal shadow-brutal p-6 bg-white">
+                    <h3 class="text-xl font-bold mb-3">What macOS versions are supported?</h3>
+                    <p class="text-gray-700">Auto-Focus requires macOS 12.0 (Monterey) or later. It's built with SwiftUI for optimal performance and native system integration, including proper Do Not Disturb control.</p>
+                </div>
+
+                <div class="border-brutal shadow-brutal p-6 bg-white">
+                    <h3 class="text-xl font-bold mb-3">Why do I need to install a Shortcut?</h3>
+                    <p class="text-gray-700">macOS doesn't allow apps to directly control Do Not Disturb for security reasons. The "Toggle Do Not Disturb" shortcut acts as a bridge, allowing Auto-Focus to toggle DND through Apple's official Shortcuts system.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- CONTACT -->
+        <section class="mb-12">
+            <div class="border-brutal shadow-brutal p-8 bg-white text-center">
+                <h2 class="text-2xl font-bold mb-4">Still have questions?</h2>
+                <p class="text-gray-700 mb-6">We're happy to help. Reach out anytime.</p>
+                <a href="mailto:help@auto-focus.app" class="btn-primary inline-block px-6 py-3 font-bold">
+                    Email help@auto-focus.app
+                </a>
+            </div>
+        </section>
+
+        <footer class="text-center pt-8">
+            <a href="/" class="font-bold">&larr; Back to Auto-Focus</a>
+        </footer>
+    </div>
+</body>
+
+</html>

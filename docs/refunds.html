@@ -14,92 +14,99 @@
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <style>
         :root {
-            --primary-color: rgb(123, 170, 191);
-            --primary-hover: rgb(98, 136, 153);
-            --primary-light: rgba(123, 170, 191, 0.1);
+            --bg: #FFFEF5;
+            --text: #1A1A1A;
+            --accent: #7BAABF;
+            --border: #1A1A1A;
         }
 
-        .gradient-bg {
-            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, sans-serif;
         }
 
-        .primary-text {
-            color: var(--primary-color);
+        .border-brutal {
+            border: 3px solid var(--border);
         }
 
-        .content-card {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 1rem;
-            padding: 2rem;
+        .shadow-brutal {
+            box-shadow: 4px 4px 0 var(--border);
+        }
+
+        a {
+            color: var(--accent);
+        }
+
+        a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
 
-<body class="gradient-bg min-h-screen">
-    <div class="max-w-4xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
-        <div class="text-center mb-12">
-            <h1 class="text-4xl font-bold text-gray-900 mb-4">Refund Policy</h1>
-            <p class="text-lg text-gray-600">How to request refunds and our refund process</p>
-            <p class="text-sm text-gray-500 mt-2">Last updated: January 31, 2025</p>
+<body class="min-h-screen">
+    <div class="max-w-3xl mx-auto px-6 py-12">
+        <header class="mb-12">
+            <a href="/" class="font-bold hover:underline">&larr; Back to Auto-Focus</a>
+            <h1 class="text-4xl font-black mt-6 mb-2">Refund Policy</h1>
+            <p class="text-gray-600">Last updated: January 22, 2026</p>
+        </header>
+
+        <div class="border-brutal shadow-brutal p-8 mb-8 bg-white">
+            <h2 class="text-2xl font-bold mb-4">14-Day Money-Back Guarantee</h2>
+            <p class="text-gray-700">We offer a full refund within 14 days of purchase if Auto-Focus+ doesn't work as expected on your system or doesn't meet your needs.</p>
         </div>
 
-        <div class="content-card mb-8">
-            <h2 class="text-2xl font-semibold text-gray-900 mb-4">14-Day Money-Back Guarantee</h2>
-            <p class="text-gray-600 mb-4">We offer a full refund within 14 days of purchase if Auto-Focus+ doesn't work as expected on your system or doesn't meet your needs.</p>
-        </div>
-
-        <div class="content-card mb-8">
-            <h2 class="text-2xl font-semibold text-gray-900 mb-4">How to Request a Refund</h2>
-            <p class="text-gray-600 mb-4">Email us at <a href="mailto:help@auto-focus.app" class="primary-text hover:underline">help@auto-focus.app</a> within 14 days of purchase. Include:</p>
-            <ul class="list-disc list-inside text-gray-600 space-y-2 mt-4">
-                <li>Your purchase email address</li>
-                <li>Reason for the refund request</li>
-                <li>Any issues you encountered (so we can improve)</li>
+        <div class="border-brutal shadow-brutal p-8 mb-8 bg-white">
+            <h2 class="text-2xl font-bold mb-4">How to Request a Refund</h2>
+            <p class="text-gray-700 mb-4">Email us at <a href="mailto:help@auto-focus.app">help@auto-focus.app</a> within 14 days of purchase. Include:</p>
+            <ul class="space-y-2 text-gray-700">
+                <li>&#8226; Your purchase email address</li>
+                <li>&#8226; Reason for the refund request</li>
+                <li>&#8226; Any issues you encountered (so we can improve)</li>
             </ul>
         </div>
 
-        <div class="content-card mb-8">
-            <h2 class="text-2xl font-semibold text-gray-900 mb-4">Refund Process</h2>
-            <p class="text-gray-600 mb-4">Once approved, refunds are processed through Stripe and typically appear in your account within 5-10 business days, depending on your bank or card issuer.</p>
-            <p class="text-gray-600">Your Auto-Focus+ license will be deactivated when the refund is processed.</p>
+        <div class="border-brutal shadow-brutal p-8 mb-8 bg-white">
+            <h2 class="text-2xl font-bold mb-4">Refund Process</h2>
+            <p class="text-gray-700 mb-4">Once approved, refunds are processed through Stripe and typically appear in your account within 5-10 business days, depending on your bank or card issuer.</p>
+            <p class="text-gray-700">Your Auto-Focus+ license will be deactivated when the refund is processed.</p>
         </div>
 
-        <div class="content-card mb-8">
-            <h2 class="text-2xl font-semibold text-gray-900 mb-4">Try Before You Buy</h2>
-            <p class="text-gray-600 mb-4">Remember that Auto-Focus Free is available with core functionality, so you can test whether Auto-Focus works well on your system before purchasing Auto-Focus+.</p>
+        <div class="border-brutal shadow-brutal p-8 mb-8 bg-white">
+            <h2 class="text-2xl font-bold mb-4">Try Before You Buy</h2>
+            <p class="text-gray-700">Remember that Auto-Focus Free is available with core functionality, so you can test whether Auto-Focus works well on your system before purchasing Auto-Focus+.</p>
         </div>
 
-        <div class="content-card mb-8">
-            <h2 class="text-2xl font-semibold text-gray-900 mb-4">Common Issues</h2>
-            <p class="text-gray-600 mb-4">Before requesting a refund, check our FAQ or email us for support. Many issues can be resolved quickly:</p>
-            <ul class="list-disc list-inside text-gray-600 space-y-2 mt-4">
-                <li>macOS permissions not granted</li>
-                <li>Do Not Disturb shortcut not installed</li>
-                <li>License activation problems</li>
-                <li>Chrome extension connectivity issues</li>
+        <div class="border-brutal shadow-brutal p-8 mb-8 bg-white">
+            <h2 class="text-2xl font-bold mb-4">Common Issues</h2>
+            <p class="text-gray-700 mb-4">Before requesting a refund, check our FAQ or email us for support. Many issues can be resolved quickly:</p>
+            <ul class="space-y-2 text-gray-700">
+                <li>&#8226; macOS permissions not granted</li>
+                <li>&#8226; Do Not Disturb shortcut not installed</li>
+                <li>&#8226; License activation problems</li>
+                <li>&#8226; Chrome extension connectivity issues</li>
             </ul>
         </div>
 
-        <div class="content-card mb-8">
-            <h2 class="text-2xl font-semibold text-gray-900 mb-4">Exceptions</h2>
-            <p class="text-gray-600 mb-4">Refunds may be declined for:</p>
-            <ul class="list-disc list-inside text-gray-600 space-y-2 mt-4">
-                <li>Requests after the 14-day period</li>
-                <li>Purchases made with invalid payment methods</li>
-                <li>Violations of our Terms of Service</li>
+        <div class="border-brutal shadow-brutal p-8 mb-8 bg-white">
+            <h2 class="text-2xl font-bold mb-4">Exceptions</h2>
+            <p class="text-gray-700 mb-4">Refunds may be declined for:</p>
+            <ul class="space-y-2 text-gray-700">
+                <li>&#x2717; Requests after the 14-day period</li>
+                <li>&#x2717; Purchases made with invalid payment methods</li>
+                <li>&#x2717; Violations of our Terms of Service</li>
             </ul>
         </div>
 
-        <div class="content-card mb-8">
-            <h2 class="text-2xl font-semibold text-gray-900 mb-4">Contact</h2>
-            <p class="text-gray-600">Questions about refunds? Email us at <a href="mailto:help@auto-focus.app" class="primary-text hover:underline">help@auto-focus.app</a>.</p>
+        <div class="border-brutal shadow-brutal p-8 mb-8 bg-white">
+            <h2 class="text-2xl font-bold mb-4">Contact</h2>
+            <p class="text-gray-700">Questions about refunds? Email us at <a href="mailto:help@auto-focus.app">help@auto-focus.app</a>.</p>
         </div>
 
-        <div class="text-center">
-            <a href="/" class="primary-text hover:underline text-lg font-medium">← Back to Auto-Focus</a>
-        </div>
+        <footer class="text-center pt-8">
+            <a href="/" class="font-bold">&larr; Back to Auto-Focus</a>
+        </footer>
     </div>
 </body>
 
