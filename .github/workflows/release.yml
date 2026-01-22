@@ -157,32 +157,57 @@ jobs:
           echo "Checking for signing certificate before build..."
           security find-identity -v -p codesigning | grep "Developer ID Application" || echo "Warning: Certificate not found"
 
-          # Clean build to ensure no stale artifacts
-          xcodebuild clean \
-            -project auto-focus.xcodeproj \
-            -scheme auto-focus \
-            -configuration Release || true
+          # Remove any existing archive to force full rebuild
+          rm -rf build/auto-focus.xcarchive
+          rm -rf build/DerivedData
 
-          # Build archive with fresh DerivedData
+          # Build archive with clean build forced
+          # Using -destination to ensure proper platform targeting
           xcodebuild archive \
             -project auto-focus.xcodeproj \
             -scheme auto-focus \
             -configuration Release \
+            -destination 'generic/platform=macOS' \
             -archivePath build/auto-focus.xcarchive \
             -derivedDataPath build/DerivedData \
             CODE_SIGN_IDENTITY="Developer ID Application: Jan Schill (LKQJ2JG34Y)" \
             CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM=LKQJ2JG34Y \
-            HMAC_SECRET="$HMAC_SECRET" || exit $?
+            HMAC_SECRET="$HMAC_SECRET" \
+            ONLY_ACTIVE_ARCH=NO \
+            BUILD_LIBRARY_FOR_DISTRIBUTION=YES || exit $?
 
-          echo "✅ Archive built successfully"
+          # Verify the archive contains the actual executable
+          EXECUTABLE_PATH="build/auto-focus.xcarchive/Products/Applications/auto-focus.app/Contents/MacOS/auto-focus"
+          if [ ! -f "$EXECUTABLE_PATH" ]; then
+            echo "❌ ERROR: Build failed - executable not found at $EXECUTABLE_PATH"
+            echo "Archive contents:"
+            find build/auto-focus.xcarchive -type f | head -50
+            exit 1
+          fi
+
+          EXECUTABLE_SIZE=$(stat -f%z "$EXECUTABLE_PATH" 2>/dev/null || stat -c%s "$EXECUTABLE_PATH")
+          echo "✅ Archive built successfully - executable size: $EXECUTABLE_SIZE bytes"
+
+          if [ "$EXECUTABLE_SIZE" -lt 100000 ]; then
+            echo "❌ ERROR: Executable is too small ($EXECUTABLE_SIZE bytes), build may have failed"
+            exit 1
+          fi
 
       - name: Extract app from archive
         if: steps.version_check.outputs.version_changed == 'true'
         run: |
           mkdir -p build
           cp -R build/auto-focus.xcarchive/Products/Applications/auto-focus.app build/auto-focus_temp.app
-          echo "App extracted to build/auto-focus_temp.app"
+
+          # Verify the extracted app has the executable
+          if [ ! -f "build/auto-focus_temp.app/Contents/MacOS/auto-focus" ]; then
+            echo "❌ ERROR: Extracted app is missing executable"
+            echo "App bundle contents:"
+            find build/auto-focus_temp.app -type f
+            exit 1
+          fi
+          echo "✅ App extracted to build/auto-focus_temp.app"
 
       - name: Code sign app
         if: steps.version_check.outputs.version_changed == 'true'
