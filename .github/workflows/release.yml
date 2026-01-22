@@ -174,8 +174,7 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM=LKQJ2JG34Y \
             HMAC_SECRET="$HMAC_SECRET" \
-            ONLY_ACTIVE_ARCH=NO \
-            BUILD_LIBRARY_FOR_DISTRIBUTION=YES || exit $?
+            ONLY_ACTIVE_ARCH=NO || exit $?
 
           # Verify the archive contains the actual executable
           EXECUTABLE_PATH="build/auto-focus.xcarchive/Products/Applications/auto-focus.app/Contents/MacOS/auto-focus"
