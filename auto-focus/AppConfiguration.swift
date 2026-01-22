@@ -4,6 +4,7 @@ struct AppConfiguration {
     // MARK: - Focus Settings
     static let defaultFocusThreshold: TimeInterval = 12 // 12 minutes
     static let defaultBufferTime: TimeInterval = 2 // 2 seconds
+    static let preSessionBuffer: TimeInterval = 1 // 1 second buffer before focus session starts
 
     // MARK: - Timer Intervals
     static let checkInterval: TimeInterval = 1.0 // Check active app every second

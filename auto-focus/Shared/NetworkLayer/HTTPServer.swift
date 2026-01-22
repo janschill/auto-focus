@@ -211,71 +211,48 @@ class HTTPServer: ObservableObject {
             return
         }
 
-        let forcedByFocus = message["forcedByFocus"] as? Bool ?? false
-        // Support both old and new field names for backward compatibility
-        let isBrowserFocused = message["isBrowserFocused"] as? Bool ??
-                              message["isChromeFocused"] as? Bool ?? true // Default to true for backward compatibility
         AppLogger.network.infoToFile("📥 HTTP Server: Tab changed message received", metadata: [
             "url": url,
-            "forced_by_focus": String(forcedByFocus),
-            "browser_focused": String(isBrowserFocused),
             "title": message["title"] as? String ?? "unknown",
             "timestamp": ISO8601DateFormatter().string(from: Date())
         ])
 
         // Check if URL is a focus URL using BrowserManager
-        let (isFocus, matchedURL) = browserManager?.checkIfURLIsFocus(url) ?? (false, nil)
+        // Note: We only check if the URL matches a focus domain here.
+        // BrowserManager will determine if browser is actually frontmost (authoritative check via NSWorkspace)
+        let (isURLFocus, matchedURL) = browserManager?.checkIfURLIsFocus(url) ?? (false, nil)
         AppLogger.network.infoToFile("🔍 HTTP Server: URL check result", metadata: [
             "url": url,
-            "is_focus": String(isFocus),
+            "is_url_focus": String(isURLFocus),
             "matched_url": matchedURL?.name ?? "none",
             "matched_domain": matchedURL?.domain ?? "none"
         ])
 
-        // Only activate focus mode if browser is actually focused
-        // This prevents false positives when browser is in the background
-        let effectiveIsFocus = isFocus && isBrowserFocused
-
-        AppLogger.network.infoToFile("🔍 HTTP Server: Calculating effective focus state", metadata: [
-            "url": url,
-            "is_focus": String(isFocus),
-            "browser_focused": String(isBrowserFocused),
-            "effective_is_focus": String(effectiveIsFocus)
-        ])
-
-        if isFocus && !isBrowserFocused {
-            AppLogger.network.infoToFile("⚠️ HTTP Server: Focus URL detected but browser is not frontmost - suppressing focus activation", metadata: [
-                "url": url
-            ])
-        }
-
-        // Update browser manager state
+        // Create tab info - BrowserManager will handle the frontmost check
         let tabInfo = BrowserTabInfo(
             url: url,
             title: message["title"] as? String ?? "",
-            isFocusURL: effectiveIsFocus,
+            isFocusURL: isURLFocus,
             matchedFocusURL: matchedURL
         )
 
         AppLogger.network.infoToFile("📤 HTTP Server: Sending update to BrowserManager", metadata: [
             "url": url,
-            "effective_is_focus": String(effectiveIsFocus),
-            "matched_url": matchedURL?.name ?? "none"
+            "is_url_focus": String(isURLFocus),
+            "matched_url": matchedURL?.name ?? "none",
+            "note": "BrowserManager will check if browser is frontmost"
         ])
 
-        // Process update on main queue
+        // Process update on main queue - BrowserManager handles frontmost check
         DispatchQueue.main.async {
-            self.browserManager?.updateFromExtension(tabInfo: tabInfo, isFocus: effectiveIsFocus)
+            self.browserManager?.updateFromExtension(tabInfo: tabInfo, isFocus: isURLFocus)
         }
 
+        // Response indicates URL focus status - actual focus activation depends on BrowserManager's frontmost check
         let response = [
             "command": "focus_state_changed",
-            "isFocusActive": effectiveIsFocus
+            "isURLFocus": isURLFocus
         ] as [String: Any]
-
-        AppLogger.network.infoToFile("📤 HTTP Server: Sending response to extension", metadata: [
-            "response": String(describing: response)
-        ])
 
         sendJSONResponse(response, to: connection)
     }

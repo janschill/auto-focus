@@ -224,8 +224,8 @@ class BrowserManager: ObservableObject, BrowserManaging {
         // Reset connection timeout timer since we got an update
         resetConnectionTimeoutTimer()
 
-        // Verify Chrome is actually the frontmost application before activating focus mode
-        // This is a double-check to prevent false positives
+        // Check if a Chromium browser is the frontmost application (authoritative check via NSWorkspace)
+        // This is the single source of truth - we don't rely on the extension's focus detection
         let isChromeFrontmost = isChromeBrowserFrontmost()
 
         let previousFocusState = self.isBrowserInFocus

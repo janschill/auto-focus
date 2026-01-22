@@ -162,11 +162,17 @@ class MockBufferManager: ObservableObject, BufferManaging {
     var shouldFailBuffer = false
     var autoTimeoutEnabled = false
 
+    // Test inspection - track the last buffer duration that was started
+    private(set) var lastStartedBufferDuration: TimeInterval = 0
+    private(set) var bufferStartCount: Int = 0
+
     func startBuffer(duration: TimeInterval) {
         guard !shouldFailBuffer else { return }
         isInBufferPeriod = true
         bufferTimeRemaining = duration
         bufferDuration = duration
+        lastStartedBufferDuration = duration
+        bufferStartCount += 1
 
         // Auto-timeout for testing
         if autoTimeoutEnabled {
@@ -203,6 +209,8 @@ class MockBufferManager: ObservableObject, BufferManaging {
         cancelBuffer()
         shouldFailBuffer = false
         autoTimeoutEnabled = false
+        lastStartedBufferDuration = 0
+        bufferStartCount = 0
     }
 }
 

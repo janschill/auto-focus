@@ -389,18 +389,30 @@ class FocusManager: ObservableObject {
             return
         }
 
-        // Start buffer period if we have accumulated time OR are in focus mode
-        // This preserves time even before reaching the focus threshold
-        if isInFocusMode || timeSpent > 0 {
-            AppLogger.focus.infoToFile("Starting buffer period after app focus loss", metadata: [
+        // Determine buffer duration based on whether we're in a focus session
+        // - Before focus session (isInFocusMode = false): use short pre-session buffer (1s) for quick reset
+        // - During focus session (isInFocusMode = true): use user-configurable buffer
+        if isInFocusMode {
+            // In focus session - use configurable buffer to preserve session
+            AppLogger.focus.infoToFile("Starting buffer period after app focus loss (in focus session)", metadata: [
                 "buffer_duration": String(format: "%.1f", focusLossBuffer),
                 "time_spent": String(format: "%.1f", timeSpent),
-                "is_in_focus_mode": String(isInFocusMode),
-                "reason": isInFocusMode ? "in_focus_mode" : "has_accumulated_time"
+                "is_in_focus_mode": String(isInFocusMode)
             ])
             focusTimer.pause()
             stateMachine.transitionToBuffer(timeRemaining: focusLossBuffer)
             bufferManager.startBuffer(duration: focusLossBuffer)
+        } else if timeSpent > 0 {
+            // Before focus session but has accumulated time - use short buffer for quick reset
+            let preSessionBuffer = AppConfiguration.preSessionBuffer
+            AppLogger.focus.infoToFile("Starting pre-session buffer after app focus loss", metadata: [
+                "buffer_duration": String(format: "%.1f", preSessionBuffer),
+                "time_spent": String(format: "%.1f", timeSpent),
+                "is_in_focus_mode": String(isInFocusMode)
+            ])
+            focusTimer.pause()
+            stateMachine.transitionToBuffer(timeRemaining: preSessionBuffer)
+            bufferManager.startBuffer(duration: preSessionBuffer)
         } else {
             // No accumulated time and not in focus mode - reset immediately
             AppLogger.focus.infoToFile("Resetting focus state after app focus loss (no time accumulated)", metadata: [
@@ -1087,18 +1099,30 @@ extension FocusManager: BrowserManagerDelegate {
             }
         }
 
-        // Start buffer period if we have accumulated time OR are in focus mode
-        // This preserves time even before reaching the focus threshold
-        if isInFocusMode || timeSpent > 0 {
-            AppLogger.focus.infoToFile("Starting buffer period after browser focus loss", metadata: [
+        // Determine buffer duration based on whether we're in a focus session
+        // - Before focus session (isInFocusMode = false): use short pre-session buffer (1s) for quick reset
+        // - During focus session (isInFocusMode = true): use user-configurable buffer
+        if isInFocusMode {
+            // In focus session - use configurable buffer to preserve session
+            AppLogger.focus.infoToFile("Starting buffer period after browser focus loss (in focus session)", metadata: [
                 "buffer_duration": String(format: "%.1f", focusLossBuffer),
                 "time_spent": String(format: "%.1f", timeSpent),
-                "is_in_focus_mode": String(isInFocusMode),
-                "reason": isInFocusMode ? "in_focus_mode" : "has_accumulated_time"
+                "is_in_focus_mode": String(isInFocusMode)
             ])
             focusTimer.pause()
             stateMachine.transitionToBuffer(timeRemaining: focusLossBuffer)
             bufferManager.startBuffer(duration: focusLossBuffer)
+        } else if timeSpent > 0 {
+            // Before focus session but has accumulated time - use short buffer for quick reset
+            let preSessionBuffer = AppConfiguration.preSessionBuffer
+            AppLogger.focus.infoToFile("Starting pre-session buffer after browser focus loss", metadata: [
+                "buffer_duration": String(format: "%.1f", preSessionBuffer),
+                "time_spent": String(format: "%.1f", timeSpent),
+                "is_in_focus_mode": String(isInFocusMode)
+            ])
+            focusTimer.pause()
+            stateMachine.transitionToBuffer(timeRemaining: preSessionBuffer)
+            bufferManager.startBuffer(duration: preSessionBuffer)
         } else {
             // No accumulated time and not in focus mode - reset immediately
             AppLogger.focus.infoToFile("Resetting focus state after browser focus loss (no time accumulated)", metadata: [
