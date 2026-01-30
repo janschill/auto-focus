@@ -64,6 +64,7 @@ class FocusManager: ObservableObject {
     }
     @Published var selectedAppId: String?
     @Published var isInFocusMode = false
+    var didReachFocusThreshold = false
     @Published var hasCompletedOnboarding: Bool = false
     @Published var isBrowserInFocus: Bool = false
     @Published var currentBrowserTab: BrowserTabInfo?
@@ -214,7 +215,11 @@ class FocusManager: ObservableObject {
         isPaused = !isPaused
         if isPaused {
             if isFocusAppActive {
-                sessionManager.endSession()
+                if didReachFocusThreshold {
+                    sessionManager.endSession()
+                } else {
+                    sessionManager.cancelCurrentSession()
+                }
                 resetFocusState()
                 if !isNotificationsEnabled {
                     focusModeController.setFocusMode(enabled: false)
@@ -339,6 +344,7 @@ class FocusManager: ObservableObject {
                 "threshold": String(format: "%.1f", focusThreshold * AppConfiguration.timeMultiplier)
             ])
             isInFocusMode = true
+            didReachFocusThreshold = true
             stateMachine.transitionToFocusMode(timeSpent: timeSpent)
             focusModeController.setFocusMode(enabled: true)
         } else if case .counting = stateMachine.currentState {
@@ -418,7 +424,11 @@ class FocusManager: ObservableObject {
             AppLogger.focus.infoToFile("Resetting focus state after app focus loss (no time accumulated)", metadata: [
                 "time_spent": String(format: "%.1f", timeSpent)
             ])
-            sessionManager.endSession()
+            if didReachFocusThreshold {
+                sessionManager.endSession()
+            } else {
+                sessionManager.cancelCurrentSession()
+            }
             resetFocusState()
             if !isNotificationsEnabled {
                 focusModeController.setFocusMode(enabled: false)
@@ -430,6 +440,7 @@ class FocusManager: ObservableObject {
         isFocusAppActive = false
         timeSpent = 0
         isInFocusMode = false
+        didReachFocusThreshold = false
         focusTimer.reset()
         stateMachine.transitionToIdle()
     }
@@ -790,8 +801,12 @@ extension FocusManager: BufferManagerDelegate {
     }
 
     func bufferManagerDidTimeout(_ manager: any BufferManaging) {
-        // Buffer timed out - end session and exit focus mode
-        sessionManager.endSession()
+        // Buffer timed out - only persist session if focus threshold was reached
+        if didReachFocusThreshold {
+            sessionManager.endSession()
+        } else {
+            sessionManager.cancelCurrentSession()
+        }
         stateMachine.transitionToIdle()
         resetFocusState()
         if !isNotificationsEnabled {
@@ -1129,7 +1144,11 @@ extension FocusManager: BrowserManagerDelegate {
                 "chrome_frontmost": String(isChromeStillFrontmost),
                 "time_spent": String(format: "%.1f", timeSpent)
             ])
-            sessionManager.endSession()
+            if didReachFocusThreshold {
+                sessionManager.endSession()
+            } else {
+                sessionManager.cancelCurrentSession()
+            }
             resetFocusState()
             if !isNotificationsEnabled {
                 focusModeController.setFocusMode(enabled: false)
