@@ -36,6 +36,28 @@ struct AppConfiguration {
     static let shortcutsAppBundleIdentifier = "com.apple.shortcuts"
     static let applicationsDirectory = "/Applications"
 
+    // MARK: - Chromium Browser Bundle IDs
+    static let chromiumBrowserBundleIds: Set<String> = [
+        "com.google.Chrome",
+        "com.google.Chrome.canary",
+        "com.google.Chrome.beta",
+        "com.google.Chrome.dev",
+        "com.microsoft.Edge",
+        "com.microsoft.Edge.Canary",
+        "com.microsoft.Edge.Beta",
+        "com.microsoft.Edge.Dev",
+        "com.brave.Browser",
+        "com.brave.Browser.beta",
+        "com.operasoftware.Opera",
+        "com.operasoftware.OperaNext",
+        "com.operasoftware.OperaDeveloper",
+        "com.vivaldi.Vivaldi",
+        "com.yandex.browser",
+        "com.arc.Arc",
+        "com.360.Chrome",
+        "com.chromium.Chromium",
+    ]
+
     // MARK: - Helper Methods
     static var timeMultiplier: Double {
         #if DEBUG

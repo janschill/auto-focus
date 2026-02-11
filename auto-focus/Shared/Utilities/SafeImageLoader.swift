@@ -6,33 +6,35 @@ import os.log
 struct SafeImageLoader {
     private static let logger = AppLogger.ui
     private static var imageCache: [String: NSImage] = [:]
-    
+    private static var cacheOrder: [String] = []
+    private static let maxCacheSize = 50
+
     /// Safely load an app icon, with fallback and caching
     static func loadAppIcon(for bundleIdentifier: String) -> NSImage? {
         // Check cache first
         if let cachedImage = imageCache[bundleIdentifier] {
             return cachedImage
         }
-        
-        logger.debug("Loading app icon", metadata: [
-            "bundle_identifier": bundleIdentifier
-        ])
-        
+
         guard let appUrl = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleIdentifier) else {
-            logger.warning("Could not find app URL", metadata: [
-                "bundle_identifier": bundleIdentifier
-            ])
             return createFallbackIcon()
         }
-        
+
         let appIcon = NSWorkspace.shared.icon(forFile: appUrl.path)
-        
+
         // Validate the image to prevent CoreSVG issues
         let safeIcon = validateAndProcessIcon(appIcon, bundleIdentifier: bundleIdentifier)
-        
+
+        // Evict oldest entry if at capacity
+        if imageCache.count >= maxCacheSize, let oldest = cacheOrder.first {
+            imageCache.removeValue(forKey: oldest)
+            cacheOrder.removeFirst()
+        }
+
         // Cache the processed image
         imageCache[bundleIdentifier] = safeIcon
-        
+        cacheOrder.append(bundleIdentifier)
+
         return safeIcon
     }
     
@@ -142,6 +144,6 @@ struct SafeImageLoader {
     /// Clear the image cache (useful for memory management)
     static func clearCache() {
         imageCache.removeAll()
-        logger.debug("Cleared image cache")
+        cacheOrder.removeAll()
     }
 }
