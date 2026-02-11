@@ -64,7 +64,14 @@ jobs:
 
       - name: Select Xcode version
         if: steps.version_check.outputs.version_changed == 'true'
-        run: sudo xcode-select -switch /Applications/Xcode_26.1.app
+        run: |
+          # Use the latest available Xcode on the runner
+          XCODE_PATH=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
+          if [ -z "$XCODE_PATH" ]; then
+            XCODE_PATH="/Applications/Xcode.app"
+          fi
+          echo "Selected Xcode: $XCODE_PATH"
+          sudo xcode-select -switch "$XCODE_PATH"
 
       - name: Show Build Version
         shell: bash
