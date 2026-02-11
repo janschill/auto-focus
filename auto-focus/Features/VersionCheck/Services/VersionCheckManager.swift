@@ -224,7 +224,7 @@ class VersionCheckManager: ObservableObject {
             return
         }
 
-        logger.userAction("open_download", metadata: [
+        logger.info("Opening download URL", metadata: [
             "url": urlString,
             "latest_version": latestVersion
         ])

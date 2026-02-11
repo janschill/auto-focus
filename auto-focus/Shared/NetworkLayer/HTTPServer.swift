@@ -143,13 +143,6 @@ class HTTPServer: ObservableObject {
             return
         }
 
-        AppLogger.network.infoToFile("📥 HTTP Server: Received command from browser extension", metadata: [
-            "command": command,
-            "timestamp": ISO8601DateFormatter().string(from: Date()),
-            "message_keys": Array(message.keys).joined(separator: ","),
-            "full_message": String(describing: message)
-        ])
-
         switch command {
         case "handshake":
             handleHandshakeMessage(message, connection: connection)
@@ -175,23 +168,13 @@ class HTTPServer: ObservableObject {
     }
 
     private func handleBrowserLostFocus(_ message: [String: Any], connection: NWConnection) {
-        AppLogger.network.infoToFile("📥 HTTP Server: Browser lost focus message received", metadata: [
-            "timestamp": ISO8601DateFormatter().string(from: Date()),
-            "message_keys": Array(message.keys).joined(separator: ",")
-        ])
-
-        // Immediately notify browser manager that browser is no longer in focus
         DispatchQueue.main.async {
-            // Create a dummy tab info indicating no focus
             let tabInfo = BrowserTabInfo(
                 url: "about:blank",
                 title: "Browser Lost Focus",
                 isFocusURL: false,
                 matchedFocusURL: nil
             )
-            AppLogger.network.infoToFile("📤 HTTP Server: Sending browser lost focus to BrowserManager", metadata: [
-                "url": tabInfo.url
-            ])
             self.browserManager?.updateFromExtension(tabInfo: tabInfo, isFocus: false)
         }
 
@@ -204,31 +187,12 @@ class HTTPServer: ObservableObject {
 
     private func handleTabChanged(_ message: [String: Any], connection: NWConnection) {
         guard let url = message["url"] as? String else {
-            AppLogger.network.errorToFile("Tab changed message missing URL", metadata: [
-                "message_keys": Array(message.keys).joined(separator: ",")
-            ])
             sendResponse("HTTP/1.1 400 Bad Request\r\n\r\n", to: connection)
             return
         }
 
-        AppLogger.network.infoToFile("📥 HTTP Server: Tab changed message received", metadata: [
-            "url": url,
-            "title": message["title"] as? String ?? "unknown",
-            "timestamp": ISO8601DateFormatter().string(from: Date())
-        ])
-
-        // Check if URL is a focus URL using BrowserManager
-        // Note: We only check if the URL matches a focus domain here.
-        // BrowserManager will determine if browser is actually frontmost (authoritative check via NSWorkspace)
         let (isURLFocus, matchedURL) = browserManager?.checkIfURLIsFocus(url) ?? (false, nil)
-        AppLogger.network.infoToFile("🔍 HTTP Server: URL check result", metadata: [
-            "url": url,
-            "is_url_focus": String(isURLFocus),
-            "matched_url": matchedURL?.name ?? "none",
-            "matched_domain": matchedURL?.domain ?? "none"
-        ])
 
-        // Create tab info - BrowserManager will handle the frontmost check
         let tabInfo = BrowserTabInfo(
             url: url,
             title: message["title"] as? String ?? "",
@@ -236,24 +200,14 @@ class HTTPServer: ObservableObject {
             matchedFocusURL: matchedURL
         )
 
-        AppLogger.network.infoToFile("📤 HTTP Server: Sending update to BrowserManager", metadata: [
-            "url": url,
-            "is_url_focus": String(isURLFocus),
-            "matched_url": matchedURL?.name ?? "none",
-            "note": "BrowserManager will check if browser is frontmost"
-        ])
-
-        // Process update on main queue - BrowserManager handles frontmost check
         DispatchQueue.main.async {
             self.browserManager?.updateFromExtension(tabInfo: tabInfo, isFocus: isURLFocus)
         }
 
-        // Response indicates URL focus status - actual focus activation depends on BrowserManager's frontmost check
         let response = [
             "command": "focus_state_changed",
             "isURLFocus": isURLFocus
         ] as [String: Any]
-
         sendJSONResponse(response, to: connection)
     }
 
@@ -339,7 +293,7 @@ class HTTPServer: ObservableObject {
         let data = response.data(using: .utf8)!
         connection.send(content: data, completion: .contentProcessed { error in
             if let error = error {
-                AppLogger.network.errorToFile("Failed to send HTTP response", error: error, metadata: [
+                AppLogger.network.error("Failed to send HTTP response", error: error, metadata: [
                     "response_length": String(data.count)
                 ])
             }
@@ -353,27 +307,19 @@ class HTTPServer: ObservableObject {
         let extensionVersion = message["version"] as? String ?? "unknown"
         let extensionId = message["extensionId"] as? String ?? "unknown"
 
-        AppLogger.network.infoToFile("Handshake from browser extension", metadata: [
+        AppLogger.network.info("Handshake from browser extension", metadata: [
             "version": extensionVersion,
-            "extension_id": extensionId,
-            "timestamp": ISO8601DateFormatter().string(from: Date())
+            "extension_id": extensionId
         ])
 
-        // Parse extension health data
         if let healthData = message["healthData"] as? [String: Any] {
             updateExtensionHealth(healthData, version: extensionVersion, extensionId: extensionId)
         }
 
-        // Reset connection timeout timer and mark as connected when handshake is received
         DispatchQueue.main.async {
             self.browserManager?.resetConnectionTimeoutTimer()
 
-            // Ensure connection state is marked as connected
             if let browserManager = self.browserManager, !browserManager.isExtensionConnected {
-                AppLogger.network.info("Extension connection established via handshake", metadata: [
-                    "extension_id": extensionId,
-                    "timestamp": ISO8601DateFormatter().string(from: Date())
-                ])
                 browserManager.isExtensionConnected = true
                 browserManager.delegate?.browserManager(browserManager, didChangeConnectionState: true)
             }
@@ -392,45 +338,17 @@ class HTTPServer: ObservableObject {
     }
 
     private func handleHeartbeatMessage(_ message: [String: Any], connection: NWConnection) {
-        AppLogger.network.infoToFile("📥 HTTP Server: Heartbeat message received", metadata: [
-            "timestamp": ISO8601DateFormatter().string(from: Date()),
-            "message_keys": Array(message.keys).joined(separator: ",")
-        ])
-
-        // Ignore heartbeats when system is sleeping (lid closed, etc.)
-        // Check if browser manager exists and if system is sleeping
         if let browserManager = self.browserManager {
-            // Use reflection to check if system is sleeping (private property)
-            // Actually, we'll add a public method to check this
-            // For now, we'll process it but BrowserManager will ignore timer resets
-
-            // Update connection quality based on heartbeat data
             if let connectionHealth = message["connectionHealth"] as? [String: Any] {
                 updateConnectionQuality(connectionHealth)
             }
 
-            // Reset connection timeout timer when heartbeat is received
-            // This prevents the connection from being marked as disconnected when only heartbeats are received
-            // BrowserManager will skip this if system is sleeping
             DispatchQueue.main.async {
-                AppLogger.network.infoToFile("💓 HTTP Server: Processing heartbeat - resetting timeout timer", metadata: [
-                    "extension_connected": String(browserManager.isExtensionConnected),
-                    "system_sleeping": String(browserManager.isSystemSleeping)
-                ])
                 browserManager.resetConnectionTimeoutTimer()
 
-                // Also ensure connection state is marked as connected if we're receiving heartbeats
-                // But only if system is not sleeping
                 if !browserManager.isSystemSleeping, !browserManager.isExtensionConnected {
-                    AppLogger.network.infoToFile("Extension connection restored via heartbeat", metadata: [
-                        "timestamp": ISO8601DateFormatter().string(from: Date())
-                    ])
                     browserManager.isExtensionConnected = true
                     browserManager.delegate?.browserManager(browserManager, didChangeConnectionState: true)
-                } else if browserManager.isSystemSleeping {
-                    AppLogger.network.debugToFile("Ignoring heartbeat - system is sleeping", metadata: [
-                        "timestamp": ISO8601DateFormatter().string(from: Date())
-                    ])
                 }
             }
         }
