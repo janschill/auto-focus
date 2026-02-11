@@ -12,6 +12,9 @@ releases/
 # Security: HMAC secret for license validation
 .hmac_secret
 
+# Prevent nested Xcode project inside source directory (auto-created by Xcode)
+auto-focus/auto-focus.xcodeproj/
+
 # Distribution files - we now track them in git for GitHub Pages
 # (keeping this comment for reference)
 
