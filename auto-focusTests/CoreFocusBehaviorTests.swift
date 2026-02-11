@@ -118,6 +118,7 @@ final class CoreFocusBehaviorTests: XCTestCase {
         let thresholdInSeconds = focusManager.focusThreshold * AppConfiguration.timeMultiplier
         focusManager.timeSpent = thresholdInSeconds + 10 // Past threshold
         focusManager.isInFocusMode = true // Simulate that focus mode has been activated
+        focusManager.didReachFocusThreshold = true
 
         // When: User tabs away from focus app
         mockAppMonitor.simulateFocusAppInactive()
@@ -138,6 +139,7 @@ final class CoreFocusBehaviorTests: XCTestCase {
         mockAppMonitor.simulateFocusAppActive()
         focusManager.timeSpent = 700.0 // Past threshold
         focusManager.isInFocusMode = true
+        focusManager.didReachFocusThreshold = true
 
         // And: User tabs away (buffer starts)
         mockAppMonitor.simulateFocusAppInactive()
@@ -262,6 +264,100 @@ final class CoreFocusBehaviorTests: XCTestCase {
 
         XCTAssertEqual(mockBufferManager.bufferStartCount, 3, "Should have started buffer 3 times")
     }
+
+    // MARK: - Session Persistence Tests (Focus Session Gating)
+
+    /// Test: Time spent below threshold should NOT create a persisted session
+    func testPreSessionTimeout_DoesNotPersistSession() {
+        // Given: User tabs to focus app and spends time below threshold
+        focusManager.isPaused = false
+        mockAppMonitor.simulateFocusAppActive()
+        focusManager.timeSpent = 5.0 // Well below threshold
+        XCTAssertFalse(focusManager.isInFocusMode, "Should NOT be in focus mode")
+
+        // When: User tabs away and pre-session buffer times out
+        mockAppMonitor.simulateFocusAppInactive()
+        XCTAssertTrue(mockBufferManager.isInBufferPeriod)
+        mockBufferManager.simulateBufferTimeout()
+
+        // Then: No session should be persisted
+        XCTAssertEqual(mockSessionManager.focusSessions.count, 0,
+            "No session should be persisted when focus threshold was not reached")
+    }
+
+    /// Test: Time spent above threshold SHOULD create a persisted session
+    func testFocusSession_PersistsSessionAfterThreshold() {
+        // Given: User tabs to focus app
+        focusManager.isPaused = false
+        mockAppMonitor.simulateFocusAppActive()
+
+        // And: User reaches the focus threshold
+        let thresholdInSeconds = focusManager.focusThreshold * AppConfiguration.timeMultiplier
+        focusManager.timeSpent = thresholdInSeconds + 1
+        focusManager.isInFocusMode = true
+        focusManager.didReachFocusThreshold = true
+
+        // When: User tabs away and buffer times out
+        mockAppMonitor.simulateFocusAppInactive()
+        XCTAssertTrue(mockBufferManager.isInBufferPeriod)
+        mockBufferManager.simulateBufferTimeout()
+
+        // Then: Session SHOULD be persisted
+        XCTAssertEqual(mockSessionManager.focusSessions.count, 1,
+            "Session should be persisted when focus threshold was reached")
+    }
+
+    /// Test: Pausing before threshold should NOT persist a session
+    func testPauseBeforeThreshold_DoesNotPersistSession() {
+        // Given: User is in focus app but below threshold
+        focusManager.isPaused = false
+        mockAppMonitor.simulateFocusAppActive()
+        focusManager.timeSpent = 5.0
+        XCTAssertFalse(focusManager.isInFocusMode)
+
+        // When: User pauses the app
+        focusManager.togglePause()
+
+        // Then: No session should be persisted
+        XCTAssertEqual(mockSessionManager.focusSessions.count, 0,
+            "No session should be persisted when pausing before focus threshold")
+    }
+
+    /// Test: Pausing after threshold SHOULD persist a session
+    func testPauseAfterThreshold_PersistsSession() {
+        // Given: User is in focus app and has reached threshold
+        focusManager.isPaused = false
+        mockAppMonitor.simulateFocusAppActive()
+        let thresholdInSeconds = focusManager.focusThreshold * AppConfiguration.timeMultiplier
+        focusManager.timeSpent = thresholdInSeconds + 1
+        focusManager.isInFocusMode = true
+        focusManager.didReachFocusThreshold = true
+
+        // When: User pauses the app
+        focusManager.togglePause()
+
+        // Then: Session SHOULD be persisted
+        XCTAssertEqual(mockSessionManager.focusSessions.count, 1,
+            "Session should be persisted when pausing after focus threshold was reached")
+    }
+
+    /// Test: Multiple sub-threshold visits should NOT accumulate persisted sessions
+    func testMultipleSubThresholdVisits_NoPersistence() {
+        focusManager.isPaused = false
+        mockBufferManager.reset()
+
+        // Multiple focus/unfocus cycles, all below threshold
+        for i in 1...3 {
+            mockAppMonitor.simulateFocusAppActive()
+            focusManager.timeSpent = Double(i)
+            mockAppMonitor.simulateFocusAppInactive()
+            mockBufferManager.simulateBufferTimeout()
+        }
+
+        // No sessions should be persisted
+        XCTAssertEqual(mockSessionManager.focusSessions.count, 0,
+            "No sessions should be persisted from sub-threshold visits")
+    }
 }
 
 // MARK: - Browser Focus Tests
@@ -327,6 +423,7 @@ final class BrowserFocusBehaviorTests: XCTestCase {
         focusManager.isBrowserInFocus = true
         focusManager.timeSpent = 700.0
         focusManager.isInFocusMode = true
+        focusManager.didReachFocusThreshold = true
         focusManager.focusLossBuffer = 20.0
 
         // Then: Verify the state that would trigger configurable buffer
