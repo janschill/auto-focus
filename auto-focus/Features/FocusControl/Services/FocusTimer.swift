@@ -45,7 +45,7 @@ class FocusTimer {
             self?.tick()
         }
 
-        AppLogger.focus.infoToFile("▶️ FocusTimer: Timer STARTED", metadata: [
+        AppLogger.focus.info("▶️ FocusTimer: Timer STARTED", metadata: [
             "preserve_time": String(preserveTime),
             "elapsed_time": String(format: "%.1f", elapsedTime),
             "interval": String(format: "%.1f", interval),
@@ -57,7 +57,7 @@ class FocusTimer {
     /// Pause the timer without resetting elapsed time
     func pause() {
         guard timer != nil else {
-            AppLogger.focus.infoToFile("⚠️ FocusTimer: Pause called but timer is nil", metadata: [
+            AppLogger.focus.info("⚠️ FocusTimer: Pause called but timer is nil", metadata: [
                 "elapsed_time": String(format: "%.1f", elapsedTime)
             ])
             return
@@ -67,7 +67,7 @@ class FocusTimer {
         timer = nil
         isPaused = true
 
-        AppLogger.focus.infoToFile("⏸️ FocusTimer: Timer PAUSED", metadata: [
+        AppLogger.focus.info("⏸️ FocusTimer: Timer PAUSED", metadata: [
             "elapsed_time": String(format: "%.1f", elapsedTime)
         ])
     }
@@ -102,7 +102,7 @@ class FocusTimer {
         timer = nil
         isPaused = false
 
-        AppLogger.focus.infoToFile("⏹️ FocusTimer: Timer STOPPED", metadata: [
+        AppLogger.focus.info("⏹️ FocusTimer: Timer STOPPED", metadata: [
             "elapsed_time": String(format: "%.1f", elapsedTime),
             "was_running": String(wasRunning)
         ])
