@@ -9,7 +9,17 @@ on:
       - "auto-focus.xcodeproj/project.pbxproj"
       # Also run when app source code changes (in case version was bumped in a previous commit)
       - "auto-focus/**"
-  workflow_dispatch: # Allow manual triggering for testing
+  workflow_dispatch:
+    inputs:
+      beta:
+        description: "Is this a beta release?"
+        required: false
+        type: boolean
+        default: false
+      beta_version:
+        description: "Beta version string (e.g. 1.15.0-beta.1)"
+        required: false
+        type: string
 
 jobs:
   release:
@@ -29,8 +39,24 @@ jobs:
           git fetch --tags --force
           echo "✅ Fetched all tags"
 
+      - name: Validate beta inputs
+        if: inputs.beta == true
+        run: |
+          VERSION="${{ inputs.beta_version }}"
+          if [ -z "$VERSION" ]; then
+            echo "❌ beta_version is required when beta is true"
+            exit 1
+          fi
+          if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+$'; then
+            echo "❌ Invalid beta version format: $VERSION"
+            echo "   Expected format: X.Y.Z-beta.N (e.g. 1.15.0-beta.1)"
+            exit 1
+          fi
+          echo "✅ Beta version validated: $VERSION"
+
       - name: Check if MARKETING_VERSION changed
         id: version_check
+        if: inputs.beta != true
         run: |
           # Get current MARKETING_VERSION from project file
           CURRENT_VERSION=$(grep -m 1 "MARKETING_VERSION = " auto-focus.xcodeproj/project.pbxproj | sed 's/.*MARKETING_VERSION = \([^;]*\);.*/\1/' | head -n 1)
@@ -58,12 +84,29 @@ jobs:
             echo "   To release, bump MARKETING_VERSION in auto-focus.xcodeproj/project.pbxproj"
           fi
 
+      - name: Determine if release should proceed
+        id: should_release
+        run: |
+          if [ "${{ inputs.beta }}" = "true" ]; then
+            echo "proceed=true" >> $GITHUB_OUTPUT
+            echo "is_beta=true" >> $GITHUB_OUTPUT
+            echo "✅ Beta release requested — proceeding"
+          elif [ "${{ steps.version_check.outputs.version_changed }}" = "true" ]; then
+            echo "proceed=true" >> $GITHUB_OUTPUT
+            echo "is_beta=false" >> $GITHUB_OUTPUT
+            echo "✅ Stable release — version changed, proceeding"
+          else
+            echo "proceed=false" >> $GITHUB_OUTPUT
+            echo "is_beta=false" >> $GITHUB_OUTPUT
+            echo "ℹ️  No release needed"
+          fi
+
       - name: Show the currently detailed version of Xcode for CLI
         shell: bash
         run: xcodebuild -version
 
       - name: Select Xcode version
-        if: steps.version_check.outputs.version_changed == 'true'
+        if: steps.should_release.outputs.proceed == 'true'
         run: |
           # Use the latest available Xcode on the runner
           XCODE_PATH=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
@@ -78,7 +121,7 @@ jobs:
         run: xcodebuild -version
 
       - name: Clear DerivedData cache for fresh build
-        if: steps.version_check.outputs.version_changed == 'true'
+        if: steps.should_release.outputs.proceed == 'true'
         run: |
           # Remove any cached DerivedData to ensure fresh build
           rm -rf ~/Library/Developer/Xcode/DerivedData/auto-focus-*
@@ -86,11 +129,11 @@ jobs:
           echo "✅ Cleared DerivedData cache for fresh build"
 
       - name: Resolve package dependencies
-        if: steps.version_check.outputs.version_changed == 'true'
+        if: steps.should_release.outputs.proceed == 'true'
         run: xcodebuild -resolvePackageDependencies -project auto-focus.xcodeproj
 
       - name: Import code signing certificate
-        if: steps.version_check.outputs.version_changed == 'true'
+        if: steps.should_release.outputs.proceed == 'true'
         uses: apple-actions/import-codesign-certs@v2
         id: import-certs
         with:
@@ -98,7 +141,7 @@ jobs:
           p12-password: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
 
       - name: Verify certificate import
-        if: steps.version_check.outputs.version_changed == 'true'
+        if: steps.should_release.outputs.proceed == 'true'
         run: |
           echo "Available signing identities:"
           security find-identity -v -p codesigning
@@ -115,17 +158,23 @@ jobs:
 
       - name: Calculate version
         id: version
-        if: steps.version_check.outputs.version_changed == 'true'
+        if: steps.should_release.outputs.proceed == 'true'
         run: |
-          # Read MARKETING_VERSION from project file (we already verified it changed)
-          PROJECT_VERSION=$(grep -m 1 "MARKETING_VERSION = " auto-focus.xcodeproj/project.pbxproj | sed 's/.*MARKETING_VERSION = \([^;]*\);.*/\1/' | head -n 1)
-
-          echo "version=$PROJECT_VERSION" >> $GITHUB_OUTPUT
-          echo "tag=v$PROJECT_VERSION" >> $GITHUB_OUTPUT
-          echo "✅ Using MARKETING_VERSION: $PROJECT_VERSION"
+          if [ "${{ steps.should_release.outputs.is_beta }}" = "true" ]; then
+            VERSION="${{ inputs.beta_version }}"
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+            echo "✅ Using beta version: $VERSION"
+          else
+            # Read MARKETING_VERSION from project file (we already verified it changed)
+            PROJECT_VERSION=$(grep -m 1 "MARKETING_VERSION = " auto-focus.xcodeproj/project.pbxproj | sed 's/.*MARKETING_VERSION = \([^;]*\);.*/\1/' | head -n 1)
+            echo "version=$PROJECT_VERSION" >> $GITHUB_OUTPUT
+            echo "tag=v$PROJECT_VERSION" >> $GITHUB_OUTPUT
+            echo "✅ Using MARKETING_VERSION: $PROJECT_VERSION"
+          fi
 
       - name: Auto-increment build number
-        if: steps.version_check.outputs.version_changed == 'true'
+        if: steps.should_release.outputs.proceed == 'true' && steps.should_release.outputs.is_beta != 'true'
         run: |
           # Get current build number from project file
           CURRENT_BUILD=$(grep -m 1 "CURRENT_PROJECT_VERSION = " auto-focus.xcodeproj/project.pbxproj | sed 's/.*CURRENT_PROJECT_VERSION = \([^;]*\);.*/\1/' | head -n 1 | tr -d ' ')
@@ -156,7 +205,7 @@ jobs:
           git commit -m "chore: Auto-increment build number to $NEW_BUILD" || echo "No changes to commit (build number already updated)"
 
       - name: Build and archive app
-        if: steps.version_check.outputs.version_changed == 'true'
+        if: steps.should_release.outputs.proceed == 'true'
         env:
           HMAC_SECRET: ${{ secrets.HMAC_SECRET }}
         run: |
@@ -213,7 +262,7 @@ jobs:
           fi
 
       - name: Extract app from archive
-        if: steps.version_check.outputs.version_changed == 'true'
+        if: steps.should_release.outputs.proceed == 'true'
         run: |
           mkdir -p build
           cp -R build/auto-focus.xcarchive/Products/Applications/auto-focus.app build/auto-focus_temp.app
@@ -228,7 +277,7 @@ jobs:
           echo "✅ App extracted to build/auto-focus_temp.app"
 
       - name: Code sign app
-        if: steps.version_check.outputs.version_changed == 'true'
+        if: steps.should_release.outputs.proceed == 'true'
         run: |
           codesign --sign "Developer ID Application: Jan Schill (LKQJ2JG34Y)" \
             --timestamp \
@@ -242,14 +291,14 @@ jobs:
           echo "✅ Code signing verified"
 
       - name: Create ZIP for notarization
-        if: steps.version_check.outputs.version_changed == 'true'
+        if: steps.should_release.outputs.proceed == 'true'
         run: |
           cd build
           zip -r auto-focus_notarization.zip auto-focus_temp.app
           echo "Created notarization ZIP"
 
       - name: Notarize app
-        if: steps.version_check.outputs.version_changed == 'true'
+        if: steps.should_release.outputs.proceed == 'true'
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
@@ -265,16 +314,15 @@ jobs:
           echo "✅ Notarization successful"
 
       - name: Staple notarization ticket
-        if: steps.version_check.outputs.version_changed == 'true'
+        if: steps.should_release.outputs.proceed == 'true'
         run: |
           xcrun stapler staple build/auto-focus_temp.app
           xcrun stapler validate build/auto-focus_temp.app
           echo "✅ Notarization ticket stapled"
 
       - name: Package app for distribution
-        if: steps.version_check.outputs.version_changed == 'true'
+        if: steps.should_release.outputs.proceed == 'true'
         run: |
-          mkdir -p docs/downloads
           VERSION="${{ steps.version.outputs.version }}"
           ZIP_NAME="Auto-Focus-v${VERSION}.zip"
 
@@ -282,28 +330,41 @@ jobs:
           cd build
           cp -R auto-focus_temp.app auto-focus.app
 
-          # Create versioned distribution ZIP
-          zip -r ../docs/downloads/${ZIP_NAME} auto-focus.app
+          if [ "${{ steps.should_release.outputs.is_beta }}" = "true" ]; then
+            # Beta: write zip to build/ only (not docs/downloads/)
+            zip -r ${ZIP_NAME} auto-focus.app
+            echo "✅ Created build/${ZIP_NAME} (beta — not updating docs/downloads/)"
+          else
+            # Stable: write to docs/downloads/ for website distribution
+            mkdir -p ../docs/downloads
+            zip -r ../docs/downloads/${ZIP_NAME} auto-focus.app
 
-          # Also create a symlink for backward compatibility (GitHub Pages doesn't support symlinks, so copy instead)
-          cd ../docs/downloads
-          cp ${ZIP_NAME} Auto-Focus.zip
-          cd ../..
+            # Also create a copy for backward compatibility
+            cd ../docs/downloads
+            cp ${ZIP_NAME} Auto-Focus.zip
+            cd ../..
 
-          echo "✅ Created ${ZIP_NAME} and Auto-Focus.zip (for backward compatibility)"
+            echo "✅ Created ${ZIP_NAME} and Auto-Focus.zip (for backward compatibility)"
+          fi
 
           # Verify ZIP contents
-          if unzip -l docs/downloads/${ZIP_NAME} | grep -q "auto-focus.app/"; then
+          if [ "${{ steps.should_release.outputs.is_beta }}" = "true" ]; then
+            ZIP_PATH="build/${ZIP_NAME}"
+          else
+            ZIP_PATH="docs/downloads/${ZIP_NAME}"
+          fi
+
+          if unzip -l ${ZIP_PATH} | grep -q "auto-focus.app/"; then
             echo "✅ App ZIP created successfully"
           else
             echo "❌ ERROR: ZIP does not contain auto-focus.app"
             echo "ZIP contents:"
-            unzip -l docs/downloads/${ZIP_NAME} | head -20
+            unzip -l ${ZIP_PATH} | head -20
             exit 1
           fi
 
       - name: Package browser extension
-        if: steps.version_check.outputs.version_changed == 'true'
+        if: steps.should_release.outputs.proceed == 'true' && steps.should_release.outputs.is_beta != 'true'
         run: |
           mkdir -p docs/downloads
           cd auto-focus-browser-extension
@@ -311,7 +372,7 @@ jobs:
           echo "✅ Extension packaged"
 
       - name: Generate version.json
-        if: steps.version_check.outputs.version_changed == 'true'
+        if: steps.should_release.outputs.proceed == 'true' && steps.should_release.outputs.is_beta != 'true'
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -337,7 +398,7 @@ jobs:
           echo "ZIP filename: ${ZIP_NAME}"
 
       - name: Create git tag
-        if: steps.version_check.outputs.version_changed == 'true'
+        if: steps.should_release.outputs.proceed == 'true'
         run: |
           TAG="${{ steps.version.outputs.tag }}"
           git config user.name "github-actions[bot]"
@@ -351,7 +412,7 @@ jobs:
           fi
 
       - name: Commit distribution files
-        if: steps.version_check.outputs.version_changed == 'true'
+        if: steps.should_release.outputs.proceed == 'true' && steps.should_release.outputs.is_beta != 'true'
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           ZIP_NAME="Auto-Focus-v${VERSION}.zip"
@@ -379,14 +440,38 @@ jobs:
 
       - name: Generate release notes
         id: release_notes
-        if: steps.version_check.outputs.version_changed == 'true'
+        if: steps.should_release.outputs.proceed == 'true'
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           TAG="${{ steps.version.outputs.tag }}"
           BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           COMMIT_HASH=$(git rev-parse --short HEAD)
 
-          cat > /tmp/release_notes.md << EOF
+          if [ "${{ steps.should_release.outputs.is_beta }}" = "true" ]; then
+            cat > /tmp/release_notes.md << EOF
+          ## Auto-Focus $TAG (Beta)
+
+          > **This is a pre-release build for testing.** It will not appear in the in-app update checker. Download and install manually.
+
+          ### Release Information
+          - **Version**: $VERSION
+          - **Build Date**: $BUILD_DATE
+          - **Commit**: $COMMIT_HASH
+
+          ### Installation
+          1. Download Auto-Focus-v${VERSION}.zip
+          2. Extract and move Auto-Focus.app to Applications
+          3. Launch and configure focus apps
+
+          ### System Requirements
+          - macOS Sonoma (14.0) or later
+
+          ---
+
+          🔗 **Website**: https://auto-focus.app
+          EOF
+          else
+            cat > /tmp/release_notes.md << EOF
           ## Auto-Focus $TAG
 
           ### Release Information
@@ -408,11 +493,12 @@ jobs:
 
           🔗 **Website**: https://auto-focus.app
           EOF
+          fi
 
           echo "✅ Release notes generated"
 
-      - name: Create GitHub release
-        if: steps.version_check.outputs.version_changed == 'true'
+      - name: Create GitHub release (stable)
+        if: steps.should_release.outputs.proceed == 'true' && steps.should_release.outputs.is_beta != 'true'
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.version.outputs.tag }}
@@ -428,20 +514,38 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Create GitHub release (beta)
+        if: steps.should_release.outputs.proceed == 'true' && steps.should_release.outputs.is_beta == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Beta ${{ steps.version.outputs.tag }}
+          body_path: /tmp/release_notes.md
+          files: |
+            build/Auto-Focus-v${{ steps.version.outputs.version }}.zip
+          draft: false
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Push tag and commits
-        if: steps.version_check.outputs.version_changed == 'true'
+        if: steps.should_release.outputs.proceed == 'true'
         run: |
           TAG="${{ steps.version.outputs.tag }}"
 
           # Push tag first
           git push origin "$TAG" || echo "Tag may already exist"
 
-          # Check if there are commits to push
-          if git diff --quiet HEAD origin/main 2>/dev/null; then
-            echo "No new commits to push"
+          if [ "${{ steps.should_release.outputs.is_beta }}" = "true" ]; then
+            echo "✅ Beta release — pushed tag only (no commits to main)"
           else
-            git push origin main
-            echo "✅ Pushed commits to main"
+            # Check if there are commits to push
+            if git diff --quiet HEAD origin/main 2>/dev/null; then
+              echo "No new commits to push"
+            else
+              git push origin main
+              echo "✅ Pushed commits to main"
+            fi
           fi
 
       - name: Cleanup
