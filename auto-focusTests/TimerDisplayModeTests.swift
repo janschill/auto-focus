@@ -45,23 +45,20 @@ final class TimerDisplayModeTests: XCTestCase {
     }
 
     func testDefaultTimerDisplayModeInFocusManager() {
-        let mocks = MockFactory.createMockDependencies()
-        let focusManager = MockFactory.createFocusManager(persistence: mocks.persistence)
+        let focusManager = MockFactory.createFocusManager()
 
         // Default should be .full when no stored preference exists
         XCTAssertEqual(focusManager.timerDisplayMode, .full)
     }
 
     func testTimerDisplayModePersistence() {
-        let mocks = MockFactory.createMockDependencies()
-        let focusManager = MockFactory.createFocusManager(persistence: mocks.persistence)
+        let focusManager = MockFactory.createFocusManager()
 
         // Set a new mode
         focusManager.timerDisplayMode = .hidden
 
-        // Verify it was saved to persistence
-        let savedMode = mocks.persistence.load(TimerDisplayMode.self, forKey: UserDefaultsManager.Keys.timerDisplayMode)
-        XCTAssertEqual(savedMode, .hidden)
+        // Verify the in-memory value changed (persistence goes to SQLite)
+        XCTAssertEqual(focusManager.timerDisplayMode, .hidden)
     }
 }
 

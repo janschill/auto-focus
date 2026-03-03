@@ -14,11 +14,13 @@ class AppMonitor: ObservableObject, AppMonitoring {
     private let checkInterval: TimeInterval
     private var focusApps: [AppInfo] = []
     private var lastFocusAppActive = false // Track last state internally
+    private let appEventRepo: AppEventRepository?
 
     weak var delegate: AppMonitorDelegate?
 
-    init(checkInterval: TimeInterval = AppConfiguration.checkInterval) {
+    init(checkInterval: TimeInterval = AppConfiguration.checkInterval, appEventRepo: AppEventRepository? = AppEventRepository()) {
         self.checkInterval = checkInterval
+        self.appEventRepo = appEventRepo
     }
 
     // MARK: - Monitoring Control
@@ -63,6 +65,13 @@ class AppMonitor: ObservableObject, AppMonitoring {
         // Notify delegate if app changed (for any app transition)
         if currentAppBundleId != previousApp {
             delegate?.appMonitor(self, didChangeToApp: currentAppBundleId)
+
+            // Record app switch event
+            if let bundleId = currentAppBundleId {
+                let appName = workspace.localizedName
+                let event = AppEvent(bundleIdentifier: bundleId, appName: appName)
+                try? appEventRepo?.insert(event)
+            }
         }
 
         // Only notify delegate if focus state changed

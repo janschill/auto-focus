@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 import SwiftUI
 
@@ -7,20 +8,28 @@ protocol SessionManagerDelegate: AnyObject {
 }
 
 class SessionManager: ObservableObject, SessionManaging {
-    @Published var focusSessions: [FocusSession] = [] {
-        didSet {
-            saveSessions()
-        }
-    }
+    @Published var focusSessions: [FocusSession] = []
 
-    private let userDefaultsManager: UserDefaultsManager
+    private let sessionRepo: SessionRepository
     private var currentSessionStartTime: Date?
+    private var cancellable: AnyCancellable?
 
     weak var delegate: SessionManagerDelegate?
 
-    init(userDefaultsManager: UserDefaultsManager) {
-        self.userDefaultsManager = userDefaultsManager
-        loadSessions()
+    init(sessionRepo: SessionRepository = SessionRepository()) {
+        self.sessionRepo = sessionRepo
+
+        // Load initial data
+        focusSessions = (try? sessionRepo.fetchAll()) ?? []
+
+        // Observe database changes → update @Published
+        cancellable = sessionRepo.observeAll()
+            .sink(
+                receiveCompletion: { _ in },
+                receiveValue: { [weak self] sessions in
+                    self?.focusSessions = sessions
+                }
+            )
     }
 
     // MARK: - Session Management
@@ -39,7 +48,11 @@ class SessionManager: ObservableObject, SessionManaging {
         }
 
         let session = FocusSession(startTime: startTime, endTime: Date())
-        focusSessions.append(session)
+        do {
+            try sessionRepo.insert(session)
+        } catch {
+            AppLogger.session.error("Failed to save session", error: error)
+        }
 
         AppLogger.session.info("Session ended", metadata: [
             "duration": String(format: "%.1f", session.duration),
@@ -47,10 +60,7 @@ class SessionManager: ObservableObject, SessionManaging {
             "end_time": ISO8601DateFormatter().string(from: Date())
         ])
 
-        // Notify delegate
         delegate?.sessionManager(self, didEndSession: session)
-
-        // Reset current session
         currentSessionStartTime = nil
     }
 
@@ -68,7 +78,6 @@ class SessionManager: ObservableObject, SessionManaging {
     var todaysSessions: [FocusSession] {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-
         return focusSessions.filter { session in
             calendar.startOfDay(for: session.startTime) == today
         }
@@ -80,7 +89,6 @@ class SessionManager: ObservableObject, SessionManaging {
         guard let oneWeekAgo = calendar.date(byAdding: .day, value: -7, to: today) else {
             return []
         }
-
         return focusSessions.filter { session in
             session.startTime >= oneWeekAgo
         }
@@ -92,65 +100,29 @@ class SessionManager: ObservableObject, SessionManaging {
         guard let oneMonthAgo = calendar.date(byAdding: .month, value: -1, to: today) else {
             return []
         }
-
         return focusSessions.filter { session in
             session.startTime >= oneMonthAgo
         }
     }
 
-    // MARK: - Persistence
-
-    /// Loads focus sessions from UserDefaults.
-    ///
-    /// **Storage Location**: Sessions are stored in UserDefaults with key "focusSessions"
-    /// under the app's bundle identifier ("auto-focus.auto-focus").
-    ///
-    /// **Note**: If sessions appear to be missing, possible causes:
-    /// 1. App was reinstalled/updated and UserDefaults were cleared
-    /// 2. Bundle identifier changed (would create a new UserDefaults domain)
-    /// 3. Data corruption or encoding/decoding issues
-    ///
-    /// **Future**: Consider migrating to SQLite for more robust persistence and
-    /// better handling of large datasets.
-    private func loadSessions() {
-        focusSessions = userDefaultsManager.load([FocusSession].self, forKey: UserDefaultsManager.Keys.focusSessions) ?? []
-
-        // Debug: Log session count on load
-        #if DEBUG
-        AppLogger.session.debug("Loaded sessions from UserDefaults", metadata: [
-            "count": String(focusSessions.count)
-        ])
-        #endif
-    }
-
-    private func saveSessions() {
-        userDefaultsManager.save(focusSessions, forKey: UserDefaultsManager.Keys.focusSessions)
-
-        // Debug: Log session count on save
-        #if DEBUG
-        AppLogger.session.debug("Saved sessions to UserDefaults", metadata: [
-            "count": String(focusSessions.count)
-        ])
-        #endif
-    }
-
     // MARK: - Import Methods
 
     func importSessions(_ sessions: [FocusSession]) {
-        focusSessions.append(contentsOf: sessions)
+        for session in sessions {
+            try? sessionRepo.insert(session)
+        }
     }
 
     // MARK: - Session Editing Methods
 
     func updateSession(_ session: FocusSession) {
-        guard let index = focusSessions.firstIndex(where: { $0.id == session.id }) else {
+        guard focusSessions.contains(where: { $0.id == session.id }) else {
             AppLogger.session.warning("Trying to update session that doesn't exist", metadata: [
                 "session_id": session.id.uuidString
             ])
             return
         }
 
-        // Validate session data
         guard session.startTime < session.endTime else {
             AppLogger.session.warning("Invalid session times - start must be before end", metadata: [
                 "session_id": session.id.uuidString
@@ -158,9 +130,8 @@ class SessionManager: ObservableObject, SessionManaging {
             return
         }
 
-        // Validate reasonable duration limits
         let duration = session.duration
-        guard duration >= 1 else { // At least 1 second
+        guard duration >= 1 else {
             AppLogger.session.warning("Session duration too short", metadata: [
                 "session_id": session.id.uuidString,
                 "duration": String(format: "%.1f", duration)
@@ -168,7 +139,7 @@ class SessionManager: ObservableObject, SessionManaging {
             return
         }
 
-        guard duration <= 24 * 60 * 60 else { // No more than 24 hours
+        guard duration <= 24 * 60 * 60 else {
             AppLogger.session.warning("Session duration too long (exceeds 24 hours)", metadata: [
                 "session_id": session.id.uuidString,
                 "duration": String(format: "%.1f", duration)
@@ -176,39 +147,48 @@ class SessionManager: ObservableObject, SessionManaging {
             return
         }
 
-        // Validate session is not in the future
-        guard session.endTime <= Date().addingTimeInterval(60) else { // Allow 1 minute tolerance
+        guard session.endTime <= Date().addingTimeInterval(60) else {
             AppLogger.session.warning("Session end time cannot be in the future", metadata: [
                 "session_id": session.id.uuidString
             ])
             return
         }
 
-        focusSessions[index] = session
-        AppLogger.session.info("Session updated", metadata: [
-            "session_id": session.id.uuidString,
-            "duration": String(format: "%.1f", duration)
-        ])
+        do {
+            try sessionRepo.update(session)
+            AppLogger.session.info("Session updated", metadata: [
+                "session_id": session.id.uuidString,
+                "duration": String(format: "%.1f", duration)
+            ])
+        } catch {
+            AppLogger.session.error("Failed to update session", error: error)
+        }
     }
 
     func deleteSession(_ session: FocusSession) {
-        focusSessions.removeAll { $0.id == session.id }
-        AppLogger.session.info("Session deleted", metadata: [
-            "session_id": session.id.uuidString
-        ])
+        do {
+            try sessionRepo.delete(session)
+            AppLogger.session.info("Session deleted", metadata: [
+                "session_id": session.id.uuidString
+            ])
+        } catch {
+            AppLogger.session.error("Failed to delete session", error: error)
+        }
     }
 
     // MARK: - Debug Methods
 
     func addSampleSessions(_ sessions: [FocusSession]) {
         #if DEBUG
-        focusSessions.append(contentsOf: sessions)
+        for session in sessions {
+            try? sessionRepo.insert(session)
+        }
         #endif
     }
 
     func clearAllSessions() {
         #if DEBUG
-        focusSessions.removeAll()
+        try? sessionRepo.deleteAll()
         #endif
     }
 }

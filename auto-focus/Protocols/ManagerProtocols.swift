@@ -49,12 +49,3 @@ protocol FocusModeControlling: AnyObject, ObservableObject {
     func checkShortcutExists() -> Bool
 }
 
-// MARK: - Persistence Protocol
-protocol PersistenceManaging: AnyObject {
-    func save<T: Codable>(_ value: T, forKey key: String)
-    func load<T: Codable>(_ type: T.Type, forKey key: String) -> T?
-    func setBool(_ value: Bool, forKey key: String)
-    func getBool(forKey key: String) -> Bool
-    func setDouble(_ value: Double, forKey key: String)
-    func getDouble(forKey key: String) -> Double
-}

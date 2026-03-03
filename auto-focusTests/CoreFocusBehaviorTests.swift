@@ -20,19 +20,16 @@ final class CoreFocusBehaviorTests: XCTestCase {
     var mockBufferManager: MockBufferManager!
     var mockAppMonitor: MockAppMonitor!
     var mockFocusModeManager: MockFocusModeManager!
-    var mockPersistence: MockPersistenceManager!
 
     override func setUp() {
         super.setUp()
         let mocks = MockFactory.createMockDependencies()
-        mockPersistence = mocks.persistence
         mockSessionManager = mocks.sessionManager
         mockAppMonitor = mocks.appMonitor
         mockBufferManager = mocks.bufferManager
         mockFocusModeManager = mocks.focusModeManager
 
         focusManager = MockFactory.createFocusManager(
-            persistence: mockPersistence,
             sessionManager: mockSessionManager,
             appMonitor: mockAppMonitor,
             bufferManager: mockBufferManager,
@@ -49,7 +46,6 @@ final class CoreFocusBehaviorTests: XCTestCase {
         mockSessionManager.reset()
         mockAppMonitor.reset()
         mockBufferManager.reset()
-        mockPersistence.reset()
         focusManager = nil
         super.tearDown()
     }
@@ -368,19 +364,16 @@ final class BrowserFocusBehaviorTests: XCTestCase {
     var mockBufferManager: MockBufferManager!
     var mockAppMonitor: MockAppMonitor!
     var mockFocusModeManager: MockFocusModeManager!
-    var mockPersistence: MockPersistenceManager!
 
     override func setUp() {
         super.setUp()
         let mocks = MockFactory.createMockDependencies()
-        mockPersistence = mocks.persistence
         mockSessionManager = mocks.sessionManager
         mockAppMonitor = mocks.appMonitor
         mockBufferManager = mocks.bufferManager
         mockFocusModeManager = mocks.focusModeManager
 
         focusManager = MockFactory.createFocusManager(
-            persistence: mockPersistence,
             sessionManager: mockSessionManager,
             appMonitor: mockAppMonitor,
             bufferManager: mockBufferManager,
@@ -392,7 +385,6 @@ final class BrowserFocusBehaviorTests: XCTestCase {
         mockSessionManager.reset()
         mockAppMonitor.reset()
         mockBufferManager.reset()
-        mockPersistence.reset()
         focusManager = nil
         super.tearDown()
     }

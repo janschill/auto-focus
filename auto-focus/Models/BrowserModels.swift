@@ -1,8 +1,9 @@
 import Foundation
+import GRDB
 
 // MARK: - Browser Integration Models
 
-struct FocusURL: Identifiable, Codable, Hashable {
+struct FocusURL: Identifiable, Codable, Hashable, FetchableRecord, PersistableRecord {
     let id: UUID
     var name: String
     var domain: String
@@ -10,6 +11,8 @@ struct FocusURL: Identifiable, Codable, Hashable {
     var isEnabled: Bool
     var category: URLCategory
     var isPremium: Bool
+
+    static let databaseTableName = "focusURL"
 
     init(name: String, domain: String, matchType: URLMatchType = .domain, category: URLCategory = .work, isPremium: Bool = false) {
         self.id = UUID()
@@ -19,6 +22,28 @@ struct FocusURL: Identifiable, Codable, Hashable {
         self.isEnabled = true
         self.category = category
         self.isPremium = isPremium
+    }
+
+    // Custom encoding — store UUID as String, enums as rawValue, Bool as Int
+    func encode(to container: inout PersistenceContainer) {
+        container["id"] = id.uuidString
+        container["name"] = name
+        container["domain"] = domain
+        container["matchType"] = matchType.rawValue
+        container["isEnabled"] = isEnabled
+        container["category"] = category.rawValue
+        container["isPremium"] = isPremium
+    }
+
+    // Custom decoding
+    init(row: Row) throws {
+        id = UUID(uuidString: row["id"])!
+        name = row["name"]
+        domain = row["domain"]
+        matchType = URLMatchType(rawValue: row["matchType"]) ?? .domain
+        isEnabled = row["isEnabled"]
+        category = URLCategory(rawValue: row["category"]) ?? .work
+        isPremium = row["isPremium"]
     }
 
     // Check if a URL matches this focus URL

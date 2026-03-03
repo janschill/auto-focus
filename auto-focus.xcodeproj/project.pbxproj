@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4B0DB0A32F580A0000A00003 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 4B0DB0A22F580A0000A00002 /* GRDB */; };
 		4B41B4932D58EA0000171A3C /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 4B41B4922D58EA0000171A3C /* LaunchAtLogin */; };
 		4B6156142D4AC4A900937136 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 4B6156132D4AC4A400937136 /* README.md */; };
 /* End PBXBuildFile section */
@@ -23,6 +24,8 @@
 
 /* Begin PBXFileReference section */
 		4B6156132D4AC4A400937136 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		4B6E33E22F575FF100163BA1 /* auto-focus.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = "auto-focus.xcodeproj"; sourceTree = "<group>"; };
+		4B6E37B12F57688B00163BA1 /* auto-focus.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = "auto-focus.xcodeproj"; sourceTree = "<group>"; };
 		4BA2A8C62D452D6A00F62E0A /* auto-focus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "auto-focus.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		4BA2A8D72D452D6B00F62E0A /* auto-focusTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "auto-focusTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -63,6 +66,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4B0DB0A32F580A0000A00003 /* GRDB in Frameworks */,
 				4B41B4932D58EA0000171A3C /* LaunchAtLogin in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -83,6 +87,16 @@
 				4B6156112D4AC45300937136 /* workflows */,
 			);
 			path = .github;
+			sourceTree = "<group>";
+		};
+		4B6E33E62F575FF100163BA1 /* Products */ = {
+			isa = PBXGroup;
+			name = Products;
+			sourceTree = "<group>";
+		};
+		4B6E37B52F57688B00163BA1 /* Products */ = {
+			isa = PBXGroup;
+			name = Products;
 			sourceTree = "<group>";
 		};
 		4BA2A8BD2D452D6A00F62E0A = {
@@ -125,6 +139,7 @@
 			);
 			name = "auto-focus";
 			packageProductDependencies = (
+				4B0DB0A22F580A0000A00002 /* GRDB */,
 				4B41B4922D58EA0000171A3C /* LaunchAtLogin */,
 			);
 			productName = "auto-focus";
@@ -183,11 +198,22 @@
 			mainGroup = 4BA2A8BD2D452D6A00F62E0A;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				4B0DB0A12F580A0000A00001 /* XCRemoteSwiftPackageReference "GRDB.swift" */,
 				4B41B4912D58E91B00171A3C /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 4BA2A8C72D452D6A00F62E0A /* Products */;
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = 4B6E33E62F575FF100163BA1 /* Products */;
+					ProjectRef = 4B6E33E22F575FF100163BA1 /* auto-focus.xcodeproj */;
+				},
+				{
+					ProductGroup = 4B6E37B52F57688B00163BA1 /* Products */;
+					ProjectRef = 4B6E37B12F57688B00163BA1 /* auto-focus.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
 				4BA2A8C52D452D6A00F62E0A /* auto-focus */,
@@ -503,6 +529,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		4B0DB0A12F580A0000A00001 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/groue/GRDB.swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 7.0.0;
+			};
+		};
 		4B41B4912D58E91B00171A3C /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sindresorhus/LaunchAtLogin-Modern";
@@ -514,6 +548,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		4B0DB0A22F580A0000A00002 /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4B0DB0A12F580A0000A00001 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
+			productName = GRDB;
+		};
 		4B41B4922D58EA0000171A3C /* LaunchAtLogin */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 4B41B4912D58E91B00171A3C /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */;

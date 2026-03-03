@@ -8,7 +8,6 @@ import XCTest
 
 final class FocusManagerStateTests: XCTestCase {
     var focusManager: FocusManager!
-    var mockPersistence: MockPersistenceManager!
     var mockSessionManager: MockSessionManager!
     var mockAppMonitor: MockAppMonitor!
     var mockBufferManager: MockBufferManager!
@@ -16,17 +15,16 @@ final class FocusManagerStateTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        mockPersistence = MockPersistenceManager()
-        mockSessionManager = MockSessionManager()
-        mockAppMonitor = MockAppMonitor()
-        mockBufferManager = MockBufferManager()
-        mockFocusModeManager = MockFocusModeManager()
-        focusManager = FocusManager(
-            userDefaultsManager: mockPersistence,
+        let mocks = MockFactory.createMockDependencies()
+        mockSessionManager = mocks.sessionManager
+        mockAppMonitor = mocks.appMonitor
+        mockBufferManager = mocks.bufferManager
+        mockFocusModeManager = mocks.focusModeManager
+        focusManager = MockFactory.createFocusManager(
             sessionManager: mockSessionManager,
             appMonitor: mockAppMonitor,
             bufferManager: mockBufferManager,
-            focusModeController: mockFocusModeManager
+            focusModeManager: mockFocusModeManager
         )
     }
 
@@ -64,7 +62,8 @@ final class FocusManagerStateTests: XCTestCase {
 
     func testFocusThresholdPersistence() {
         focusManager.focusThreshold = 15
-        XCTAssertEqual(mockPersistence.getDouble(forKey: UserDefaultsManager.Keys.focusThreshold), 15)
+        // Settings are now persisted via SettingsRepository to SQLite
+        XCTAssertEqual(focusManager.focusThreshold, 15)
     }
 }
 

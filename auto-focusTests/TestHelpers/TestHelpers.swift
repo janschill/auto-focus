@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import GRDB
 import XCTest
 @testable import auto_focus
 
@@ -122,14 +123,12 @@ extension XCTestCase {
 struct MockFactory {
     /// Creates a complete set of mock dependencies for testing
     static func createMockDependencies() -> (
-        persistence: MockPersistenceManager,
         sessionManager: MockSessionManager,
         appMonitor: MockAppMonitor,
         bufferManager: MockBufferManager,
         focusModeManager: MockFocusModeManager
     ) {
         return (
-            persistence: MockPersistenceManager(),
             sessionManager: MockSessionManager(),
             appMonitor: MockAppMonitor(),
             bufferManager: MockBufferManager(),
@@ -137,17 +136,24 @@ struct MockFactory {
         )
     }
 
-    /// Creates a FocusManager with mock dependencies
+    /// Creates an in-memory DatabaseQueue for tests (isolated per test)
+    static func createTestDB() -> DatabaseQueue {
+        let dbQueue = try! DatabaseManager(dbQueue: DatabaseQueue()).dbQueue
+        return dbQueue
+    }
+
+    /// Creates a FocusManager with mock dependencies and in-memory DB
     static func createFocusManager(
-        persistence: MockPersistenceManager? = nil,
         sessionManager: MockSessionManager? = nil,
         appMonitor: MockAppMonitor? = nil,
         bufferManager: MockBufferManager? = nil,
         focusModeManager: MockFocusModeManager? = nil
     ) -> FocusManager {
         let mocks = createMockDependencies()
+        let testDB = createTestDB()
         return FocusManager(
-            userDefaultsManager: persistence ?? mocks.persistence,
+            settingsRepo: SettingsRepository(dbQueue: testDB),
+            focusAppRepo: FocusAppRepository(dbQueue: testDB),
             sessionManager: sessionManager ?? mocks.sessionManager,
             appMonitor: appMonitor ?? mocks.appMonitor,
             bufferManager: bufferManager ?? mocks.bufferManager,

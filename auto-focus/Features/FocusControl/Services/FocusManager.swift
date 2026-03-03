@@ -1,10 +1,14 @@
 import AppKit
 import Foundation
 
-struct AppInfo: Identifiable, Codable, Hashable {
+import GRDB
+
+struct AppInfo: Identifiable, Codable, Hashable, FetchableRecord, PersistableRecord {
     var id: String
     var name: String
     var bundleIdentifier: String
+
+    static let databaseTableName = "focusApp"
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
@@ -18,7 +22,8 @@ struct AppInfo: Identifiable, Codable, Hashable {
 class FocusManager: ObservableObject {
     static let shared = FocusManager()
 
-    private let userDefaultsManager: any PersistenceManaging
+    private let settingsRepo: SettingsRepository
+    private let focusAppRepo: FocusAppRepository
     private let sessionManager: any SessionManaging
     private let appMonitor: any AppMonitoring
     private let bufferManager: any BufferManaging
@@ -31,7 +36,7 @@ class FocusManager: ObservableObject {
     @Published var isNotificationsEnabled: Bool = true
     @Published var isPaused: Bool = false {
         didSet {
-            userDefaultsManager.setBool(isPaused, forKey: UserDefaultsManager.Keys.isPaused)
+            try? settingsRepo.setBool(isPaused, forKey: "isPaused")
         }
     }
     @Published var focusApps: [AppInfo] = [] {
@@ -43,23 +48,23 @@ class FocusManager: ObservableObject {
                 focusApps = sorted
                 return // This will trigger didSet again, but with sorted array
             }
-            userDefaultsManager.save(focusApps, forKey: UserDefaultsManager.Keys.focusApps)
+            try? focusAppRepo.save(focusApps)
             appMonitor.updateFocusApps(focusApps)
         }
     }
     @Published var focusThreshold: TimeInterval = 12 {
         didSet {
-            userDefaultsManager.setDouble(focusThreshold, forKey: UserDefaultsManager.Keys.focusThreshold)
+            try? settingsRepo.setDouble(focusThreshold, forKey: "focusThreshold")
         }
     }
     @Published var focusLossBuffer: TimeInterval = 2 {
         didSet {
-            userDefaultsManager.setDouble(focusLossBuffer, forKey: UserDefaultsManager.Keys.focusLossBuffer)
+            try? settingsRepo.setDouble(focusLossBuffer, forKey: "focusLossBuffer")
         }
     }
     @Published var timerDisplayMode: TimerDisplayMode = .full {
         didSet {
-            userDefaultsManager.save(timerDisplayMode, forKey: UserDefaultsManager.Keys.timerDisplayMode)
+            try? settingsRepo.setCodable(timerDisplayMode, forKey: "timerDisplayMode")
         }
     }
     @Published var selectedAppId: String?
@@ -149,7 +154,8 @@ class FocusManager: ObservableObject {
     }
 
     init(
-        userDefaultsManager: any PersistenceManaging = UserDefaultsManager(),
+        settingsRepo: SettingsRepository = SettingsRepository(),
+        focusAppRepo: FocusAppRepository = FocusAppRepository(),
         sessionManager: (any SessionManaging)? = nil,
         appMonitor: (any AppMonitoring)? = nil,
         bufferManager: (any BufferManaging)? = nil,
@@ -157,30 +163,31 @@ class FocusManager: ObservableObject {
         browserManager: (any BrowserManaging)? = nil,
         licenseManager: LicenseManager? = nil
     ) {
-        self.userDefaultsManager = userDefaultsManager
+        self.settingsRepo = settingsRepo
+        self.focusAppRepo = focusAppRepo
         self.licenseManager = licenseManager ?? LicenseManager()
 
         // Create default implementations if not provided
         let checkInterval = AppConfiguration.checkInterval
-        self.sessionManager = sessionManager ?? SessionManager(userDefaultsManager: userDefaultsManager as! UserDefaultsManager)
+        self.sessionManager = sessionManager ?? SessionManager()
         self.appMonitor = appMonitor ?? AppMonitor(checkInterval: checkInterval)
         self.bufferManager = bufferManager ?? BufferManager()
         self.focusModeController = focusModeController ?? FocusModeManager()
-        self.browserManager = browserManager ?? BrowserManager(userDefaultsManager: userDefaultsManager)
+        self.browserManager = browserManager ?? BrowserManager()
 
         // Initialize state machine and timer (without callbacks first)
         self.stateMachine = FocusStateMachine()
         self.focusTimer = FocusTimer(interval: checkInterval)
 
         loadFocusApps()
-        // Load UserDefault values using UserDefaultsManager
-        focusThreshold = userDefaultsManager.getDouble(forKey: UserDefaultsManager.Keys.focusThreshold)
+        // Load settings from SQLite
+        focusThreshold = settingsRepo.getDouble(forKey: "focusThreshold")
         if focusThreshold == 0 { focusThreshold = AppConfiguration.defaultFocusThreshold }
-        focusLossBuffer = userDefaultsManager.getDouble(forKey: UserDefaultsManager.Keys.focusLossBuffer)
+        focusLossBuffer = settingsRepo.getDouble(forKey: "focusLossBuffer")
         if focusLossBuffer == 0 { focusLossBuffer = AppConfiguration.defaultBufferTime }
-        isPaused = userDefaultsManager.getBool(forKey: UserDefaultsManager.Keys.isPaused)
-        hasCompletedOnboarding = userDefaultsManager.getBool(forKey: UserDefaultsManager.Keys.hasCompletedOnboarding)
-        timerDisplayMode = userDefaultsManager.load(TimerDisplayMode.self, forKey: UserDefaultsManager.Keys.timerDisplayMode) ?? .full
+        isPaused = settingsRepo.getBool(forKey: "isPaused")
+        hasCompletedOnboarding = settingsRepo.getBool(forKey: "hasCompletedOnboarding")
+        timerDisplayMode = settingsRepo.getCodable(TimerDisplayMode.self, forKey: "timerDisplayMode") ?? .full
 
         // Set up delegates and start monitoring
         self.appMonitor.delegate = self
@@ -238,9 +245,8 @@ class FocusManager: ObservableObject {
     }
 
     private func loadFocusApps() {
-        let loadedApps = userDefaultsManager.load([AppInfo].self, forKey: UserDefaultsManager.Keys.focusApps) ?? []
-        // Sort alphabetically by name
-        focusApps = loadedApps.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        let loadedApps = (try? focusAppRepo.fetchAll()) ?? []
+        focusApps = loadedApps
     }
 
     private func handleFocusAppInFront() {
@@ -390,12 +396,12 @@ class FocusManager: ObservableObject {
 
     func completeOnboarding() {
         hasCompletedOnboarding = true
-        userDefaultsManager.setBool(true, forKey: UserDefaultsManager.Keys.hasCompletedOnboarding)
+        try? settingsRepo.setBool(true, forKey: "hasCompletedOnboarding")
     }
 
     func resetOnboarding() {
         hasCompletedOnboarding = false
-        userDefaultsManager.setBool(false, forKey: UserDefaultsManager.Keys.hasCompletedOnboarding)
+        try? settingsRepo.setBool(false, forKey: "hasCompletedOnboarding")
     }
 
     // MARK: - Browser Management

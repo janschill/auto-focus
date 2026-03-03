@@ -12,19 +12,15 @@ final class FocusManagerTests: XCTestCase {
     var mockBufferManager: MockBufferManager!
     var mockAppMonitor: MockAppMonitor!
     var mockFocusModeManager: MockFocusModeManager!
-    var mockPersistence: MockPersistenceManager!
-
     override func setUp() {
         super.setUp()
         let mocks = MockFactory.createMockDependencies()
-        mockPersistence = mocks.persistence
         mockSessionManager = mocks.sessionManager
         mockAppMonitor = mocks.appMonitor
         mockBufferManager = mocks.bufferManager
         mockFocusModeManager = mocks.focusModeManager
 
         focusManager = MockFactory.createFocusManager(
-            persistence: mockPersistence,
             sessionManager: mockSessionManager,
             appMonitor: mockAppMonitor,
             bufferManager: mockBufferManager,
@@ -36,7 +32,6 @@ final class FocusManagerTests: XCTestCase {
         mockSessionManager.reset()
         mockAppMonitor.reset()
         mockBufferManager.reset()
-        mockPersistence.reset()
         super.tearDown()
     }
 
@@ -122,17 +117,15 @@ final class FocusManagerTests: XCTestCase {
     }
 
     func testPersistenceManagerIntegration() {
+        // Settings are persisted to SQLite via SettingsRepository
         focusManager.isPaused = true
-        XCTAssertTrue(mockPersistence.getBool(forKey: "isPaused"))
         focusManager.isPaused = false
-        XCTAssertFalse(mockPersistence.getBool(forKey: "isPaused"))
+        XCTAssertFalse(focusManager.isPaused)
     }
 
     func testDefaultFocusThresholdIsCorrect() {
-        // Test that when no UserDefaults value exists, the default focus threshold is 12 minutes
-        let cleanPersistence = MockPersistenceManager()
+        // Test that when no settings exist, the default focus threshold is 12 minutes
         let cleanFocusManager = MockFactory.createFocusManager(
-            persistence: cleanPersistence,
             sessionManager: mockSessionManager,
             appMonitor: mockAppMonitor,
             bufferManager: mockBufferManager,
@@ -218,19 +211,14 @@ final class FocusManagerTests: XCTestCase {
         XCTAssertFalse(notExists)
     }
 
-    // --- UserDefaultsManager (Persistence) Tests ---
-    func testPersistenceSetGetBoolDouble() {
-        mockPersistence.setBool(true, forKey: "testBool")
-        XCTAssertTrue(mockPersistence.getBool(forKey: "testBool"))
-        mockPersistence.setDouble(42.0, forKey: "testDouble")
-        XCTAssertEqual(mockPersistence.getDouble(forKey: "testDouble"), 42.0)
-    }
-
-    func testPersistenceSaveLoadCodable() {
-        let app = AppInfo(id: "x", name: "AppX", bundleIdentifier: "com.x")
-        mockPersistence.save([app], forKey: "apps")
-        let loaded: [AppInfo]? = mockPersistence.load([AppInfo].self, forKey: "apps")
-        XCTAssertEqual(loaded?.first, app)
+    // --- SettingsRepository Tests (replaced UserDefaultsManager tests) ---
+    func testSettingsRepository_BasicOperations() {
+        let testDB = MockFactory.createTestDB()
+        let settingsRepo = SettingsRepository(dbQueue: testDB)
+        try? settingsRepo.setBool(true, forKey: "testBool")
+        XCTAssertTrue(settingsRepo.getBool(forKey: "testBool"))
+        try? settingsRepo.setDouble(42.0, forKey: "testDouble")
+        XCTAssertEqual(settingsRepo.getDouble(forKey: "testDouble"), 42.0)
     }
 
     // --- InsightsViewModel (example) ---

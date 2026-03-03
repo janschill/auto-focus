@@ -186,8 +186,9 @@ final class SessionEditingTests: XCTestCase {
         var invalidSession = originalSession
         invalidSession.endTime = originalSession.startTime.addingTimeInterval(-100)
 
-        // Use real SessionManager for validation testing
-        let sessionManager = SessionManager(userDefaultsManager: UserDefaultsManager())
+        // Use real SessionManager with in-memory DB for validation testing
+        let testDB = MockFactory.createTestDB()
+        let sessionManager = SessionManager(sessionRepo: SessionRepository(dbQueue: testDB))
         sessionManager.focusSessions = [originalSession]
 
         sessionManager.updateSession(invalidSession)
@@ -198,7 +199,8 @@ final class SessionEditingTests: XCTestCase {
 
     func testUpdateSessionWithVeryShortDuration() {
         let originalSession = FocusSession(startTime: Date(), endTime: Date().addingTimeInterval(3600))
-        let sessionManager = SessionManager(userDefaultsManager: UserDefaultsManager())
+        let testDB = MockFactory.createTestDB()
+        let sessionManager = SessionManager(sessionRepo: SessionRepository(dbQueue: testDB))
         sessionManager.focusSessions = [originalSession]
 
         // Try to update with duration less than 1 second
@@ -217,7 +219,8 @@ final class SessionEditingTests: XCTestCase {
 
     func testUpdateSessionWithVeryLongDuration() {
         let originalSession = FocusSession(startTime: Date(), endTime: Date().addingTimeInterval(3600))
-        let sessionManager = SessionManager(userDefaultsManager: UserDefaultsManager())
+        let testDB = MockFactory.createTestDB()
+        let sessionManager = SessionManager(sessionRepo: SessionRepository(dbQueue: testDB))
         sessionManager.focusSessions = [originalSession]
 
         // Try to update with duration longer than 24 hours

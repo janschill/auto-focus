@@ -12,6 +12,9 @@ import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Database and UserDefaults migration are handled by DatabaseManager.shared init
+        // (triggered lazily when first repository is created)
+
         // Start as a menu bar app with no dock icon
         NSApp.setActivationPolicy(.accessory)
 

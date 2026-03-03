@@ -31,17 +31,7 @@ protocol BrowserManagerDelegate: AnyObject {
 }
 
 class BrowserManager: ObservableObject, BrowserManaging {
-    @Published var focusURLs: [FocusURL] = [] {
-        didSet {
-            // Sort alphabetically by name
-            let sorted = focusURLs.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
-            if sorted.map({ $0.id }) != focusURLs.map({ $0.id }) {
-                // Only update if order changed to avoid infinite recursion
-                focusURLs = sorted
-                return // This will trigger didSet again, but with sorted array
-            }
-        }
-    }
+    @Published var focusURLs: [FocusURL] = []
     @Published var currentBrowserTab: BrowserTabInfo?
     @Published var isBrowserInFocus: Bool = false
     @Published var isExtensionConnected: Bool = false
@@ -67,9 +57,10 @@ class BrowserManager: ObservableObject, BrowserManaging {
 
     weak var delegate: BrowserManagerDelegate?
 
-    private let userDefaultsManager: any PersistenceManaging
+    private let focusURLRepo: FocusURLRepository
     private let licenseManager: LicenseManager
     private let httpServer = HTTPServer()
+    private var urlObservationCancellable: AnyCancellable?
 
     // Ephemeral URLSession for health checks - avoids disk caching that grows over time
     private lazy var healthCheckSession: URLSession = {
@@ -85,11 +76,20 @@ class BrowserManager: ObservableObject, BrowserManaging {
     private var lastTabUpdateTime: Date?
     private var heartbeatWithoutTabUpdateCount: Int = 0
 
-    init(userDefaultsManager: any PersistenceManaging, licenseManager: LicenseManager = LicenseManager()) {
-        self.userDefaultsManager = userDefaultsManager
+    init(focusURLRepo: FocusURLRepository = FocusURLRepository(), licenseManager: LicenseManager = LicenseManager()) {
+        self.focusURLRepo = focusURLRepo
         self.licenseManager = licenseManager
 
         loadFocusURLs()
+
+        // Observe database changes → update @Published
+        urlObservationCancellable = focusURLRepo.observeAll()
+            .sink(
+                receiveCompletion: { _ in },
+                receiveValue: { [weak self] urls in
+                    self?.focusURLs = urls
+                }
+            )
 
         // Set up sleep/wake notifications
         setupSleepWakeNotifications()
@@ -119,9 +119,11 @@ class BrowserManager: ObservableObject, BrowserManaging {
             return
         }
 
-        // Append and let didSet handle sorting
-        focusURLs.append(focusURL)
-        saveFocusURLs()
+        do {
+            try focusURLRepo.insert(focusURL)
+        } catch {
+            AppLogger.browser.error("Failed to insert focus URL", error: error)
+        }
         delegate?.browserManager(self, didUpdateFocusURLs: focusURLs)
     }
 
@@ -135,17 +137,21 @@ class BrowserManager: ObservableObject, BrowserManaging {
     }
 
     func removeFocusURL(_ focusURL: FocusURL) {
-        focusURLs.removeAll { $0.id == focusURL.id }
-        saveFocusURLs()
+        do {
+            try focusURLRepo.delete(focusURL)
+        } catch {
+            AppLogger.browser.error("Failed to delete focus URL", error: error)
+        }
         delegate?.browserManager(self, didUpdateFocusURLs: focusURLs)
     }
 
     func updateFocusURL(_ focusURL: FocusURL) {
-        if let index = focusURLs.firstIndex(where: { $0.id == focusURL.id }) {
-            focusURLs[index] = focusURL
-            saveFocusURLs()
-            delegate?.browserManager(self, didUpdateFocusURLs: focusURLs)
+        do {
+            try focusURLRepo.update(focusURL)
+        } catch {
+            AppLogger.browser.error("Failed to update focus URL", error: error)
         }
+        delegate?.browserManager(self, didUpdateFocusURLs: focusURLs)
     }
 
     func checkIfURLIsFocus(_ url: String) -> (isFocus: Bool, matchedURL: FocusURL?) {
@@ -304,17 +310,15 @@ class BrowserManager: ObservableObject, BrowserManaging {
 
     // MARK: - Persistence
 
-    private func saveFocusURLs() {
-        userDefaultsManager.save(focusURLs, forKey: "focusURLs")
-    }
-
     private func loadFocusURLs() {
-        var loadedURLs = userDefaultsManager.load([FocusURL].self, forKey: "focusURLs") ?? []
+        var loadedURLs = (try? focusURLRepo.fetchAll()) ?? []
 
         // Add default free presets if no URLs exist
         if loadedURLs.isEmpty {
-            loadedURLs = FocusURL.freePresets
-            saveFocusURLs()
+            for preset in FocusURL.freePresets {
+                try? focusURLRepo.insert(preset)
+            }
+            loadedURLs = (try? focusURLRepo.fetchAll()) ?? FocusURL.freePresets
             AppLogger.browser.info("Loaded default focus URLs", metadata: [
                 "count": String(loadedURLs.count)
             ])
@@ -324,8 +328,7 @@ class BrowserManager: ObservableObject, BrowserManaging {
             ])
         }
 
-        // Sort alphabetically by name
-        focusURLs = loadedURLs.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        focusURLs = loadedURLs
 
         // Notify delegate of initial URLs (after delegate is set)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {

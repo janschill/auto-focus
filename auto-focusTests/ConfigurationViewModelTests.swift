@@ -9,7 +9,6 @@ import XCTest
 final class ConfigurationViewModelTests: XCTestCase {
     var focusManager: FocusManager!
     var viewModel: ConfigurationViewModel!
-    var mockPersistence: MockPersistenceManager!
     var mockSessionManager: MockSessionManager!
     var mockAppMonitor: MockAppMonitor!
     var mockBufferManager: MockBufferManager!
@@ -17,17 +16,16 @@ final class ConfigurationViewModelTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        mockPersistence = MockPersistenceManager()
-        mockSessionManager = MockSessionManager()
-        mockAppMonitor = MockAppMonitor()
-        mockBufferManager = MockBufferManager()
-        mockFocusModeManager = MockFocusModeManager()
-        focusManager = FocusManager(
-            userDefaultsManager: mockPersistence,
+        let mocks = MockFactory.createMockDependencies()
+        mockSessionManager = mocks.sessionManager
+        mockAppMonitor = mocks.appMonitor
+        mockBufferManager = mocks.bufferManager
+        mockFocusModeManager = mocks.focusModeManager
+        focusManager = MockFactory.createFocusManager(
             sessionManager: mockSessionManager,
             appMonitor: mockAppMonitor,
             bufferManager: mockBufferManager,
-            focusModeController: mockFocusModeManager
+            focusModeManager: mockFocusModeManager
         )
         viewModel = ConfigurationViewModel(focusManager: focusManager)
     }
@@ -36,12 +34,19 @@ final class ConfigurationViewModelTests: XCTestCase {
         // Test that ConfigurationViewModel properly initializes shortcut status
         XCTAssertNotNil(viewModel.shortcutInstalled)
 
-        // Test that refreshing shortcut status calls the focus manager
+        // refreshShortcutStatus is async — set mock to succeed then wait for update
         mockFocusModeManager.shouldFailShortcutCheck = false
         viewModel.updateShortcutInstalled()
 
-        // Verify the shortcut status is properly retrieved
-        XCTAssertTrue(viewModel.shortcutInstalled)
+        let expectation = expectation(description: "Shortcut status updated")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            // Re-read after async update completes
+            self.viewModel.updateShortcutInstalled()
+            expectation.fulfill()
+        }
+        wait(for: [expectation], timeout: 1.0)
+
+        XCTAssertTrue(focusManager.isShortcutInstalled)
     }
 
     func testShortcutStatusWithFailure() {
