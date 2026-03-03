@@ -488,28 +488,26 @@ class LicenseManager: ObservableObject {
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
 
         do {
-            let license = try await logger.measureAsync("license_validation_request") {
-                let (data, response) = try await URLSession.shared.data(for: request)
+            let (data, response) = try await URLSession.shared.data(for: request)
 
-                guard let httpResponse = response as? HTTPURLResponse else {
-                    throw LicenseError.networkError
-                }
-
-                guard httpResponse.statusCode == 200 else {
-                    let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
-                    logger.error("License validation failed", metadata: [
-                        "status_code": String(httpResponse.statusCode),
-                        "error_message": errorMessage
-                    ])
-                    throw LicenseError.serverError(errorMessage)
-                }
-
-                guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                    throw LicenseError.invalidFormat
-                }
-
-                return try parseLicenseResponse(json, licenseKey: key)
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw LicenseError.networkError
             }
+
+            guard httpResponse.statusCode == 200 else {
+                let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+                logger.error("License validation failed", metadata: [
+                    "status_code": String(httpResponse.statusCode),
+                    "error_message": errorMessage
+                ])
+                throw LicenseError.serverError(errorMessage)
+            }
+
+            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                throw LicenseError.invalidFormat
+            }
+
+            let license = try parseLicenseResponse(json, licenseKey: key)
 
             logger.info("License validation successful", metadata: [
                 "license_owner": license.ownerName,

@@ -12,12 +12,6 @@ import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Initialize FileLogger early to ensure it's ready (if debug logging is enabled)
-        _ = FileLogger.shared
-
-        // Set up debugging
-        CoreSVGDebugger.setupDebugging()
-
         // Start as a menu bar app with no dock icon
         NSApp.setActivationPolicy(.accessory)
 
