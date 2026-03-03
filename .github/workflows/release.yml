@@ -347,6 +347,9 @@ jobs:
             echo "✅ Created ${ZIP_NAME} and Auto-Focus.zip (for backward compatibility)"
           fi
 
+          # Return to repo root for verification (cd build happened above)
+          cd "$GITHUB_WORKSPACE"
+
           # Verify ZIP contents
           if [ "${{ steps.should_release.outputs.is_beta }}" = "true" ]; then
             ZIP_PATH="build/${ZIP_NAME}"
