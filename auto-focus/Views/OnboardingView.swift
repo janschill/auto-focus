@@ -70,14 +70,14 @@ struct OnboardingView: View {
             hasAddedApps = !focusManager.focusApps.isEmpty
             hasSetupBrowser = !focusManager.focusURLs.isEmpty
         }
-        .onChange(of: focusManager.focusApps.count) { _ in
+        .onChange(of: focusManager.focusApps.count) {
             hasAddedApps = !focusManager.focusApps.isEmpty
         }
-        .onChange(of: focusManager.focusURLs.count) { _ in
+        .onChange(of: focusManager.focusURLs.count) {
             hasSetupBrowser = !focusManager.focusURLs.isEmpty
         }
-        .onChange(of: focusManager.isShortcutInstalled) { newValue in
-            hasInstalledShortcut = newValue
+        .onChange(of: focusManager.isShortcutInstalled) {
+            hasInstalledShortcut = focusManager.isShortcutInstalled
         }
     }
 
@@ -376,7 +376,7 @@ struct AddFocusAppsStepView: View {
             .padding(.vertical, 20)
             .background(Color(.controlBackgroundColor))
             .cornerRadius(12)
-            .onChange(of: focusManager.focusApps.count) { _ in
+            .onChange(of: focusManager.focusApps.count) {
                 hasAddedApps = actualHasApps
             }
         }
@@ -813,8 +813,8 @@ struct OnboardingLicenseInputView: View {
                 }
                 .disabled(licenseInput.count < 8 || licenseManager.isActivating)
                 .buttonStyle(.bordered)
-                .onChange(of: licenseManager.licenseStatus) { status in
-                    if status == .valid && !licenseInput.isEmpty {
+                .onChange(of: licenseManager.licenseStatus) {
+                    if licenseManager.licenseStatus == .valid && !licenseInput.isEmpty {
                         withAnimation {
                             showingSuccess = true
                         }

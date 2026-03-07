@@ -222,7 +222,6 @@ class BrowserManager: ObservableObject, BrowserManaging {
         resetConnectionTimeoutTimer()
 
         let isChromeFrontmost = isChromeBrowserFrontmost()
-        let previousFocusState = self.isBrowserInFocus
         self.currentBrowserTab = tabInfo
 
         // Only activate focus if URL matches, not suppressed, and Chrome is frontmost

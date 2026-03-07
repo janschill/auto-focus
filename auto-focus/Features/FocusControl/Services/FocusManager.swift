@@ -261,7 +261,11 @@ class FocusManager: ObservableObject {
             if !focusTimer.isRunning && isFocusAppActive {
                 focusTimer.start(preserveTime: true)
             }
-            updateFocusSession()
+            // When returning from buffer, don't overwrite timeSpent from the timer
+            // as the timer was paused — the next tick will sync them naturally
+            if !wasInBuffer {
+                updateFocusSession()
+            }
         }
     }
 
