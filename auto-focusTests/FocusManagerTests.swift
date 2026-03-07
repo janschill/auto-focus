@@ -226,9 +226,6 @@ final class FocusManagerTests: XCTestCase {
 
     // --- ConfigurationViewModel (example) ---
     // Moved to ConfigurationViewModelTests.swift
-
-    // --- MenuBarViewModel (example) ---
-    // Moved to MenuBarViewModelTests.swift
 }
 
 #endif

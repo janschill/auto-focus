@@ -286,6 +286,11 @@ struct DataExportImportView: View {
     @EnvironmentObject var focusManager: FocusManager
     @EnvironmentObject var licenseManager: LicenseManager
     @Binding var selectedTab: Int
+
+    private var dataExportService: DataExportService {
+        DataExportService(focusManager: focusManager, licenseManager: licenseManager)
+    }
+
     @State private var showingExportOptions = false
     @State private var exportOptions = ExportOptions.default
     @State private var showingImportAlert = false
@@ -331,14 +336,14 @@ struct DataExportImportView: View {
                             .buttonStyle(.bordered)
 
                             Button("Export Data") {
-                                focusManager.exportDataToFile(options: exportOptions)
+                                dataExportService.exportDataToFile(options: exportOptions)
                             }
                             .buttonStyle(.borderedProminent)
 
                             Spacer()
 
                             Button("Import Data") {
-                                focusManager.importDataFromFile { result in
+                                dataExportService.importDataFromFile { result in
                                     importResult = result
                                     showingImportAlert = true
                                 }
@@ -356,7 +361,7 @@ struct DataExportImportView: View {
             ExportOptionsView(
                 options: $exportOptions,
                 onExport: {
-                    focusManager.exportDataToFile(options: exportOptions)
+                    dataExportService.exportDataToFile(options: exportOptions)
                     showingExportOptions = false
                 },
                 onCancel: {

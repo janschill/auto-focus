@@ -83,7 +83,6 @@ class FocusManager: ObservableObject {
 
     private let focusTimer: FocusTimer
     private let checkInterval: TimeInterval = AppConfiguration.checkInterval
-    private let stateMachine: FocusStateMachine
 
     // Batch update system to prevent publishing during view updates
 
@@ -175,8 +174,6 @@ class FocusManager: ObservableObject {
         self.focusModeController = focusModeController ?? FocusModeManager()
         self.browserManager = browserManager ?? BrowserManager()
 
-        // Initialize state machine and timer (without callbacks first)
-        self.stateMachine = FocusStateMachine()
         self.focusTimer = FocusTimer(interval: checkInterval)
 
         loadFocusApps()
@@ -204,10 +201,6 @@ class FocusManager: ObservableObject {
         self.extensionHealth = self.browserManager.extensionHealth
         self.connectionQuality = self.browserManager.connectionQuality
 
-        // Set up callbacks after all initialization is complete
-        self.stateMachine.onStateChanged = { [weak self] transition in
-            self?.handleStateTransition(transition)
-        }
         self.focusTimer.onTick = { [weak self] elapsedTime in
             self?.handleTimerTick(elapsedTime: elapsedTime)
         }
@@ -275,7 +268,6 @@ class FocusManager: ObservableObject {
         if !preserveTime {
             timeSpent = 0
             focusTimer.reset()
-            stateMachine.transitionToIdle()
         } else {
             if timeSpent == 0 && focusTimer.currentTime > 0 {
                 timeSpent = focusTimer.currentTime
@@ -287,7 +279,6 @@ class FocusManager: ObservableObject {
         }
 
         focusTimer.start(preserveTime: preserveTime)
-        stateMachine.transitionToCounting(timeSpent: timeSpent)
     }
 
     private func updateFocusSession() {
@@ -298,7 +289,6 @@ class FocusManager: ObservableObject {
 
     private func handleTimerTick(elapsedTime: TimeInterval) {
         timeSpent = elapsedTime
-        stateMachine.updateTime(timeSpent: elapsedTime)
         checkAndActivateFocusMode()
     }
 
@@ -310,25 +300,7 @@ class FocusManager: ObservableObject {
             ])
             isInFocusMode = true
             didReachFocusThreshold = true
-            stateMachine.transitionToFocusMode(timeSpent: timeSpent)
             focusModeController.setFocusMode(enabled: true)
-        } else if case .counting = stateMachine.currentState {
-            // Update counting state with new time
-            stateMachine.transitionToCounting(timeSpent: timeSpent)
-        }
-    }
-
-    private func handleStateTransition(_ transition: FocusTransition) {
-        // Sync published properties with state machine
-        switch transition.to {
-        case .idle:
-            isInFocusMode = false
-        case .counting:
-            isInFocusMode = false
-        case .focusMode:
-            isInFocusMode = true
-        case .buffer:
-            isInFocusMode = true // Keep focus mode active during buffer
         }
     }
 
@@ -351,13 +323,11 @@ class FocusManager: ObservableObject {
         if isInFocusMode {
             // In focus session - use configurable buffer to preserve session
             focusTimer.pause()
-            stateMachine.transitionToBuffer(timeRemaining: focusLossBuffer)
             bufferManager.startBuffer(duration: focusLossBuffer)
         } else if timeSpent > 0 {
             // Before focus session but has accumulated time - short buffer for quick reset
             let preSessionBuffer = AppConfiguration.preSessionBuffer
             focusTimer.pause()
-            stateMachine.transitionToBuffer(timeRemaining: preSessionBuffer)
             bufferManager.startBuffer(duration: preSessionBuffer)
         } else {
             // No accumulated time - reset immediately
@@ -379,7 +349,6 @@ class FocusManager: ObservableObject {
         isInFocusMode = false
         didReachFocusThreshold = false
         focusTimer.reset()
-        stateMachine.transitionToIdle()
     }
 
     func checkShortcutExists() -> Bool {
@@ -438,213 +407,10 @@ class FocusManager: ObservableObject {
         browserManager.addPresetURLs(presets)
     }
 
-    // MARK: - Data Export/Import
+    // MARK: - Import Support
 
-    func exportData(options: ExportOptions = .default) -> AutoFocusExportData {
-        let sessions = options.includeSessions ? filterSessions(by: options.dateRange) : []
-        let apps = options.includeFocusApps ? focusApps : []
-        let settings = options.includeSettings ? createUserSettings() : UserSettings(focusThreshold: 0, focusLossBuffer: 0, hasCompletedOnboarding: false)
-
-        return AutoFocusExportData(
-            metadata: ExportMetadata(),
-            sessions: sessions,
-            focusApps: apps,
-            settings: settings
-        )
-    }
-
-    func exportDataToFile(options: ExportOptions = .default) {
-        guard licenseManager.isLicensed else {
-            AppLogger.focus.warning("Export feature requires premium subscription")
-            return
-        }
-
-        let exportData = exportData(options: options)
-
-        do {
-            let jsonData = try JSONEncoder().encode(exportData)
-
-            let savePanel = NSSavePanel()
-            savePanel.title = "Export Auto-Focus Data"
-            savePanel.nameFieldStringValue = "auto-focus-export-\(DateFormatter.filenameSafe.string(from: Date()))"
-            savePanel.allowedContentTypes = [.json]
-            savePanel.canCreateDirectories = true
-
-            savePanel.begin { result in
-                if result == .OK, let url = savePanel.url {
-                    do {
-                        try jsonData.write(to: url)
-                        AppLogger.focus.info("Export successful", metadata: [
-                            "file_path": url.path,
-                            "options": String(describing: options)
-                        ])
-                    } catch {
-                        AppLogger.focus.error("Export failed", error: error, metadata: [
-                            "file_path": url.path
-                        ])
-                    }
-                }
-            }
-        } catch {
-            AppLogger.focus.error("Export encoding failed", error: error)
-        }
-    }
-
-    func importDataFromFile(completion: @escaping (ImportResult) -> Void) {
-        guard licenseManager.isLicensed else {
-            completion(.failure(.readError))
-            return
-        }
-
-        let openPanel = NSOpenPanel()
-        openPanel.title = "Import Auto-Focus Data"
-        openPanel.allowedContentTypes = [.json]
-        openPanel.allowsMultipleSelection = false
-        openPanel.canChooseDirectories = false
-
-        openPanel.begin { result in
-            if result == .OK, let url = openPanel.url {
-                self.importData(from: url) { importResult in
-                    DispatchQueue.main.async {
-                        completion(importResult)
-                    }
-                }
-            }
-        }
-    }
-
-    func importData(from url: URL, completion: @escaping (ImportResult) -> Void) {
-        do {
-            let data = try Data(contentsOf: url)
-            let exportData = try JSONDecoder().decode(AutoFocusExportData.self, from: data)
-
-            // Validate version compatibility
-            guard isVersionSupported(exportData.metadata.version) else {
-                completion(.failure(.unsupportedVersion))
-                return
-            }
-
-            var summary = ImportSummary(
-                sessionsImported: 0,
-                focusAppsImported: 0,
-                settingsImported: false,
-                duplicatesSkipped: 0
-            )
-
-            // Import sessions
-            let (imported, skipped) = importSessions(exportData.sessions)
-            summary = ImportSummary(
-                sessionsImported: imported,
-                focusAppsImported: summary.focusAppsImported,
-                settingsImported: summary.settingsImported,
-                duplicatesSkipped: skipped
-            )
-
-            // Import focus apps
-            let appsImported = importFocusApps(exportData.focusApps)
-            summary = ImportSummary(
-                sessionsImported: summary.sessionsImported,
-                focusAppsImported: appsImported,
-                settingsImported: summary.settingsImported,
-                duplicatesSkipped: summary.duplicatesSkipped
-            )
-
-            // Import settings
-            let settingsImported = importSettings(exportData.settings)
-            summary = ImportSummary(
-                sessionsImported: summary.sessionsImported,
-                focusAppsImported: summary.focusAppsImported,
-                settingsImported: settingsImported,
-                duplicatesSkipped: summary.duplicatesSkipped
-            )
-
-            completion(.success(summary))
-
-        } catch DecodingError.dataCorrupted(_) {
-            completion(.failure(.corruptedData))
-        } catch DecodingError.typeMismatch(_, _) {
-            completion(.failure(.invalidFileFormat))
-        } catch {
-            completion(.failure(.readError))
-        }
-    }
-
-    // MARK: - Private Import Helpers
-
-    private func filterSessions(by dateRange: DateRange?) -> [FocusSession] {
-        guard let range = dateRange else { return focusSessions }
-
-        return focusSessions.filter { session in
-            session.startTime >= range.startDate && session.endTime <= range.endDate
-        }
-    }
-
-    private func createUserSettings() -> UserSettings {
-        return UserSettings(
-            focusThreshold: focusThreshold,
-            focusLossBuffer: focusLossBuffer,
-            hasCompletedOnboarding: hasCompletedOnboarding
-        )
-    }
-
-    private func isVersionSupported(_ version: String) -> Bool {
-        // For now, support version 1.0 only
-        return version == "1.0"
-    }
-
-    private func importSessions(_ sessions: [FocusSession]) -> (imported: Int, skipped: Int) {
-        var imported = 0
-        var skipped = 0
-
-        for session in sessions {
-            // Check for duplicates based on start time and duration
-            let isDuplicate = focusSessions.contains { existing in
-                abs(existing.startTime.timeIntervalSince(session.startTime)) < 1.0 &&
-                abs(existing.duration - session.duration) < 1.0
-            }
-
-            if !isDuplicate {
-                sessionManager.importSessions([session])
-                imported += 1
-            } else {
-                skipped += 1
-            }
-        }
-
-        return (imported, skipped)
-    }
-
-    private func importFocusApps(_ apps: [AppInfo]) -> Int {
-        var imported = 0
-
-        for app in apps {
-            // Check for duplicates based on bundle identifier
-            let isDuplicate = focusApps.contains { existing in
-                existing.bundleIdentifier == app.bundleIdentifier
-            }
-
-            if !isDuplicate {
-                focusApps.append(app)
-                imported += 1
-            }
-        }
-
-        return imported
-    }
-
-    private func importSettings(_ settings: UserSettings) -> Bool {
-        // Only import non-zero values to avoid overwriting with defaults
-        if settings.focusThreshold > 0 {
-            focusThreshold = settings.focusThreshold
-        }
-
-        if settings.focusLossBuffer > 0 {
-            focusLossBuffer = settings.focusLossBuffer
-        }
-
-        // Note: We don't import hasCompletedOnboarding to avoid resetting user's onboarding state
-
-        return true
+    func importSession(_ session: FocusSession) {
+        sessionManager.importSessions([session])
     }
 
     func selectFocusApplication() {
@@ -719,7 +485,6 @@ extension FocusManager: BufferManagerDelegate {
         } else {
             sessionManager.cancelCurrentSession()
         }
-        stateMachine.transitionToIdle()
         resetFocusState()
         if !isNotificationsEnabled {
             focusModeController.setFocusMode(enabled: false)
@@ -861,7 +626,6 @@ extension FocusManager: BrowserManagerDelegate {
             if !preserveTime {
                 timeSpent = 0
                 focusTimer.reset()
-                stateMachine.transitionToIdle()
             } else if timeSpent == 0 && focusTimer.currentTime > 0 {
                 timeSpent = focusTimer.currentTime
             }
@@ -871,7 +635,6 @@ extension FocusManager: BrowserManagerDelegate {
             }
 
             focusTimer.start(preserveTime: preserveTime)
-            stateMachine.transitionToCounting(timeSpent: timeSpent)
         } else {
             updateFocusSession()
         }
@@ -891,12 +654,10 @@ extension FocusManager: BrowserManagerDelegate {
 
         if isInFocusMode {
             focusTimer.pause()
-            stateMachine.transitionToBuffer(timeRemaining: focusLossBuffer)
             bufferManager.startBuffer(duration: focusLossBuffer)
         } else if timeSpent > 0 {
             let preSessionBuffer = AppConfiguration.preSessionBuffer
             focusTimer.pause()
-            stateMachine.transitionToBuffer(timeRemaining: preSessionBuffer)
             bufferManager.startBuffer(duration: preSessionBuffer)
         } else {
             if didReachFocusThreshold {

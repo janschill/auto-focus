@@ -10,9 +10,6 @@ class FocusTimer {
     /// Callback invoked on each timer tick with the current elapsed time
     var onTick: ((TimeInterval) -> Void)?
 
-    /// Callback invoked when the threshold is reached
-    var onThresholdReached: (() -> Void)?
-
     /// Current elapsed time
     var currentTime: TimeInterval {
         return elapsedTime

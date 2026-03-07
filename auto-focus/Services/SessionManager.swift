@@ -2,19 +2,12 @@ import Combine
 import Foundation
 import SwiftUI
 
-protocol SessionManagerDelegate: AnyObject {
-    func sessionManager(_ manager: any SessionManaging, didStartSession session: FocusSession)
-    func sessionManager(_ manager: any SessionManaging, didEndSession session: FocusSession)
-}
-
 class SessionManager: ObservableObject, SessionManaging {
     @Published var focusSessions: [FocusSession] = []
 
     private let sessionRepo: SessionRepository
     private var currentSessionStartTime: Date?
     private var cancellable: AnyCancellable?
-
-    weak var delegate: SessionManagerDelegate?
 
     init(sessionRepo: SessionRepository = SessionRepository()) {
         self.sessionRepo = sessionRepo
@@ -60,7 +53,6 @@ class SessionManager: ObservableObject, SessionManaging {
             "end_time": ISO8601DateFormatter().string(from: Date())
         ])
 
-        delegate?.sessionManager(self, didEndSession: session)
         currentSessionStartTime = nil
     }
 
