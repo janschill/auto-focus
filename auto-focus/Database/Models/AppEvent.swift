@@ -7,6 +7,8 @@ struct AppEvent: Codable, Identifiable, FetchableRecord, PersistableRecord {
     var appName: String?
     var timestamp: Date
     var eventType: String
+    var domain: String?
+    var url: String?
 
     static let databaseTableName = "appEvent"
 
@@ -17,6 +19,15 @@ struct AppEvent: Codable, Identifiable, FetchableRecord, PersistableRecord {
         self.eventType = eventType
     }
 
+    init(bundleIdentifier: String, appName: String? = nil, url: String, domain: String?) {
+        self.bundleIdentifier = bundleIdentifier
+        self.appName = appName
+        self.timestamp = Date()
+        self.eventType = "tab_changed"
+        self.url = url
+        self.domain = domain
+    }
+
     // Custom encoding to store Date as TimeInterval
     func encode(to container: inout PersistenceContainer) {
         container["id"] = id
@@ -24,6 +35,8 @@ struct AppEvent: Codable, Identifiable, FetchableRecord, PersistableRecord {
         container["appName"] = appName
         container["timestamp"] = timestamp.timeIntervalSinceReferenceDate
         container["eventType"] = eventType
+        container["domain"] = domain
+        container["url"] = url
     }
 
     // Custom decoding to read Date from TimeInterval
@@ -33,9 +46,23 @@ struct AppEvent: Codable, Identifiable, FetchableRecord, PersistableRecord {
         appName = row["appName"]
         timestamp = Date(timeIntervalSinceReferenceDate: row["timestamp"])
         eventType = row["eventType"]
+        domain = row["domain"]
+        url = row["url"]
     }
 
     mutating func didInsert(_ inserted: InsertionSuccess) {
         id = inserted.rowID
+    }
+
+    static func extractDomain(from urlString: String) -> String? {
+        if let url = URL(string: urlString), let host = url.host {
+            return host.lowercased()
+        }
+        if !urlString.contains("://"),
+           let url = URL(string: "https://\(urlString)"),
+           let host = url.host {
+            return host.lowercased()
+        }
+        return nil
     }
 }
