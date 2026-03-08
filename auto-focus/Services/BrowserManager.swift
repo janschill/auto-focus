@@ -59,8 +59,10 @@ class BrowserManager: ObservableObject, BrowserManaging {
 
     private let focusURLRepo: FocusURLRepository
     private let licenseManager: LicenseManager
+    private let appEventRepo: AppEventRepository?
     private let httpServer = HTTPServer()
     private var urlObservationCancellable: AnyCancellable?
+    private var lastRecordedURL: String?
 
     // Ephemeral URLSession for health checks - avoids disk caching that grows over time
     private lazy var healthCheckSession: URLSession = {
@@ -76,9 +78,10 @@ class BrowserManager: ObservableObject, BrowserManaging {
     private var lastTabUpdateTime: Date?
     private var heartbeatWithoutTabUpdateCount: Int = 0
 
-    init(focusURLRepo: FocusURLRepository = FocusURLRepository(), licenseManager: LicenseManager = LicenseManager()) {
+    init(focusURLRepo: FocusURLRepository = FocusURLRepository(), licenseManager: LicenseManager = LicenseManager(), appEventRepo: AppEventRepository? = AppEventRepository()) {
         self.focusURLRepo = focusURLRepo
         self.licenseManager = licenseManager
+        self.appEventRepo = appEventRepo
 
         loadFocusURLs()
 
@@ -224,6 +227,9 @@ class BrowserManager: ObservableObject, BrowserManaging {
         let isChromeFrontmost = isChromeBrowserFrontmost()
         self.currentBrowserTab = tabInfo
 
+        // Record browser tab change as AppEvent
+        recordBrowserEvent(tabInfo: tabInfo)
+
         // Only activate focus if URL matches, not suppressed, and Chrome is frontmost
         let effectiveIsFocus = isFocus && !shouldSuppressFocusActivation() && isChromeFrontmost
 
@@ -262,6 +268,21 @@ class BrowserManager: ObservableObject, BrowserManaging {
             // Clear the suppression flag if time has passed
             suppressFocusActivationUntil = nil
             return false
+        }
+    }
+
+    private func recordBrowserEvent(tabInfo: BrowserTabInfo) {
+        let url = tabInfo.url
+        guard url != "about:blank", url != lastRecordedURL else { return }
+        lastRecordedURL = url
+
+        let browserBundleId = NSWorkspace.shared.frontmostApplication?.bundleIdentifier ?? "unknown.browser"
+        let domain = AppEvent.extractDomain(from: url)
+        let event = AppEvent(bundleIdentifier: browserBundleId, appName: tabInfo.title, url: url, domain: domain)
+        do {
+            try appEventRepo?.insert(event)
+        } catch {
+            AppLogger.browser.error("Failed to record browser event", error: error)
         }
     }
 

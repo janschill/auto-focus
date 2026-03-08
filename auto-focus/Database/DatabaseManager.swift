@@ -97,6 +97,23 @@ final class DatabaseManager {
             }
         }
 
+        migrator.registerMigration("v2_browser_events") { db in
+            try db.alter(table: "appEvent") { t in
+                t.add(column: "domain", .text)
+                t.add(column: "url", .text)
+            }
+            try db.create(
+                index: "idx_appEvent_domain",
+                on: "appEvent",
+                columns: ["domain"]
+            )
+            try db.create(
+                index: "idx_appEvent_eventType",
+                on: "appEvent",
+                columns: ["eventType"]
+            )
+        }
+
         return migrator
     }
 }
