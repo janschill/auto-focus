@@ -146,6 +146,19 @@ class InsightsViewModel: ObservableObject {
         return rearranged
     }
 
+    var topApps: [AppUsageSummary] {
+        dataProvider?.topApps(timeframe: selectedTimeframe, selectedDate: selectedDate) ?? []
+    }
+
+    var topDomains: [DomainUsageSummary] {
+        dataProvider?.topDomains(timeframe: selectedTimeframe, selectedDate: selectedDate) ?? []
+    }
+
+    var disruptionSummary: DisruptionSummary {
+        dataProvider?.disruptionSummary(timeframe: selectedTimeframe, selectedDate: selectedDate)
+            ?? DisruptionSummary(totalSwitches: 0, distractors: [])
+    }
+
     var productiveTimeRange: (startHour: Int, endHour: Int, duration: TimeInterval)? {
         return dataProvider?.calculateProductiveTimeRange()
     }

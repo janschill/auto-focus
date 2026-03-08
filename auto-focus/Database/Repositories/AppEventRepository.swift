@@ -46,7 +46,18 @@ final class AppEventRepository {
     }
 
     func fetchTopApps(since date: Date, limit: Int = 10) throws -> [AppUsageSummary] {
+        try fetchTopApps(since: date, until: nil, limit: limit)
+    }
+
+    func fetchTopApps(since date: Date, until endDate: Date?, limit: Int = 10) throws -> [AppUsageSummary] {
         try dbQueue.read { db in
+            var args: [DatabaseValueConvertible] = [date.timeIntervalSinceReferenceDate]
+            var whereClause = "WHERE timestamp >= ?"
+            if let endDate = endDate {
+                whereClause += " AND timestamp < ?"
+                args.append(endDate.timeIntervalSinceReferenceDate)
+            }
+            args.append(limit)
             let sql = """
                 WITH durations AS (
                     SELECT
@@ -54,7 +65,7 @@ final class AppEventRepository {
                         appName,
                         MIN(LEAD(timestamp) OVER (ORDER BY timestamp) - timestamp, 7200) AS duration
                     FROM appEvent
-                    WHERE timestamp >= ?
+                    \(whereClause)
                 )
                 SELECT
                     bundleIdentifier,
@@ -66,7 +77,7 @@ final class AppEventRepository {
                 ORDER BY totalDuration DESC
                 LIMIT ?
                 """
-            let rows = try Row.fetchAll(db, sql: sql, arguments: [date.timeIntervalSinceReferenceDate, limit])
+            let rows = try Row.fetchAll(db, sql: sql, arguments: StatementArguments(args))
             return rows.map { row in
                 AppUsageSummary(
                     bundleIdentifier: row["bundleIdentifier"],
@@ -78,14 +89,25 @@ final class AppEventRepository {
     }
 
     func fetchTopDomains(since date: Date, limit: Int = 10) throws -> [DomainUsageSummary] {
+        try fetchTopDomains(since: date, until: nil, limit: limit)
+    }
+
+    func fetchTopDomains(since date: Date, until endDate: Date?, limit: Int = 10) throws -> [DomainUsageSummary] {
         try dbQueue.read { db in
+            var args: [DatabaseValueConvertible] = [date.timeIntervalSinceReferenceDate]
+            var whereClause = "WHERE timestamp >= ?"
+            if let endDate = endDate {
+                whereClause += " AND timestamp < ?"
+                args.append(endDate.timeIntervalSinceReferenceDate)
+            }
+            args.append(limit)
             let sql = """
                 WITH durations AS (
                     SELECT
                         domain,
                         MIN(LEAD(timestamp) OVER (ORDER BY timestamp) - timestamp, 7200) AS duration
                     FROM appEvent
-                    WHERE timestamp >= ?
+                    \(whereClause)
                 )
                 SELECT
                     domain,
@@ -97,7 +119,7 @@ final class AppEventRepository {
                 ORDER BY totalDuration DESC
                 LIMIT ?
                 """
-            let rows = try Row.fetchAll(db, sql: sql, arguments: [date.timeIntervalSinceReferenceDate, limit])
+            let rows = try Row.fetchAll(db, sql: sql, arguments: StatementArguments(args))
             return rows.map { row in
                 DomainUsageSummary(
                     domain: row["domain"],
@@ -105,6 +127,16 @@ final class AppEventRepository {
                     visitCount: row["visitCount"]
                 )
             }
+        }
+    }
+
+    func fetchEvents(since date: Date, until endDate: Date) throws -> [AppEvent] {
+        try dbQueue.read { db in
+            try AppEvent
+                .filter(Column("timestamp") >= date.timeIntervalSinceReferenceDate)
+                .filter(Column("timestamp") < endDate.timeIntervalSinceReferenceDate)
+                .order(Column("timestamp").asc)
+                .fetchAll(db)
         }
     }
 

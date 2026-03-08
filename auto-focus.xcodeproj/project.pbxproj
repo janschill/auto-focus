@@ -26,6 +26,7 @@
 		4B6156132D4AC4A400937136 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		4B6E33E22F575FF100163BA1 /* auto-focus.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = "auto-focus.xcodeproj"; sourceTree = "<group>"; };
 		4B6E37B12F57688B00163BA1 /* auto-focus.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = "auto-focus.xcodeproj"; sourceTree = "<group>"; };
+		4B6E389C2F5DA30900163BA1 /* auto-focus.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = "auto-focus.xcodeproj"; sourceTree = "<group>"; };
 		4BA2A8C62D452D6A00F62E0A /* auto-focus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "auto-focus.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		4BA2A8D72D452D6B00F62E0A /* auto-focusTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "auto-focusTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -95,6 +96,11 @@
 			sourceTree = "<group>";
 		};
 		4B6E37B52F57688B00163BA1 /* Products */ = {
+			isa = PBXGroup;
+			name = Products;
+			sourceTree = "<group>";
+		};
+		4B6E389E2F5DA30900163BA1 /* Products */ = {
 			isa = PBXGroup;
 			name = Products;
 			sourceTree = "<group>";
@@ -208,6 +214,10 @@
 				{
 					ProductGroup = 4B6E33E62F575FF100163BA1 /* Products */;
 					ProjectRef = 4B6E33E22F575FF100163BA1 /* auto-focus.xcodeproj */;
+				},
+				{
+					ProductGroup = 4B6E389E2F5DA30900163BA1 /* Products */;
+					ProjectRef = 4B6E389C2F5DA30900163BA1 /* auto-focus.xcodeproj */;
 				},
 				{
 					ProductGroup = 4B6E37B52F57688B00163BA1 /* Products */;

@@ -18,9 +18,11 @@ struct HourData: Identifiable {
 
 class InsightsDataProvider {
     var focusManager: FocusManager
+    private let appEventRepo: AppEventRepository
 
-    init(focusManager: FocusManager = FocusManager.shared) {
+    init(focusManager: FocusManager = FocusManager.shared, appEventRepo: AppEventRepository = AppEventRepository()) {
         self.focusManager = focusManager
+        self.appEventRepo = appEventRepo
     }
 
     enum Timeframe: String, CaseIterable, Identifiable {
@@ -301,6 +303,46 @@ class InsightsDataProvider {
         // Use abbreviated weekday and month to save space
         formatter.dateFormat = "EEE, MMM d"
         return formatter.string(from: date)
+    }
+
+    // MARK: - Activity Insights
+
+    private func dateBounds(timeframe: Timeframe, selectedDate: Date) -> (start: Date, end: Date) {
+        let calendar = Calendar.current
+        switch timeframe {
+        case .day:
+            let start = calendar.startOfDay(for: selectedDate)
+            let end = calendar.date(byAdding: .day, value: 1, to: start)!
+            return (start, end)
+        case .week:
+            let start = calendar.startOfWeek(for: selectedDate)
+            let end = calendar.date(byAdding: .day, value: 7, to: start)!
+            return (start, end)
+        }
+    }
+
+    func topApps(timeframe: Timeframe, selectedDate: Date, limit: Int = 5) -> [AppUsageSummary] {
+        let bounds = dateBounds(timeframe: timeframe, selectedDate: selectedDate)
+        return (try? appEventRepo.fetchTopApps(since: bounds.start, until: bounds.end, limit: limit)) ?? []
+    }
+
+    func topDomains(timeframe: Timeframe, selectedDate: Date, limit: Int = 5) -> [DomainUsageSummary] {
+        let bounds = dateBounds(timeframe: timeframe, selectedDate: selectedDate)
+        return (try? appEventRepo.fetchTopDomains(since: bounds.start, until: bounds.end, limit: limit)) ?? []
+    }
+
+    func disruptionSummary(timeframe: Timeframe, selectedDate: Date) -> DisruptionSummary {
+        let bounds = dateBounds(timeframe: timeframe, selectedDate: selectedDate)
+        guard let events = try? appEventRepo.fetchEvents(since: bounds.start, until: bounds.end) else {
+            return DisruptionSummary(totalSwitches: 0, distractors: [])
+        }
+        let focusBundleIDs = Set(focusManager.focusApps.map(\.bundleIdentifier))
+        let focusDomains = focusManager.focusURLs
+        return ActivityInsightsService.calculateDisruptions(
+            events: events,
+            focusBundleIDs: focusBundleIDs,
+            focusDomains: focusDomains
+        )
     }
 
 }

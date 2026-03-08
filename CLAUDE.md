@@ -172,6 +172,8 @@ if licenseManager.isLicensed {
 
 ## Debugging Tips
 
+Use the XCode MCP server to interact with the application during development.
+
 ### Focus State Issues
 
 - Check `isFocusAppActive` vs `isBrowserInFocus` vs `isInOverallFocus`
