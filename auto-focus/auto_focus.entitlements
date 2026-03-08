@@ -10,14 +10,32 @@
 	<true/>
 	<key>com.apple.security.network.client</key>
 	<true/>
-	<key>com.apple.security.network.server</key>
-	<true/>
 	<key>com.apple.security.temporary-exception.apple-events</key>
 	<array>
 		<string>com.apple.shortcuts</string>
 		<string>com.apple.shortcuts.events</string>
 		<string>com.apple.systemevents</string>
 		<string>com.apple.controlcenter</string>
+		<string>com.apple.Safari</string>
+		<string>com.apple.SafariTechnologyPreview</string>
+		<string>com.google.Chrome</string>
+		<string>com.google.Chrome.canary</string>
+		<string>com.google.Chrome.beta</string>
+		<string>com.google.Chrome.dev</string>
+		<string>com.brave.Browser</string>
+		<string>com.brave.Browser.beta</string>
+		<string>com.microsoft.Edge</string>
+		<string>com.microsoft.Edge.Canary</string>
+		<string>com.microsoft.Edge.Beta</string>
+		<string>com.microsoft.Edge.Dev</string>
+		<string>com.arc.Arc</string>
+		<string>com.vivaldi.Vivaldi</string>
+		<string>com.operasoftware.Opera</string>
+		<string>com.operasoftware.OperaNext</string>
+		<string>com.operasoftware.OperaDeveloper</string>
+		<string>com.yandex.browser</string>
+		<string>com.360.Chrome</string>
+		<string>com.chromium.Chromium</string>
 	</array>
 </dict>
 </plist>

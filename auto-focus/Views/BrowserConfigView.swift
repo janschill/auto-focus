@@ -13,8 +13,6 @@ struct BrowserConfigView: View {
         VStack(spacing: 10) {
             HeaderView()
 
-            ExtensionInstallationView()
-
             FocusURLsManagementView(selectedTab: $selectedTab, selectedURLId: $selectedURLId, showingAddURL: $showingAddURL)
 
             Spacer()
@@ -35,14 +33,14 @@ private struct HeaderView: View {
                     .fontDesign(.default)
                     .fontWeight(.bold)
                     .bold()
-                Text("Track focus time on specific websites and web apps. Add from a list of common categories or add your own URLs. Added websites will behave just like your focus apps")
+                Text("Track focus time on specific websites and web apps. Auto-Focus automatically detects URLs in Safari, Chrome, Brave, Edge, Arc, and other browsers.")
                     .font(.callout)
                     .fontDesign(.default)
                     .fontWeight(.regular)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
 
-                Text("💡 Tip: Don't add Chrome as a focus app - the extension handles website detection automatically!")
+                Text("💡 Tip: Don't add your browser as a focus app — URL detection handles website tracking automatically!")
                     .font(.caption)
                     .fontDesign(.default)
                     .fontWeight(.medium)
@@ -57,101 +55,6 @@ private struct HeaderView: View {
             .padding(.vertical)
         }
         .frame(maxWidth: .infinity)
-    }
-}
-
-// private struct HeaderView: View {
-//    var body: some View {
-//        GroupBox {
-//            VStack(spacing: 8) {
-//                HStack {
-//                    Image(systemName: "globe")
-//                        .font(.title2)
-//                        .foregroundColor(.blue)
-//
-//                    VStack(alignment: .leading, spacing: 4) {
-//                        Text("Browser Integration")
-//                            .font(.title2)
-//                            .fontWeight(.bold)
-//
-//                        Text("Track focus time on specific websites and web apps")
-//                            .font(.callout)
-//                            .foregroundColor(.secondary)
-//                    }
-//
-//                    Spacer()
-//                }
-//            }
-//            .padding(.vertical, 8)
-//        }
-//    }
-// }
-
-private struct ExtensionInstallationView: View {
-    @EnvironmentObject var focusManager: FocusManager
-
-    var body: some View {
-        GroupBox {
-            VStack {
-                HStack {
-                    Text("Chrome Extension")
-                        .frame(width: 150, alignment: .leading)
-
-                    Spacer()
-
-                    if focusManager.isExtensionConnected {
-                        if #available(macOS 14.0, *) {
-                            Label("Installed", systemImage: "checkmark.circle.fill")
-                                .foregroundStyle(.green.gradient)
-                        } else {
-                            Label("Installed", systemImage: "checkmark.circle.fill")
-                                .foregroundColor(.green)
-                        }
-                    } else {
-                        if #available(macOS 14.0, *) {
-                            Label("Not installed", systemImage: "exclamationmark.triangle.fill")
-                                .foregroundStyle(.orange.gradient)
-                        } else {
-                            Label("Not installed", systemImage: "exclamationmark.triangle.fill")
-                                .foregroundColor(.orange)
-                        }
-                    }
-
-                    Button("Install Extension") {
-                        openExtensionInstallation()
-                    }
-                    .disabled(focusManager.isExtensionConnected)
-                }
-
-                HStack {
-                    Text("Install the Chrome extension to monitor and track focus time on websites. The extension communicates with the app to coordinate focus sessions.")
-                        .font(.callout)
-                        .fontDesign(.default)
-                        .fontWeight(.regular)
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                HStack {
-                    Text("Chrome will NOT be added as a focus app - the extension only activates for specific websites you configure.")
-                        .font(.caption)
-                        .fontDesign(.default)
-                        .fontWeight(.medium)
-                        .foregroundColor(.blue)
-                        .italic()
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .padding(.horizontal, 5)
-            .padding(.vertical)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private func openExtensionInstallation() {
-        if let url = URL(string: "https://chromewebstore.google.com/detail/ncmjhohihnjjmkfpcibbafakmlbfifih") {
-            NSWorkspace.shared.open(url)
-        }
     }
 }
 

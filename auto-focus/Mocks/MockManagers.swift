@@ -242,4 +242,79 @@ class MockFocusModeManager: ObservableObject, FocusModeControlling {
     }
 }
 
+// MARK: - Mock Browser Manager
+class MockBrowserManager: ObservableObject, BrowserManaging {
+    @Published var focusURLs: [FocusURL] = []
+    @Published var currentBrowserTab: BrowserTabInfo?
+    @Published var isBrowserInFocus: Bool = false
+
+    weak var delegate: BrowserManagerDelegate?
+
+    var canAddMoreURLs: Bool { true }
+    var availablePresets: [FocusURL] { FocusURL.freePresets }
+
+    private(set) var isPolling = false
+
+    func addFocusURL(_ focusURL: FocusURL) {
+        focusURLs.append(focusURL)
+        delegate?.browserManager(self, didUpdateFocusURLs: focusURLs)
+    }
+
+    func removeFocusURL(_ focusURL: FocusURL) {
+        focusURLs.removeAll { $0.id == focusURL.id }
+        delegate?.browserManager(self, didUpdateFocusURLs: focusURLs)
+    }
+
+    func updateFocusURL(_ focusURL: FocusURL) {
+        if let index = focusURLs.firstIndex(where: { $0.id == focusURL.id }) {
+            focusURLs[index] = focusURL
+        }
+        delegate?.browserManager(self, didUpdateFocusURLs: focusURLs)
+    }
+
+    func checkIfURLIsFocus(_ url: String) -> (isFocus: Bool, matchedURL: FocusURL?) {
+        for focusURL in focusURLs where focusURL.isEnabled {
+            if focusURL.matches(url) {
+                return (true, focusURL)
+            }
+        }
+        return (false, nil)
+    }
+
+    func addPresetURLs(_ presets: [FocusURL]) {
+        for preset in presets where !focusURLs.contains(where: { $0.domain == preset.domain }) {
+            focusURLs.append(preset)
+        }
+    }
+
+    func startPolling() {
+        isPolling = true
+    }
+
+    func stopPolling() {
+        isPolling = false
+    }
+
+    // Test helpers
+    func simulateBrowserFocusActivated(url: String = "https://github.com") {
+        isBrowserInFocus = true
+        currentBrowserTab = BrowserTabInfo(url: url, title: "Test", isFocusURL: true)
+        delegate?.browserManager(self, didChangeFocusState: true)
+    }
+
+    func simulateBrowserFocusDeactivated() {
+        isBrowserInFocus = false
+        currentBrowserTab = nil
+        delegate?.browserManager(self, didChangeFocusState: false)
+    }
+
+    func reset() {
+        focusURLs.removeAll()
+        currentBrowserTab = nil
+        isBrowserInFocus = false
+        isPolling = false
+    }
+}
+
 #endif
+

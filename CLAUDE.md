@@ -15,9 +15,7 @@ This document helps AI assistants understand the Auto-Focus codebase structure, 
 
 **Browser Integration:**
 
-- `auto-focus/Services/BrowserManager.swift` - Manages browser extension communication
-- `auto-focus/Services/HTTPServer.swift` - HTTP server for extension API
-- `auto-focus-browser-extension/chrome/background.js` - Extension service worker
+- `auto-focus/Services/BrowserManager.swift` - AppleScript-based URL detection for Safari, Chrome, Brave, Edge, Arc, and other browsers
 
 **License & Premium:**
 
@@ -70,10 +68,13 @@ This document helps AI assistants understand the Auto-Focus codebase structure, 
 
 ### Browser Integration Flow
 
-1. Extension detects tab change → sends `tab_changed` to `localhost:8942`
-2. `HTTPServer` receives message → calls `BrowserManager.updateFromExtension()`
+1. User switches to a supported browser → `FocusManager` calls `browserManager.startPolling()`
+2. `BrowserManager` polls the frontmost browser's URL every 1 second via AppleScript
 3. `BrowserManager` checks if URL matches focus URLs → updates `isBrowserInFocus`
 4. `BrowserManagerDelegate` notifies `FocusManager` → `handleBrowserFocusActivated()` or `handleBrowserFocusDeactivated()`
+5. User switches away from browser → `FocusManager` calls `browserManager.stopPolling()`
+
+**Supported browsers:** Safari, Chrome, Brave, Edge, Arc, Vivaldi, Opera, and other Chromium browsers. Firefox is NOT supported (no AppleScript).
 
 **Important:** Browser focus and app focus share the same timer (`timeSpent`). When switching between them, time is preserved.
 
@@ -93,17 +94,17 @@ This document helps AI assistants understand the Auto-Focus codebase structure, 
 - Reset when: leaving focus entirely (focus → non-focus)
 - Preserve when: switching between focus contexts (app ↔ browser, app ↔ app, browser ↔ browser)
 
-**Key Check:** Use `isChromeBrowserFrontmost()` to distinguish:
+**Key Check:** Use `isSupportedBrowserFrontmost()` to distinguish:
 
-- Tab switching (Chrome still frontmost) → reset
-- App switching (Chrome not frontmost) → preserve if switching to focus app
+- Tab switching (browser still frontmost) → reset
+- App switching (browser not frontmost) → preserve if switching to focus app
 
 ### Browser Focus State Management
 
 **Critical Pattern:** When browser focus deactivates:
 
 ```swift
-if isChromeStillFrontmost {
+if isBrowserStillFrontmost {
     // Just switching tabs → reset timer
     resetFocusState()
 } else if isSwitchingToFocusApp {
@@ -179,9 +180,9 @@ if licenseManager.isLicensed {
 
 ### Browser Integration Issues
 
-- Verify HTTP server is running on port 8942
-- Check extension connection state: `isExtensionConnected`
-- Monitor `BrowserManager` logs for tab updates
+- Verify Automation permission is granted for the browser in System Settings > Privacy & Security > Automation
+- Check if `BrowserManager` polling is active (logs browser state changes)
+- Monitor `BrowserManager` logs for AppleScript errors (permission denied = -1743)
 
 ### License Issues
 
@@ -221,7 +222,7 @@ make clean
 ## When Making Changes
 
 1. **Focus Logic Changes:** Update `FocusManager` and test state transitions
-2. **Browser Changes:** Update `BrowserManager` and `HTTPServer`, test extension communication
+2. **Browser Changes:** Update `BrowserManager`, test AppleScript URL detection
 3. **UI Changes:** Update SwiftUI views, ensure `@Published` properties trigger updates
 4. **License Changes:** Update `LicenseManager`, test free vs. premium behavior
 
@@ -231,6 +232,6 @@ Before making changes, consider:
 
 - Does this affect timer preservation logic?
 - Should this reset or preserve `timeSpent`?
-- Is Chrome still the frontmost app?
+- Is a supported browser still the frontmost app?
 - Are we switching between focus contexts or leaving focus?
 - Does this require license checking?

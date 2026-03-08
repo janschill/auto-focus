@@ -33,13 +33,13 @@ Auto-Focus is a macOS productivity app that automatically enables Do Not Disturb
 
 - **Preserve timer** when switching between focus contexts (app ↔ browser, app ↔ app)
 - **Reset timer** when leaving focus entirely (focus → non-focus)
-- Use `isChromeBrowserFrontmost()` to distinguish tab switching vs app switching
+- Use `isSupportedBrowserFrontmost()` to distinguish tab switching vs app switching
 
 ### Browser Integration
 
-- Extension communicates via HTTP on `localhost:8942`
-- `BrowserManager` handles extension communication
-- `FocusManager` coordinates browser focus with app focus
+- `BrowserManager` polls the frontmost browser's URL via AppleScript every 1 second
+- Supports Safari, Chrome, Brave, Edge, Arc, Vivaldi, Opera, and other Chromium browsers
+- `FocusManager` starts/stops polling when switching to/from a supported browser
 - Browser and app focus share the same `timeSpent` timer
 
 ### License Management
@@ -61,9 +61,9 @@ startFocusSession(preserveTime: preserveTime)
 ### Browser Tab Switching
 
 ```swift
-// Reset when switching tabs (Chrome still frontmost)
-// Preserve when switching to app (Chrome not frontmost)
-if isChromeStillFrontmost {
+// Reset when switching tabs (browser still frontmost)
+// Preserve when switching to app (browser not frontmost)
+if isBrowserStillFrontmost {
     resetFocusState() // Switching tabs
 } else if isSwitchingToFocusApp {
     // Preserve time
@@ -74,16 +74,16 @@ if isChromeStillFrontmost {
 
 ### Error Handling
 
-- Log with context: `print("FocusManager: Error - \(error)")`
+- Log with context: `AppLogger.focus.error("Error message", error: error)`
 - Don't crash on non-critical errors
 - Show user-friendly messages in UI
 
 ## File Locations
 
-- Core logic: `auto-focus/Features/FocusControl/Services/FocusManager.swift`
-- Browser: `auto-focus/Managers/BrowserManager.swift`
-- License: `auto-focus/Features/LicenseManagement/Services/LicenseManager.swift`
-- UI: `auto-focus/Views/` and `auto-focus/Features/UserInterface/Views/`
+- Core logic: `auto-focus/Services/FocusManager.swift`
+- Browser: `auto-focus/Services/BrowserManager.swift`
+- License: `auto-focus/Services/LicenseManager.swift`
+- UI: `auto-focus/Views/`
 
 ## Testing Considerations
 

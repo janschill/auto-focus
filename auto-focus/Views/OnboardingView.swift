@@ -419,7 +419,7 @@ struct BrowserIntegrationStepView: View {
                     .multilineTextAlignment(.center)
                     .foregroundColor(.secondary)
 
-                Text("Note: You don't need to add Chrome as a focus app. The extension handles website detection independently.")
+                Text("Auto-Focus automatically detects focus websites in Safari, Chrome, Brave, Edge, and Arc. No browser extension needed.")
                     .font(.callout)
                     .multilineTextAlignment(.center)
                     .foregroundColor(.orange)
@@ -567,7 +567,7 @@ struct CompleteStepView: View {
                         .font(.headline)
                         .fontWeight(.semibold)
 
-                    NextStepRow(icon: "globe", text: "Set up browser extension for website tracking")
+                    NextStepRow(icon: "globe", text: "Configure focus websites for browser tracking")
                     NextStepRow(icon: "gearshape", text: "Adjust settings in Configuration tab")
                     NextStepRow(icon: "chart.bar", text: "View your focus insights")
                     NextStepRow(icon: "brain.head.profile", text: "Start focusing!")
