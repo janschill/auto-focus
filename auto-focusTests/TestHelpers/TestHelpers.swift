@@ -126,13 +126,15 @@ struct MockFactory {
         sessionManager: MockSessionManager,
         appMonitor: MockAppMonitor,
         bufferManager: MockBufferManager,
-        focusModeManager: MockFocusModeManager
+        focusModeManager: MockFocusModeManager,
+        browserManager: MockBrowserManager
     ) {
         return (
             sessionManager: MockSessionManager(),
             appMonitor: MockAppMonitor(),
             bufferManager: MockBufferManager(),
-            focusModeManager: MockFocusModeManager()
+            focusModeManager: MockFocusModeManager(),
+            browserManager: MockBrowserManager()
         )
     }
 
@@ -147,7 +149,8 @@ struct MockFactory {
         sessionManager: MockSessionManager? = nil,
         appMonitor: MockAppMonitor? = nil,
         bufferManager: MockBufferManager? = nil,
-        focusModeManager: MockFocusModeManager? = nil
+        focusModeManager: MockFocusModeManager? = nil,
+        browserManager: MockBrowserManager? = nil
     ) -> FocusManager {
         let mocks = createMockDependencies()
         let testDB = createTestDB()
@@ -157,7 +160,8 @@ struct MockFactory {
             sessionManager: sessionManager ?? mocks.sessionManager,
             appMonitor: appMonitor ?? mocks.appMonitor,
             bufferManager: bufferManager ?? mocks.bufferManager,
-            focusModeController: focusModeManager ?? mocks.focusModeManager
+            focusModeController: focusModeManager ?? mocks.focusModeManager,
+            browserManager: browserManager ?? mocks.browserManager
         )
     }
 }

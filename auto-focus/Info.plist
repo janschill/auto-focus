@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>NSAppleEventsUsageDescription</key>
-	<string>Auto-Focus needs to control Focus modes</string>
+	<string>Auto-Focus needs to control Focus modes and detect browser URLs to track your focus time</string>
     <key>Privacy - Accessibility Usage Description</key>
     <string>Auto-Focus needs accessibility access to manage Do Not Disturb settings</string>
     <key>com.apple.security.automation.apple-events</key>

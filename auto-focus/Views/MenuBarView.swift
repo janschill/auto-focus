@@ -3,6 +3,7 @@ import SwiftUI
 struct MenuBarView: View {
     @EnvironmentObject var focusManager: FocusManager
     @ObservedObject private var versionCheckManager = VersionCheckManager.shared
+    @State private var showAddedConfirmation = false
 
     var version: String {
     #if DEBUG
@@ -10,6 +11,10 @@ struct MenuBarView: View {
     #else
             return Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
     #endif
+    }
+
+    var isBetaBuild: Bool {
+        return version.contains("-beta")
     }
 
     // Calculate total focus time today
@@ -269,7 +274,50 @@ struct MenuBarView: View {
                 }
             }
 
+            // Add Current Site button
+            if let tab = focusManager.currentBrowserTab,
+               !tab.isFocusURL,
+               tab.url != "about:blank",
+               let frontApp = NSWorkspace.shared.frontmostApplication?.bundleIdentifier,
+               AppConfiguration.isSupportedBrowser(frontApp) {
+                Divider()
+
+                HStack {
+                    if showAddedConfirmation {
+                        Label("Added!", systemImage: "checkmark.circle.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.green)
+                    } else {
+                        Button {
+                            addCurrentSite(url: tab.url)
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "plus.circle")
+                                Text("Add Current Site")
+                            }
+                            .font(.system(size: 12))
+                        }
+                    }
+                    Spacer()
+                }
+            }
+
             Divider()
+
+            // Beta indicator
+            if isBetaBuild {
+                HStack(spacing: 4) {
+                    Text("BETA")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.orange, in: Capsule())
+                    Text(version)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+            }
 
             // Controls section
             HStack {
@@ -314,8 +362,18 @@ struct MenuBarView: View {
     }
 
     private func openSettings() {
-        // Send the standard settings command
         NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+    }
+
+    private func addCurrentSite(url: String) {
+        guard let urlObj = URL(string: url), let host = urlObj.host else { return }
+        let domain = host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
+        let focusURL = FocusURL(name: domain.capitalized, domain: domain)
+        focusManager.addFocusURL(focusURL)
+        showAddedConfirmation = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            showAddedConfirmation = false
+        }
     }
 }
 

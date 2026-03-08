@@ -73,9 +73,6 @@ class FocusManager: ObservableObject {
     @Published var hasCompletedOnboarding: Bool = false
     @Published var isBrowserInFocus: Bool = false
     @Published var currentBrowserTab: BrowserTabInfo?
-    @Published var isExtensionConnected: Bool = false
-    @Published var extensionHealth: ExtensionHealth?
-    @Published var connectionQuality: ConnectionQuality = .unknown
     @Published var isShortcutInstalled: Bool = false
 
     private var freeAppLimit: Int = AppConfiguration.freeAppLimit
@@ -197,9 +194,6 @@ class FocusManager: ObservableObject {
         // Sync browser state
         self.isBrowserInFocus = self.browserManager.isBrowserInFocus
         self.currentBrowserTab = self.browserManager.currentBrowserTab
-        self.isExtensionConnected = self.browserManager.isExtensionConnected
-        self.extensionHealth = self.browserManager.extensionHealth
-        self.connectionQuality = self.browserManager.connectionQuality
 
         self.focusTimer.onTick = { [weak self] elapsedTime in
             self?.handleTimerTick(elapsedTime: elapsedTime)
@@ -345,6 +339,7 @@ class FocusManager: ObservableObject {
 
     private func resetFocusState() {
         isFocusAppActive = false
+        isBrowserInFocus = false
         timeSpent = 0
         isInFocusMode = false
         didReachFocusThreshold = false
@@ -502,8 +497,9 @@ extension FocusManager: AppMonitorDelegate {
         } else if isFocusAppActive {
             // Check if a browser is currently active before ending focus session
             if let currentApp = (monitor as? AppMonitor)?.currentApp,
-               currentApp == "com.google.Chrome" || currentApp == "com.apple.Safari" || currentApp == "org.mozilla.firefox" {
-                // Browser became active - give browser manager a moment to update focus state
+               AppConfiguration.isSupportedBrowser(currentApp) {
+                // Browser became active - start polling and give browser manager a moment to update
+                browserManager.startPolling()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     if !self.isBrowserInFocus {
                         self.handleNonFocusAppInFront()
@@ -518,9 +514,13 @@ extension FocusManager: AppMonitorDelegate {
     func appMonitor(_ monitor: any AppMonitoring, didChangeToApp bundleIdentifier: String?) {
         guard !isPaused else { return }
 
-        let isBrowserApp = bundleIdentifier == "com.google.Chrome" ||
-                          bundleIdentifier == "com.apple.Safari" ||
-                          bundleIdentifier == "org.mozilla.firefox"
+        let isBrowserApp = bundleIdentifier != nil && AppConfiguration.isSupportedBrowser(bundleIdentifier!)
+
+        if isBrowserApp {
+            browserManager.startPolling()
+        } else {
+            browserManager.stopPolling()
+        }
 
         // If we're in an overall focus state and switched to a non-browser, non-focus app
         if isInOverallFocus {
@@ -534,26 +534,10 @@ extension FocusManager: AppMonitorDelegate {
                         "was_browser_focus": String(isBrowserInFocus),
                         "was_app_focus": String(isFocusAppActive)
                     ])
-                    // We left both browser focus and native focus - handle appropriately
                     if isBrowserInFocus {
-                        // We were in browser focus, now we're leaving
                         handleBrowserFocusDeactivated()
                     } else if isFocusAppActive {
-                        // We were in native app focus, now we're leaving
                         handleNonFocusAppInFront()
-                    }
-                }
-            } else {
-                // Switched to a browser app - check if extension is connected
-                if !isExtensionConnected {
-                    AppLogger.focus.warning("Switched to browser without extension - ending browser focus", metadata: [
-                        "browser": bundleIdentifier ?? "unknown"
-                    ])
-                    // No extension means we can't track browser focus, so set it to false
-                    self.isBrowserInFocus = false
-                    // If we were only in browser focus (not native app focus), end the session
-                    if !isFocusAppActive {
-                        handleBrowserFocusDeactivated()
                     }
                 }
             }
@@ -602,18 +586,6 @@ extension FocusManager: BrowserManagerDelegate {
         self.currentBrowserTab = tabInfo
     }
 
-    func browserManager(_ manager: any BrowserManaging, didChangeConnectionState isConnected: Bool) {
-        self.isExtensionConnected = isConnected
-    }
-
-    func browserManager(_ manager: any BrowserManaging, didUpdateExtensionHealth health: ExtensionHealth?) {
-        self.extensionHealth = health
-    }
-
-    func browserManager(_ manager: any BrowserManaging, didUpdateConnectionQuality quality: ConnectionQuality) {
-        self.connectionQuality = quality
-    }
-
     private func handleBrowserFocusActivated() {
         let wasInBuffer = bufferManager.isInBufferPeriod
         bufferManager.cancelBuffer()
@@ -641,7 +613,7 @@ extension FocusManager: BrowserManagerDelegate {
     }
 
     private func handleBrowserFocusDeactivated() {
-        let isChromeStillFrontmost = isChromiumBrowserFrontmost()
+        let isChromeStillFrontmost = isSupportedBrowserFrontmost()
 
         if !isChromeStillFrontmost {
             let currentApp = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
@@ -672,11 +644,11 @@ extension FocusManager: BrowserManagerDelegate {
         }
     }
 
-    private func isChromiumBrowserFrontmost() -> Bool {
+    private func isSupportedBrowserFrontmost() -> Bool {
         guard let bundleId = NSWorkspace.shared.frontmostApplication?.bundleIdentifier else {
             return false
         }
-        return AppConfiguration.chromiumBrowserBundleIds.contains(bundleId)
+        return AppConfiguration.isSupportedBrowser(bundleId)
     }
 
     func browserManager(_ manager: any BrowserManaging, didUpdateFocusURLs urls: [FocusURL]) {

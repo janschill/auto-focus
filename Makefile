@@ -12,7 +12,6 @@ APP_PATH = $(BUILD_DIR)/$(PROJECT_NAME).app
 # Distribution configuration
 DOWNLOADS_DIR = docs/downloads
 APP_ZIP = $(DOWNLOADS_DIR)/Auto-Focus.zip
-EXTENSION_ZIP = $(DOWNLOADS_DIR)/auto-focus-extension.zip
 VERSION_FILE = $(DOWNLOADS_DIR)/version.json
 
 # Swift targets
@@ -151,37 +150,6 @@ ai-swift-refactor:
 	@echo "Triggering AI refactor analysis..."
 	@echo "Feature analysis complete. Use 'claude \"Review the FocusControl feature and suggest SwiftUI improvements for better performance\"'"
 
-# Browser extension build with semantic versioning
-# Usage: make build-extension BUMP=patch|minor|major (defaults to patch)
-BUMP ?= patch
-build-extension: prepare-downloads
-	@echo "🌐 Building browser extension..."
-	@CURRENT_VERSION=$$(grep '"version"' auto-focus-browser-extension/chrome/manifest.json | sed 's/.*"version": "\([^"]*\)".*/\1/'); \
-	echo "Current version: $$CURRENT_VERSION"; \
-	MAJOR=$$(echo $$CURRENT_VERSION | cut -d. -f1); \
-	MINOR=$$(echo $$CURRENT_VERSION | cut -d. -f2); \
-	PATCH=$$(echo $$CURRENT_VERSION | cut -d. -f3); \
-	if [ "$(BUMP)" = "major" ]; then \
-		NEW_VERSION="$$((MAJOR + 1)).0.0"; \
-	elif [ "$(BUMP)" = "minor" ]; then \
-		NEW_VERSION="$$MAJOR.$$((MINOR + 1)).0"; \
-	elif [ "$(BUMP)" = "patch" ]; then \
-		NEW_VERSION="$$MAJOR.$$MINOR.$$((PATCH + 1))"; \
-	else \
-		echo "❌ Invalid BUMP value: $(BUMP). Use patch, minor, or major"; \
-		exit 1; \
-	fi; \
-	echo "🔢 Bumping $(BUMP) version: $$CURRENT_VERSION -> $$NEW_VERSION"; \
-	sed -i.bak "s/\"version\": \"[^\"]*\"/\"version\": \"$$NEW_VERSION\"/" auto-focus-browser-extension/chrome/manifest.json; \
-	rm -f auto-focus-browser-extension/chrome/manifest.json.bak; \
-	echo "📦 Creating extension ZIP for version $$NEW_VERSION..."; \
-	cd auto-focus-browser-extension && zip -r ../$(EXTENSION_ZIP) chrome/ -x "*.DS_Store*" "*/.git*"; \
-	echo "✅ Extension built and packaged at $(EXTENSION_ZIP)"; \
-	echo "📋 Extension info:"; \
-	echo "   Version: $$NEW_VERSION"; \
-	echo "   File: $(EXTENSION_ZIP)"; \
-	echo "   Ready for Chrome Web Store submission"
-
 # Distribution targets
 prepare-downloads:
 	@echo "Creating downloads directory..."
@@ -241,28 +209,6 @@ package-app: prepare-downloads
 	@rm -rf $(BUILD_DIR)/$(PROJECT_NAME).app $(BUILD_DIR)/$(PROJECT_NAME)_temp.app
 	@echo "✅ App packaged for distribution at $(APP_ZIP)"
 
-package-extension:
-	@echo "⚠️  DEPRECATED: Use 'make build-extension BUMP=patch|minor|major' instead"
-	@echo "   This target now calls build-extension with patch bump"
-	@$(MAKE) build-extension BUMP=patch
-
-# Release extension to Chrome Web Store
-# Usage: make release-extension BUMP=patch|minor|major
-release-extension: build-extension
-	@echo ""
-	@echo "✅ Extension ready for Chrome Web Store submission!"
-	@echo ""
-	@echo "📦 Package location: $(EXTENSION_ZIP)"
-	@echo ""
-	@echo "📋 Next steps:"
-	@echo "   1. Go to: https://chrome.google.com/webstore/devconsole"
-	@echo "   2. Select your extension"
-	@echo "   3. Click 'Upload Updated Package'"
-	@echo "   4. Upload: $(EXTENSION_ZIP)"
-	@echo "   5. Fill in release notes and submit"
-	@echo ""
-	@echo "📖 See CHROME_STORE_RELEASE.md for detailed instructions"
-
 generate-version: prepare-downloads
 	@echo "Generating version information..."
 	@VERSION=$$(date +"%Y.%m.%d"); \
@@ -273,7 +219,6 @@ generate-version: prepare-downloads
 		\"build_date\": \"$$BUILD_DATE\", \
 		\"commit_hash\": \"$$COMMIT_HASH\", \
 		\"app_zip\": \"Auto-Focus.zip\", \
-		\"extension_zip\": \"auto-focus-extension.zip\", \
 		\"download_url\": \"https://auto-focus.app/downloads/Auto-Focus.zip\", \
 		\"min_macos\": \"14.0\" \
 	}" > $(VERSION_FILE)
@@ -285,7 +230,7 @@ generate-version: prepare-downloads
 
 # ⚠️  CRITICAL: This target prepares distribution files but does NOT handle notarization
 # You MUST notarize the app before running this target - see prepare-app-for-notarization
-prepare-distribution: prepare-downloads package-extension generate-version
+prepare-distribution: prepare-downloads generate-version
 	@echo "🚨 DISTRIBUTION PREPARATION COMPLETE 🚨"
 	@echo ""
 	@echo "⚠️  CRITICAL STEP REQUIRED:"
@@ -308,11 +253,10 @@ deploy-downloads: prepare-distribution package-app
 	@echo "Removing old distribution files from git tracking (keeping files)..."
 	@git rm --cached --ignore-unmatch docs/downloads/*.zip 2>/dev/null || true
 	@echo "Adding current distribution files to git..."
-	@git add docs/downloads/Auto-Focus.zip docs/downloads/auto-focus-extension.zip docs/downloads/version.json docs/index.html
+	@git add docs/downloads/Auto-Focus.zip docs/downloads/version.json docs/index.html
 	@echo ""
 	@echo "🎉 DISTRIBUTION READY!"
 	@echo "   App: $(APP_ZIP) (added to git)"
-	@echo "   Extension: $(EXTENSION_ZIP) (added to git)"
 	@echo "   Version: $(VERSION_FILE) (added to git)"
 	@echo "   Website: Updated to use local downloads"
 	@echo ""
@@ -376,10 +320,9 @@ create-github-release: tag-release
 	@VERSION=$$(date +"%Y.%m.%d"); \
 	echo "Creating GitHub release v$$VERSION..."; \
 	git push origin "v$$VERSION" 2>/dev/null || echo "Tag already pushed"; \
-	RELEASE_NOTES="## Auto-Focus v$$VERSION\n\n### Features\n- Intelligent focus detection\n- Browser integration with Chrome extension\n- Focus session analytics\n- Configurable thresholds and buffer times\n\n### Installation\n1. Download Auto-Focus.zip\n2. Extract and move Auto-Focus.app to Applications\n3. Install the included Shortcut\n4. Launch and configure focus apps\n\n### System Requirements\n- macOS Sonoma (14.0) or later\n- Chrome browser (for extension)\n\n---\n\n🔗 **Website**: https://auto-focus.app  \n📧 **Support**: auto-focus@janschill.de"; \
+	RELEASE_NOTES="## Auto-Focus v$$VERSION\n\n### Features\n- Intelligent focus detection\n- Multi-browser URL tracking (Safari, Chrome, Brave, Edge, Arc)\n- Focus session analytics\n- Configurable thresholds and buffer times\n\n### Installation\n1. Download Auto-Focus.zip\n2. Extract and move Auto-Focus.app to Applications\n3. Install the included Shortcut\n4. Launch and configure focus apps\n\n### System Requirements\n- macOS Sonoma (14.0) or later\n\n---\n\n🔗 **Website**: https://auto-focus.app  \n📧 **Support**: auto-focus@janschill.de"; \
 	gh release create "v$$VERSION" \
 		"docs/downloads/Auto-Focus.zip#Auto-Focus.zip" \
-		"docs/downloads/auto-focus-extension.zip#Chrome-Extension.zip" \
 		--title "Auto-Focus v$$VERSION" \
 		--notes "$$RELEASE_NOTES" \
 		--latest || echo "Release may already exist"
@@ -489,7 +432,6 @@ help:
 	@echo "  prepare-downloads         - Create downloads directory"
 	@echo "  prepare-app-for-notarization - Prepare app ZIP for notarization"
 	@echo "  package-app              - Package notarized app (run after notarization)"
-	@echo "  package-extension        - Package browser extension"
 	@echo "  generate-version         - Create version.json file"
 	@echo "  prepare-distribution     - Prepare all distribution files"
 	@echo "  deploy-downloads         - Update website to use local downloads"

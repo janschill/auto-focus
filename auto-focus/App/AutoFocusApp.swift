@@ -28,7 +28,7 @@ struct AutoFocusApp: App {
             HStack(spacing: 4) {
                 if focusManager.isPaused {
                     Image(systemName: "pause.circle")
-                } else if focusManager.isFocusAppActive {
+                } else if focusManager.isInOverallFocus {
                     // Show timer based on user preference
                     switch focusManager.timerDisplayMode {
                     case .hidden:

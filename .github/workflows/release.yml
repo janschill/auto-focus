@@ -231,6 +231,13 @@ jobs:
 
           # Build archive with clean build forced
           # Using -destination to ensure proper platform targeting
+          # For beta builds, override MARKETING_VERSION so the app displays the beta version string
+          BETA_VERSION_FLAG=""
+          if [ "${{ steps.should_release.outputs.is_beta }}" = "true" ]; then
+            BETA_VERSION_FLAG="MARKETING_VERSION=${{ inputs.beta_version }}"
+            echo "📦 Overriding MARKETING_VERSION to ${{ inputs.beta_version }} for beta build"
+          fi
+
           xcodebuild archive \
             -project auto-focus.xcodeproj \
             -scheme auto-focus \
@@ -242,7 +249,8 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM=LKQJ2JG34Y \
             HMAC_SECRET="$HMAC_SECRET" \
-            ONLY_ACTIVE_ARCH=NO || exit $?
+            ONLY_ACTIVE_ARCH=NO \
+            $BETA_VERSION_FLAG || exit $?
 
           # Verify the archive contains the actual executable
           EXECUTABLE_PATH="build/auto-focus.xcarchive/Products/Applications/auto-focus.app/Contents/MacOS/auto-focus"
@@ -366,14 +374,6 @@ jobs:
             exit 1
           fi
 
-      - name: Package browser extension
-        if: steps.should_release.outputs.proceed == 'true' && steps.should_release.outputs.is_beta != 'true'
-        run: |
-          mkdir -p docs/downloads
-          cd auto-focus-browser-extension
-          zip -r ../docs/downloads/auto-focus-extension.zip chrome/ -x "*.DS_Store*" "*/.git*"
-          echo "✅ Extension packaged"
-
       - name: Generate version.json
         if: steps.should_release.outputs.proceed == 'true' && steps.should_release.outputs.is_beta != 'true'
         run: |
@@ -388,7 +388,6 @@ jobs:
             "build_date": "$BUILD_DATE",
             "commit_hash": "$COMMIT_HASH",
             "app_zip": "${ZIP_NAME}",
-            "extension_zip": "auto-focus-extension.zip",
             "download_url": "https://auto-focus.app/downloads/${ZIP_NAME}",
             "min_macos": "14.0"
           }
@@ -429,7 +428,6 @@ jobs:
           # Add new distribution files (versioned zip, backward-compat zip, extension, and version.json)
           git add docs/downloads/${ZIP_NAME} \
                   docs/downloads/Auto-Focus.zip \
-                  docs/downloads/auto-focus-extension.zip \
                   docs/downloads/version.json \
                   auto-focus.xcodeproj/project.pbxproj
 
@@ -490,7 +488,6 @@ jobs:
 
           ### System Requirements
           - macOS Sonoma (14.0) or later
-          - Chrome browser (for extension)
 
           ---
 
@@ -510,7 +507,6 @@ jobs:
           files: |
             docs/downloads/Auto-Focus-v${{ steps.version.outputs.version }}.zip
             docs/downloads/Auto-Focus.zip
-            docs/downloads/auto-focus-extension.zip
             docs/downloads/version.json
           draft: false
           prerelease: false

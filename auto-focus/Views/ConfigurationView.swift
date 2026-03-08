@@ -128,6 +128,15 @@ struct GeneralSettingsView: View {
                             Text(appVersion)
                                 .foregroundColor(.secondary)
 
+                            if isBetaBuild {
+                                Text("BETA")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.orange, in: Capsule())
+                            }
+
                             if versionCheckManager.isUpdateAvailable {
                                 HStack(spacing: 4) {
                                     Image(systemName: "arrow.up.circle.fill")
@@ -286,6 +295,10 @@ struct GeneralSettingsView: View {
 
     private var appVersion: String {
         return Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
+    }
+
+    private var isBetaBuild: Bool {
+        return appVersion.contains("-beta")
     }
 }
 

@@ -1,11 +1,10 @@
 # Auto-Focus Downloads
 
-This directory contains the latest stable releases of Auto-Focus and the browser extension.
+This directory contains the latest stable releases of Auto-Focus.
 
 ## Files
 
 - `Auto-Focus.zip` - Latest notarized macOS app (ignored by git)
-- `auto-focus-extension.zip` - Latest browser extension (ignored by git)  
 - `version.json` - Version metadata for update checking
 
 ## Building for Distribution
@@ -21,7 +20,6 @@ make deploy-downloads            # Update website links
 
 # Or step by step
 make prepare-downloads           # Create directory
-make package-extension          # Package browser extension
 make generate-version           # Create version.json
 ```
 
