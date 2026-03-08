@@ -231,6 +231,13 @@ jobs:
 
           # Build archive with clean build forced
           # Using -destination to ensure proper platform targeting
+          # For beta builds, override MARKETING_VERSION so the app displays the beta version string
+          BETA_VERSION_FLAG=""
+          if [ "${{ steps.should_release.outputs.is_beta }}" = "true" ]; then
+            BETA_VERSION_FLAG="MARKETING_VERSION=${{ inputs.beta_version }}"
+            echo "📦 Overriding MARKETING_VERSION to ${{ inputs.beta_version }} for beta build"
+          fi
+
           xcodebuild archive \
             -project auto-focus.xcodeproj \
             -scheme auto-focus \
@@ -242,7 +249,8 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM=LKQJ2JG34Y \
             HMAC_SECRET="$HMAC_SECRET" \
-            ONLY_ACTIVE_ARCH=NO || exit $?
+            ONLY_ACTIVE_ARCH=NO \
+            $BETA_VERSION_FLAG || exit $?
 
           # Verify the archive contains the actual executable
           EXECUTABLE_PATH="build/auto-focus.xcarchive/Products/Applications/auto-focus.app/Contents/MacOS/auto-focus"

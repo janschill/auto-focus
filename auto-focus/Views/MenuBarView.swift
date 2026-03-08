@@ -13,6 +13,10 @@ struct MenuBarView: View {
     #endif
     }
 
+    var isBetaBuild: Bool {
+        return version.contains("-beta")
+    }
+
     // Calculate total focus time today
     var totalFocusTimeToday: TimeInterval {
         return focusManager.todaysSessions.reduce(0) { $0 + $1.duration }
@@ -299,6 +303,21 @@ struct MenuBarView: View {
             }
 
             Divider()
+
+            // Beta indicator
+            if isBetaBuild {
+                HStack(spacing: 4) {
+                    Text("BETA")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.orange, in: Capsule())
+                    Text(version)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+            }
 
             // Controls section
             HStack {
