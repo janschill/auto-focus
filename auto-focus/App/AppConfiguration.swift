@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 struct AppConfiguration {
@@ -55,6 +56,40 @@ struct AppConfiguration {
         "com.360.Chrome",
         "com.chromium.Chromium",
     ])
+
+    static let browserDisplayNames: [String: String] = [
+        "com.apple.Safari": "Safari",
+        "com.apple.SafariTechnologyPreview": "Safari Technology Preview",
+        "com.google.Chrome": "Google Chrome",
+        "com.google.Chrome.canary": "Google Chrome Canary",
+        "com.google.Chrome.beta": "Google Chrome Beta",
+        "com.google.Chrome.dev": "Google Chrome Dev",
+        "com.microsoft.Edge": "Microsoft Edge",
+        "com.microsoft.Edge.Canary": "Microsoft Edge Canary",
+        "com.microsoft.Edge.Beta": "Microsoft Edge Beta",
+        "com.microsoft.Edge.Dev": "Microsoft Edge Dev",
+        "com.brave.Browser": "Brave",
+        "com.brave.Browser.beta": "Brave Beta",
+        "com.operasoftware.Opera": "Opera",
+        "com.operasoftware.OperaNext": "Opera Next",
+        "com.operasoftware.OperaDeveloper": "Opera Developer",
+        "com.vivaldi.Vivaldi": "Vivaldi",
+        "com.yandex.browser": "Yandex Browser",
+        "com.arc.Arc": "Arc",
+        "com.360.Chrome": "360 Browser",
+        "com.chromium.Chromium": "Chromium",
+    ]
+
+    static func installedSupportedBrowsers() -> [(bundleId: String, name: String)] {
+        supportedBrowserBundleIds.compactMap { bundleId in
+            guard NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleId) != nil else {
+                return nil
+            }
+            let name = browserDisplayNames[bundleId] ?? bundleId
+            return (bundleId: bundleId, name: name)
+        }
+        .sorted { $0.name < $1.name }
+    }
 
     static func isSupportedBrowser(_ bundleId: String) -> Bool {
         supportedBrowserBundleIds.contains(bundleId)

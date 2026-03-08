@@ -427,6 +427,21 @@ struct BrowserIntegrationStepView: View {
                     .padding(.vertical, 8)
                     .background(Color.orange.opacity(0.1))
                     .cornerRadius(8)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Permission Required")
+                        .font(.callout)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.blue)
+                    Text("When Auto-Focus first detects a supported browser, macOS will ask you to grant Automation permission. Please allow this so Auto-Focus can detect your focus websites.")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.blue.opacity(0.1))
+                .cornerRadius(8)
             }
 
             VStack(spacing: 16) {

@@ -247,6 +247,7 @@ class MockBrowserManager: ObservableObject, BrowserManaging {
     @Published var focusURLs: [FocusURL] = []
     @Published var currentBrowserTab: BrowserTabInfo?
     @Published var isBrowserInFocus: Bool = false
+    @Published var browserPermissions: [String: AutomationPermissionStatus] = [:]
 
     weak var delegate: BrowserManagerDelegate?
 
@@ -295,6 +296,10 @@ class MockBrowserManager: ObservableObject, BrowserManaging {
         isPolling = false
     }
 
+    func checkPermissionsForRunningBrowsers() {
+        // No-op in mock
+    }
+
     // Test helpers
     func simulateBrowserFocusActivated(url: String = "https://github.com") {
         isBrowserInFocus = true
@@ -312,6 +317,7 @@ class MockBrowserManager: ObservableObject, BrowserManaging {
         focusURLs.removeAll()
         currentBrowserTab = nil
         isBrowserInFocus = false
+        browserPermissions.removeAll()
         isPolling = false
     }
 }

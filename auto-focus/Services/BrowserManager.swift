@@ -9,6 +9,7 @@ protocol BrowserManaging: AnyObject, ObservableObject {
     var delegate: BrowserManagerDelegate? { get set }
     var canAddMoreURLs: Bool { get }
     var availablePresets: [FocusURL] { get }
+    var browserPermissions: [String: AutomationPermissionStatus] { get }
 
     func addFocusURL(_ focusURL: FocusURL)
     func removeFocusURL(_ focusURL: FocusURL)
@@ -17,12 +18,14 @@ protocol BrowserManaging: AnyObject, ObservableObject {
     func addPresetURLs(_ presets: [FocusURL])
     func startPolling()
     func stopPolling()
+    func checkPermissionsForRunningBrowsers()
 }
 
 protocol BrowserManagerDelegate: AnyObject {
     func browserManager(_ manager: any BrowserManaging, didChangeFocusState isFocus: Bool)
     func browserManager(_ manager: any BrowserManaging, didReceiveTabUpdate tabInfo: BrowserTabInfo)
     func browserManager(_ manager: any BrowserManaging, didUpdateFocusURLs urls: [FocusURL])
+    func browserManager(_ manager: any BrowserManaging, didUpdatePermissionFor bundleId: String, status: AutomationPermissionStatus)
 }
 
 class BrowserManager: ObservableObject, BrowserManaging {
@@ -39,7 +42,7 @@ class BrowserManager: ObservableObject, BrowserManaging {
     private var lastRecordedURL: String?
 
     private var pollingTimer: Timer?
-    private var deniedAutomationBrowsers: Set<String> = []
+    @Published var browserPermissions: [String: AutomationPermissionStatus] = [:]
 
     init(focusURLRepo: FocusURLRepository = FocusURLRepository(), licenseManager: LicenseManager = LicenseManager(), appEventRepo: AppEventRepository? = AppEventRepository()) {
         self.focusURLRepo = focusURLRepo
@@ -90,7 +93,7 @@ class BrowserManager: ObservableObject, BrowserManaging {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
 
-            guard let url = self.executeURLAppleScript(appName: appName, isSafari: isSafari) else {
+            guard let url = self.executeURLAppleScript(appName: appName, bundleId: bundleId, isSafari: isSafari) else {
                 return
             }
 
@@ -102,7 +105,7 @@ class BrowserManager: ObservableObject, BrowserManaging {
         }
     }
 
-    private func executeURLAppleScript(appName: String, isSafari: Bool) -> String? {
+    private func executeURLAppleScript(appName: String, bundleId: String, isSafari: Bool) -> String? {
         let script: String
         if isSafari {
             script = "tell application \"\(appName)\" to return URL of front document"
@@ -122,12 +125,10 @@ class BrowserManager: ObservableObject, BrowserManaging {
             // -600 = app not running
             // -1728 = no front window/document
             if errorNumber == -1743 {
-                if !deniedAutomationBrowsers.contains(appName) {
-                    deniedAutomationBrowsers.insert(appName)
-                    AppLogger.browser.warning("Automation permission denied for browser - grant permission in System Settings > Privacy & Security > Automation", metadata: [
-                        "browser": appName
-                    ])
-                }
+                updatePermission(for: bundleId, status: .denied)
+                AppLogger.browser.warning("Automation permission denied for browser - grant permission in System Settings > Privacy & Security > Automation", metadata: [
+                    "browser": appName
+                ])
             } else if errorNumber != -600 && errorNumber != -1728 {
                 AppLogger.browser.error("AppleScript error for browser", metadata: [
                     "browser": appName,
@@ -138,7 +139,36 @@ class BrowserManager: ObservableObject, BrowserManaging {
             return nil
         }
 
+        updatePermission(for: bundleId, status: .granted)
         return result.stringValue
+    }
+
+    private func updatePermission(for bundleId: String, status: AutomationPermissionStatus) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            let previous = self.browserPermissions[bundleId]
+            guard previous != status else { return }
+            self.browserPermissions[bundleId] = status
+            self.delegate?.browserManager(self, didUpdatePermissionFor: bundleId, status: status)
+        }
+    }
+
+    func checkPermissionsForRunningBrowsers() {
+        let runningApps = NSWorkspace.shared.runningApplications
+        for app in runningApps {
+            guard let bundleId = app.bundleIdentifier,
+                  AppConfiguration.isSupportedBrowser(bundleId),
+                  browserPermissions[bundleId] == nil else {
+                continue
+            }
+
+            let appName = app.localizedName ?? bundleId
+            let isSafari = AppConfiguration.isSafari(bundleId)
+
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                _ = self?.executeURLAppleScript(appName: appName, bundleId: bundleId, isSafari: isSafari)
+            }
+        }
     }
 
     private func handlePolledURL(_ url: String, appName: String, bundleId: String) {

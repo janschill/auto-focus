@@ -378,6 +378,14 @@ class FocusManager: ObservableObject {
         return browserManager.focusURLs
     }
 
+    var browserPermissions: [String: AutomationPermissionStatus] {
+        return browserManager.browserPermissions
+    }
+
+    func checkPermissionsForRunningBrowsers() {
+        browserManager.checkPermissionsForRunningBrowsers()
+    }
+
     func addFocusURL(_ focusURL: FocusURL) {
         browserManager.addFocusURL(focusURL)
     }
@@ -653,6 +661,10 @@ extension FocusManager: BrowserManagerDelegate {
 
     func browserManager(_ manager: any BrowserManaging, didUpdateFocusURLs urls: [FocusURL]) {
         // This will trigger UI updates for focusURLs computed property
+        self.objectWillChange.send()
+    }
+
+    func browserManager(_ manager: any BrowserManaging, didUpdatePermissionFor bundleId: String, status: AutomationPermissionStatus) {
         self.objectWillChange.send()
     }
 }

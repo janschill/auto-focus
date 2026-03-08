@@ -244,6 +244,14 @@ struct BrowserTabInfo: Codable {
     }
 }
 
+// MARK: - Browser Automation Permission
+
+enum AutomationPermissionStatus: Equatable {
+    case unknown   // Haven't tried this browser yet
+    case granted   // AppleScript succeeded
+    case denied    // Got error -1743
+}
+
 // MARK: - Common Focus URL Presets
 
 extension FocusURL {

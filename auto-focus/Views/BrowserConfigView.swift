@@ -9,9 +9,17 @@ struct BrowserConfigView: View {
     @State private var selectedCategory: URLCategory = .work
     @State private var selectedURLId: UUID?
 
+    private var hasDeniedBrowsers: Bool {
+        focusManager.browserPermissions.values.contains(.denied)
+    }
+
     var body: some View {
         VStack(spacing: 10) {
             HeaderView()
+
+            if hasDeniedBrowsers {
+                PermissionStatusView()
+            }
 
             FocusURLsManagementView(selectedTab: $selectedTab, selectedURLId: $selectedURLId, showingAddURL: $showingAddURL)
 
@@ -53,6 +61,85 @@ private struct HeaderView: View {
             }
             .padding(.horizontal, 40)
             .padding(.vertical)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+private struct PermissionStatusView: View {
+    @EnvironmentObject var focusManager: FocusManager
+
+    private var deniedBrowsers: [(bundleId: String, name: String)] {
+        focusManager.browserPermissions.compactMap { bundleId, status in
+            guard status == .denied else { return nil }
+            let name = AppConfiguration.browserDisplayNames[bundleId] ?? bundleId
+            return (bundleId: bundleId, name: name)
+        }
+        .sorted { $0.name < $1.name }
+    }
+
+    private var grantedBrowsers: [(bundleId: String, name: String)] {
+        focusManager.browserPermissions.compactMap { bundleId, status in
+            guard status == .granted else { return nil }
+            let name = AppConfiguration.browserDisplayNames[bundleId] ?? bundleId
+            return (bundleId: bundleId, name: name)
+        }
+        .sorted { $0.name < $1.name }
+    }
+
+    var body: some View {
+        GroupBox {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.orange)
+                    Text("Automation Permission Required")
+                        .font(.headline)
+                        .foregroundColor(.orange)
+                }
+
+                Text("Auto-Focus needs Automation permission to detect URLs in these browsers:")
+                    .font(.callout)
+                    .foregroundColor(.secondary)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(deniedBrowsers, id: \.bundleId) { browser in
+                        HStack(spacing: 8) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.red)
+                            Text(browser.name)
+                                .font(.body)
+                        }
+                    }
+
+                    ForEach(grantedBrowsers, id: \.bundleId) { browser in
+                        HStack(spacing: 8) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                            Text(browser.name)
+                                .font(.body)
+                        }
+                    }
+                }
+                .padding(.vertical, 4)
+
+                HStack(spacing: 12) {
+                    Button("Open System Settings") {
+                        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+
+                    Button("Check Permissions") {
+                        focusManager.checkPermissionsForRunningBrowsers()
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+            }
+            .padding(.vertical, 4)
         }
         .frame(maxWidth: .infinity)
     }
