@@ -1,9 +1,8 @@
 {
   "version": "1.14.6",
-  "build_date": "2026-03-07T17:03:23Z",
-  "commit_hash": "f95af0e",
+  "build_date": "2026-03-08T12:26:08Z",
+  "commit_hash": "9483590",
   "app_zip": "Auto-Focus-v1.14.6.zip",
-  "extension_zip": "auto-focus-extension.zip",
   "download_url": "https://auto-focus.app/downloads/Auto-Focus-v1.14.6.zip",
   "min_macos": "14.0"
 }
