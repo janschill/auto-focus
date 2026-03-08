@@ -339,6 +339,7 @@ class FocusManager: ObservableObject {
 
     private func resetFocusState() {
         isFocusAppActive = false
+        isBrowserInFocus = false
         timeSpent = 0
         isInFocusMode = false
         didReachFocusThreshold = false

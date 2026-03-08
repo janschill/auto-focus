@@ -61,6 +61,7 @@ class BrowserManager: ObservableObject, BrowserManaging {
 
     func startPolling() {
         guard pollingTimer == nil else { return }
+        AppLogger.browser.info("Started URL polling for browser")
         pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             self?.pollCurrentURL()
         }
@@ -69,11 +70,14 @@ class BrowserManager: ObservableObject, BrowserManaging {
     }
 
     func stopPolling() {
+        guard pollingTimer != nil else { return }
         pollingTimer?.invalidate()
         pollingTimer = nil
+        AppLogger.browser.info("Stopped URL polling")
     }
 
     private func pollCurrentURL() {
+        guard pollingTimer != nil else { return }
         guard let frontApp = NSWorkspace.shared.frontmostApplication,
               let bundleId = frontApp.bundleIdentifier,
               AppConfiguration.isSupportedBrowser(bundleId) else {
@@ -91,6 +95,8 @@ class BrowserManager: ObservableObject, BrowserManaging {
             }
 
             DispatchQueue.main.async {
+                // Don't process results if polling was stopped while on background thread
+                guard self.pollingTimer != nil else { return }
                 self.handlePolledURL(url, appName: appName, bundleId: bundleId)
             }
         }
@@ -111,16 +117,23 @@ class BrowserManager: ObservableObject, BrowserManaging {
 
         if let error = errorInfo {
             let errorNumber = error[NSAppleScript.errorNumber] as? Int ?? 0
+            let errorMessage = error[NSAppleScript.errorMessage] as? String ?? "unknown"
             // -1743 = not authorized (Automation permission denied)
             // -600 = app not running
             // -1728 = no front window/document
             if errorNumber == -1743 {
                 if !deniedAutomationBrowsers.contains(appName) {
                     deniedAutomationBrowsers.insert(appName)
-                    AppLogger.browser.warning("Automation permission denied for browser", metadata: [
+                    AppLogger.browser.warning("Automation permission denied for browser - grant permission in System Settings > Privacy & Security > Automation", metadata: [
                         "browser": appName
                     ])
                 }
+            } else if errorNumber != -600 && errorNumber != -1728 {
+                AppLogger.browser.error("AppleScript error for browser", metadata: [
+                    "browser": appName,
+                    "error_number": String(errorNumber),
+                    "error_message": errorMessage
+                ])
             }
             return nil
         }
