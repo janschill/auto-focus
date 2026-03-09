@@ -41,6 +41,7 @@ class BrowserManager: ObservableObject, BrowserManaging {
 
     private var pollingTimer: Timer?
     private var deniedAutomationBrowsers: Set<String> = []
+    private var authorizedAutomationBrowsers: Set<String> = []
 
     init(focusURLRepo: FocusURLRepository = FocusURLRepository(), licenseManager: LicenseManager = LicenseManager(), appEventRepo: AppEventRepository? = AppEventRepository()) {
         self.focusURLRepo = focusURLRepo
@@ -88,6 +89,19 @@ class BrowserManager: ObservableObject, BrowserManaging {
         let appName = frontApp.localizedName ?? bundleId
         let isSafari = AppConfiguration.isSafari(bundleId)
 
+        // First attempt for a browser must run on the main thread so macOS
+        // can display the Automation permission prompt (TCC dialog).
+        // Menu bar apps (.accessory) may not show the prompt from background threads.
+        if !authorizedAutomationBrowsers.contains(appName) && !deniedAutomationBrowsers.contains(appName) {
+            guard let url = executeURLAppleScript(appName: appName, isSafari: isSafari) else {
+                return
+            }
+            authorizedAutomationBrowsers.insert(appName)
+            handlePolledURL(url, appName: appName, bundleId: bundleId)
+            return
+        }
+
+        // Already authorized — poll from background thread for performance
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
 
