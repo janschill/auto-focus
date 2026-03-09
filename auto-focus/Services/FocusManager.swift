@@ -655,4 +655,28 @@ extension FocusManager: BrowserManagerDelegate {
         // This will trigger UI updates for focusURLs computed property
         self.objectWillChange.send()
     }
+
+    func browserManager(_ manager: any BrowserManaging, didDenyAutomationPermissionForBrowser browserName: String) {
+        showAutomationPermissionAlert(for: browserName)
+    }
+
+    private func showAutomationPermissionAlert(for browserName: String) {
+        let alert = NSAlert()
+        alert.messageText = "Automation Permission Required"
+        alert.informativeText = "Auto-Focus needs permission to read URLs from \(browserName) to track your focus time on websites.\n\nPlease grant access in System Settings > Privacy & Security > Automation, then enable \(browserName) under Auto-Focus.\n\nIf Auto-Focus doesn't appear in the list, you may need to restart the app so macOS can prompt you."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Open System Settings")
+        alert.addButton(withTitle: "Later")
+
+        // Make sure the app is visible for the alert
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation") {
+                NSWorkspace.shared.open(url)
+            }
+        }
+    }
 }
