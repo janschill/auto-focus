@@ -15,6 +15,10 @@ final class DatabaseManager {
             try fileManager.createDirectory(at: dbDirectory, withIntermediateDirectories: true)
 
             let dbPath = dbDirectory.appendingPathComponent("autofocus.sqlite").path
+
+            // Migrate database from sandboxed container if this is the first
+            // launch after removing the sandbox.
+            Self.migrateSandboxedDatabaseIfNeeded(to: dbDirectory, fileManager: fileManager)
             dbQueue = try DatabaseQueue(path: dbPath)
 
             try migrator.migrate(dbQueue)
@@ -40,6 +44,39 @@ final class DatabaseManager {
     init(dbQueue: DatabaseQueue) throws {
         self.dbQueue = dbQueue
         try migrator.migrate(dbQueue)
+    }
+
+    /// Copies the SQLite database from the old sandboxed container to the new
+    /// Application Support location. Only runs once — skipped if the destination
+    /// database already exists.
+    private static func migrateSandboxedDatabaseIfNeeded(to destinationDir: URL, fileManager: FileManager) {
+        let destDB = destinationDir.appendingPathComponent("autofocus.sqlite")
+
+        // Skip if destination database already exists (already migrated or fresh non-sandboxed install)
+        guard !fileManager.fileExists(atPath: destDB.path) else { return }
+
+        let homeDir = fileManager.homeDirectoryForCurrentUser
+        let containerDB = homeDir
+            .appendingPathComponent("Library/Containers/auto-focus.auto-focus/Data/Library/Application Support/auto-focus.auto-focus/autofocus.sqlite")
+
+        guard fileManager.fileExists(atPath: containerDB.path) else { return }
+
+        // Copy the main database file and any WAL/SHM files
+        let extensions = ["", "-wal", "-shm"]
+        for ext in extensions {
+            let src = containerDB.path + ext
+            let dst = destDB.path + ext
+            guard fileManager.fileExists(atPath: src) else { continue }
+            do {
+                try fileManager.copyItem(atPath: src, toPath: dst)
+            } catch {
+                AppLogger.focus.error("Failed to migrate sandboxed database file", error: error, metadata: [
+                    "file": ext.isEmpty ? "autofocus.sqlite" : "autofocus.sqlite\(ext)"
+                ])
+            }
+        }
+
+        AppLogger.focus.info("Migrated database from sandboxed container")
     }
 
     private var migrator: DatabaseMigrator {
