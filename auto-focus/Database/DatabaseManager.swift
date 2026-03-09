@@ -47,19 +47,34 @@ final class DatabaseManager {
     }
 
     /// Copies the SQLite database from the old sandboxed container to the new
-    /// Application Support location. Only runs once — skipped if the destination
-    /// database already exists.
+    /// Application Support location. Runs if the destination database doesn't
+    /// exist or is empty (e.g., created by a previous launch before migration
+    /// was added).
     private static func migrateSandboxedDatabaseIfNeeded(to destinationDir: URL, fileManager: FileManager) {
         let destDB = destinationDir.appendingPathComponent("autofocus.sqlite")
-
-        // Skip if destination database already exists (already migrated or fresh non-sandboxed install)
-        guard !fileManager.fileExists(atPath: destDB.path) else { return }
 
         let homeDir = fileManager.homeDirectoryForCurrentUser
         let containerDB = homeDir
             .appendingPathComponent("Library/Containers/auto-focus.auto-focus/Data/Library/Application Support/auto-focus.auto-focus/autofocus.sqlite")
 
         guard fileManager.fileExists(atPath: containerDB.path) else { return }
+
+        // Check if destination already has data (successfully migrated before)
+        if fileManager.fileExists(atPath: destDB.path) {
+            let destSize = (try? fileManager.attributesOfItem(atPath: destDB.path)[.size] as? Int) ?? 0
+            let srcSize = (try? fileManager.attributesOfItem(atPath: containerDB.path)[.size] as? Int) ?? 0
+            // Skip if destination is already larger or equal — migration already happened.
+            // A freshly-created empty GRDB database is ~8KB (schema only), while one with
+            // real data will be larger than the source.
+            guard srcSize > destSize else { return }
+
+            // Remove the empty/smaller destination so we can replace it
+            let extensions = ["", "-wal", "-shm"]
+            for ext in extensions {
+                let dst = destDB.path + ext
+                try? fileManager.removeItem(atPath: dst)
+            }
+        }
 
         // Copy the main database file and any WAL/SHM files
         let extensions = ["", "-wal", "-shm"]
