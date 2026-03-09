@@ -304,6 +304,165 @@ struct ProductivityMetricsView: View {
     }
 }
 
+// MARK: - Activity Breakdown
+
+struct ActivityBreakdownView: View {
+    @ObservedObject var dataProvider: InsightsViewModel
+    @EnvironmentObject var focusManager: FocusManager
+
+    var body: some View {
+        let apps = dataProvider.topApps
+        let domains = dataProvider.topDomains
+
+        if apps.isEmpty && domains.isEmpty {
+            EmptyView()
+        } else {
+            GroupBox("Activity Breakdown") {
+                VStack(alignment: .leading, spacing: 16) {
+                    if !apps.isEmpty {
+                        appSection(apps: apps)
+                    }
+                    if !domains.isEmpty {
+                        domainSection(domains: domains)
+                    }
+                }
+                .padding(4)
+            }
+        }
+    }
+
+    private func appSection(apps: [AppUsageSummary]) -> some View {
+        let maxDuration = apps.first?.totalDuration ?? 1
+        let focusBundleIDs = Set(focusManager.focusApps.map(\.bundleIdentifier))
+
+        return VStack(alignment: .leading, spacing: 6) {
+            Text("Apps")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+
+            ForEach(apps, id: \.bundleIdentifier) { app in
+                HStack(spacing: 8) {
+                    if focusBundleIDs.contains(app.bundleIdentifier) {
+                        Circle()
+                            .fill(Color.blue)
+                            .frame(width: 6, height: 6)
+                    } else {
+                        Spacer().frame(width: 6)
+                    }
+
+                    Text(app.appName ?? app.bundleIdentifier)
+                        .font(.callout)
+                        .frame(width: 120, alignment: .leading)
+                        .lineLimit(1)
+
+                    GeometryReader { geo in
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(Color.blue.opacity(0.5))
+                            .frame(width: max(4, geo.size.width * CGFloat(app.totalDuration / maxDuration)))
+                    }
+                    .frame(height: 14)
+
+                    Text(TimeFormatter.duration(Int(app.totalDuration / 60)))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .frame(width: 50, alignment: .trailing)
+                }
+            }
+        }
+    }
+
+    private func domainSection(domains: [DomainUsageSummary]) -> some View {
+        let maxDuration = domains.first?.totalDuration ?? 1
+        let focusDomains = focusManager.focusURLs
+
+        return VStack(alignment: .leading, spacing: 6) {
+            Text("Websites")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+
+            ForEach(domains, id: \.domain) { domain in
+                let isFocusDomain = focusDomains.contains { $0.matches(domain.domain) || $0.matches("https://\(domain.domain)") }
+                HStack(spacing: 8) {
+                    if isFocusDomain {
+                        Circle()
+                            .fill(Color.blue)
+                            .frame(width: 6, height: 6)
+                    } else {
+                        Spacer().frame(width: 6)
+                    }
+
+                    Image(systemName: "globe")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+
+                    Text(domain.domain)
+                        .font(.callout)
+                        .frame(width: 110, alignment: .leading)
+                        .lineLimit(1)
+
+                    GeometryReader { geo in
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(Color.purple.opacity(0.5))
+                            .frame(width: max(4, geo.size.width * CGFloat(domain.totalDuration / maxDuration)))
+                    }
+                    .frame(height: 14)
+
+                    Text(TimeFormatter.duration(Int(domain.totalDuration / 60)))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .frame(width: 50, alignment: .trailing)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Context Switches
+
+struct ContextSwitchesView: View {
+    @ObservedObject var dataProvider: InsightsViewModel
+
+    var body: some View {
+        let summary = dataProvider.disruptionSummary
+        if summary.totalSwitches > 0 {
+            GroupBox("Context Switches") {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("\(summary.totalSwitches)")
+                            .font(.system(size: 28, weight: .semibold))
+                        Text("context \(summary.totalSwitches == 1 ? "switch" : "switches")")
+                            .font(.body)
+                            .foregroundColor(.secondary)
+                    }
+
+                    if !summary.distractors.isEmpty {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Top distractors")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+
+                            ForEach(Array(summary.distractors.prefix(5).enumerated()), id: \.offset) { _, item in
+                                HStack {
+                                    Text(item.name)
+                                        .font(.callout)
+                                        .lineLimit(1)
+                                    Spacer()
+                                    Text("\(item.count)x")
+                                        .font(.callout)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(4)
+            }
+        }
+    }
+}
+
+// MARK: - Main InsightsView
+
 struct InsightsView: View {
     @EnvironmentObject var focusManager: FocusManager
     @EnvironmentObject var licenseManager: LicenseManager
@@ -316,94 +475,98 @@ struct InsightsView: View {
     }
 
     var body: some View {
-        VStack(spacing: 10) {
-            GroupBox {
-                VStack {
-                    Text("You've focussed for").font(.title2)
-                        .fontDesign(.default)
-                        .foregroundStyle(.secondary)
-                    let totalSeconds = Int(dataProvider.totalFocusTimeThisMonth)
-                    let totalMinutes = Int(totalSeconds / 60)
-
-                    Text("\(TimeFormatter.duration(totalMinutes)) this month")
-                        .font(.title)
-                        .fontWeight(.bold)
-                    Text("Here you can find your curated focus insights. From daily to weekly detailed views, your most productive times and more.")
-                        .font(.callout)
-                        .fontDesign(.default)
-                        .fontWeight(.regular)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                .padding(.horizontal, 40)
-                .padding(.vertical)
-                .frame(maxWidth: .infinity)
-            }
-
-            if licenseManager.hasValidLicense() {
-                GroupBox {
-                    VStack(alignment: .leading, spacing: 8) {
-                        ProductivityMetricsView(dataProvider: dataProvider)
-                    }
-                    .padding(8)
-                }
-
-                GroupBox {
-                    VStack(alignment: .leading, spacing: 8) {
-                        InsightsHeaderView(dataProvider: dataProvider)
-                        FocusTimeOverviewView(dataProvider: dataProvider)
-                        InsightsGraphsContainerView(dataProvider: dataProvider)
-
-                        HStack {
-                            Text("Number of sessions")
-                                .font(.body)
-                            Spacer()
-                            Text("\(dataProvider.relevantSessions.count)")
-                                .font(.body)
-                        }
-                        .padding(.top, 8)
-                    }
-                    .padding(8)
-                }
-            } else {
+        ScrollView {
+            VStack(spacing: 10) {
                 GroupBox {
                     VStack {
-                        Text("You are currently on a free plan of Auto-Focus. To unlock more detailed insights, please upgrade to Auto-Focus+.")
+                        Text("You've focussed for").font(.title2)
+                            .fontDesign(.default)
+                            .foregroundStyle(.secondary)
+                        let totalSeconds = Int(dataProvider.totalFocusTimeThisMonth)
+                        let totalMinutes = Int(totalSeconds / 60)
+
+                        Text("\(TimeFormatter.duration(totalMinutes)) this month")
+                            .font(.title)
+                            .fontWeight(.bold)
+                        Text("Here you can find your curated focus insights. From daily to weekly detailed views, your most productive times and more.")
                             .font(.callout)
                             .fontDesign(.default)
                             .fontWeight(.regular)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
-
-                        LicenseBenefitsView()
                     }
                     .padding(.horizontal, 40)
                     .padding(.vertical)
                     .frame(maxWidth: .infinity)
+                }
 
-                    HStack {
-                        Image(systemName: "lock.fill")
-                            .foregroundColor(.secondary)
-                        Text("Upgrade to Auto-Focus+ for detailed insights")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-
-                        Spacer()
-
-                        Button("Upgrade") {
-                            selectedTab = 4 // Navigate to Auto-Focus+ tab
+                if licenseManager.hasValidLicense() {
+                    GroupBox {
+                        VStack(alignment: .leading, spacing: 8) {
+                            ProductivityMetricsView(dataProvider: dataProvider)
                         }
-                        .controlSize(.small)
+                        .padding(8)
                     }
-                    .padding(.vertical, 6)
-                    .padding(.horizontal, 8)
-                    .background(Color.secondary.opacity(0.1))
-                    .cornerRadius(6)
+
+                    GroupBox {
+                        VStack(alignment: .leading, spacing: 8) {
+                            InsightsHeaderView(dataProvider: dataProvider)
+                            FocusTimeOverviewView(dataProvider: dataProvider)
+                            InsightsGraphsContainerView(dataProvider: dataProvider)
+
+                            HStack {
+                                Text("Number of sessions")
+                                    .font(.body)
+                                Spacer()
+                                Text("\(dataProvider.relevantSessions.count)")
+                                    .font(.body)
+                            }
+                            .padding(.top, 8)
+                        }
+                        .padding(8)
+                    }
+
+                    ActivityBreakdownView(dataProvider: dataProvider)
+                    ContextSwitchesView(dataProvider: dataProvider)
+                } else {
+                    GroupBox {
+                        VStack {
+                            Text("You are currently on a free plan of Auto-Focus. To unlock more detailed insights, please upgrade to Auto-Focus+.")
+                                .font(.callout)
+                                .fontDesign(.default)
+                                .fontWeight(.regular)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+
+                            LicenseBenefitsView()
+                        }
+                        .padding(.horizontal, 40)
+                        .padding(.vertical)
+                        .frame(maxWidth: .infinity)
+
+                        HStack {
+                            Image(systemName: "lock.fill")
+                                .foregroundColor(.secondary)
+                            Text("Upgrade to Auto-Focus+ for detailed insights")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+
+                            Spacer()
+
+                            Button("Upgrade") {
+                                selectedTab = 4 // Navigate to Auto-Focus+ tab
+                            }
+                            .controlSize(.small)
+                        }
+                        .padding(.vertical, 6)
+                        .padding(.horizontal, 8)
+                        .background(Color.secondary.opacity(0.1))
+                        .cornerRadius(6)
+                    }
                 }
             }
-            Spacer()
+            .padding()
         }
-        .padding()
         .onAppear {
             dataProvider.updateFocusManager(focusManager)
         }
