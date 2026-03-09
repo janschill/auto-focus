@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 import Combine
 import Foundation
 
@@ -89,29 +90,42 @@ class BrowserManager: ObservableObject, BrowserManaging {
         let appName = frontApp.localizedName ?? bundleId
         let isSafari = AppConfiguration.isSafari(bundleId)
 
-        // First attempt for a browser must run on the main thread so macOS
-        // can display the Automation permission prompt (TCC dialog).
-        // We also temporarily make the app a regular app and activate it,
-        // because menu bar apps (.accessory) may not trigger the TCC prompt.
-        if !authorizedAutomationBrowsers.contains(appName) && !deniedAutomationBrowsers.contains(appName) {
+        // First time seeing this browser: use AEDeterminePermissionToAutomateTarget
+        // to explicitly trigger the macOS TCC Automation permission prompt.
+        // NSAppleScript alone may be silently blocked by the sandbox without prompting.
+        if !authorizedAutomationBrowsers.contains(bundleId) && !deniedAutomationBrowsers.contains(bundleId) {
             let previousPolicy = NSApp.activationPolicy()
             NSApp.setActivationPolicy(.regular)
             NSApp.activate(ignoringOtherApps: true)
 
-            let url = executeURLAppleScript(appName: appName, isSafari: isSafari)
+            let permissionStatus = Self.checkAutomationPermission(for: bundleId)
 
-            // Restore menu bar app mode
             NSApp.setActivationPolicy(previousPolicy)
 
-            guard let url = url else {
+            if permissionStatus == noErr {
+                authorizedAutomationBrowsers.insert(bundleId)
+                AppLogger.browser.info("Automation permission granted for browser", metadata: [
+                    "browser": appName
+                ])
+            } else {
+                // errAEEventNotPermitted (-1743) = denied or prompt dismissed
+                // procNotFound (-600) = target not running (shouldn't happen here)
+                deniedAutomationBrowsers.insert(bundleId)
+                AppLogger.browser.warning("Automation permission not granted for browser", metadata: [
+                    "browser": appName,
+                    "status": String(permissionStatus)
+                ])
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.delegate?.browserManager(self, didDenyAutomationPermissionForBrowser: appName)
+                }
                 return
             }
-            authorizedAutomationBrowsers.insert(appName)
-            handlePolledURL(url, appName: appName, bundleId: bundleId)
-            return
         }
 
-        // Already authorized — poll from background thread for performance
+        guard authorizedAutomationBrowsers.contains(bundleId) else { return }
+
+        // Authorized — poll from background thread for performance
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
 
@@ -125,6 +139,35 @@ class BrowserManager: ObservableObject, BrowserManaging {
                 self.handlePolledURL(url, appName: appName, bundleId: bundleId)
             }
         }
+    }
+
+    /// Uses AEDeterminePermissionToAutomateTarget to explicitly trigger the macOS
+    /// Automation TCC prompt for the given target app. This is the Apple-recommended
+    /// way to pre-flight automation permissions in sandboxed apps.
+    /// Returns noErr (0) if permitted, errAEEventNotPermitted (-1743) if denied.
+    static func checkAutomationPermission(for bundleIdentifier: String) -> OSStatus {
+        guard let bundleIDData = bundleIdentifier.data(using: .utf8) else {
+            return OSStatus(errAEEventNotPermitted)
+        }
+
+        var addressDesc = AEAddressDesc()
+        let createErr = bundleIDData.withUnsafeBytes { rawBuffer in
+            AECreateDesc(typeApplicationBundleID, rawBuffer.baseAddress!, rawBuffer.count, &addressDesc)
+        }
+
+        guard createErr == noErr else {
+            return createErr
+        }
+
+        let status = AEDeterminePermissionToAutomateTarget(
+            &addressDesc,
+            typeWildCard,
+            typeWildCard,
+            true // askUserIfNeeded — triggers the system TCC prompt
+        )
+
+        AEDisposeDesc(&addressDesc)
+        return status
     }
 
     private func executeURLAppleScript(appName: String, isSafari: Bool) -> String? {
@@ -147,16 +190,11 @@ class BrowserManager: ObservableObject, BrowserManaging {
             // -600 = app not running
             // -1728 = no front window/document
             if errorNumber == -1743 {
-                if !deniedAutomationBrowsers.contains(appName) {
-                    deniedAutomationBrowsers.insert(appName)
-                    AppLogger.browser.warning("Automation permission denied for browser - grant permission in System Settings > Privacy & Security > Automation", metadata: [
-                        "browser": appName
-                    ])
-                    DispatchQueue.main.async { [weak self] in
-                        guard let self = self else { return }
-                        self.delegate?.browserManager(self, didDenyAutomationPermissionForBrowser: appName)
-                    }
-                }
+                // Permission denied — this is a fallback; the pre-check via
+                // AEDeterminePermissionToAutomateTarget should have caught this.
+                AppLogger.browser.warning("Automation permission denied for browser (AppleScript fallback)", metadata: [
+                    "browser": appName
+                ])
             } else if errorNumber != -600 && errorNumber != -1728 {
                 AppLogger.browser.error("AppleScript error for browser", metadata: [
                     "browser": appName,
