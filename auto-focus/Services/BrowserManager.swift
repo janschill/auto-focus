@@ -23,6 +23,7 @@ protocol BrowserManagerDelegate: AnyObject {
     func browserManager(_ manager: any BrowserManaging, didChangeFocusState isFocus: Bool)
     func browserManager(_ manager: any BrowserManaging, didReceiveTabUpdate tabInfo: BrowserTabInfo)
     func browserManager(_ manager: any BrowserManaging, didUpdateFocusURLs urls: [FocusURL])
+    func browserManager(_ manager: any BrowserManaging, didDenyAutomationPermissionForBrowser browserName: String)
 }
 
 class BrowserManager: ObservableObject, BrowserManaging {
@@ -127,6 +128,10 @@ class BrowserManager: ObservableObject, BrowserManaging {
                     AppLogger.browser.warning("Automation permission denied for browser - grant permission in System Settings > Privacy & Security > Automation", metadata: [
                         "browser": appName
                     ])
+                    DispatchQueue.main.async { [weak self] in
+                        guard let self = self else { return }
+                        self.delegate?.browserManager(self, didDenyAutomationPermissionForBrowser: appName)
+                    }
                 }
             } else if errorNumber != -600 && errorNumber != -1728 {
                 AppLogger.browser.error("AppleScript error for browser", metadata: [
