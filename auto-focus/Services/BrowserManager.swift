@@ -91,9 +91,19 @@ class BrowserManager: ObservableObject, BrowserManaging {
 
         // First attempt for a browser must run on the main thread so macOS
         // can display the Automation permission prompt (TCC dialog).
-        // Menu bar apps (.accessory) may not show the prompt from background threads.
+        // We also temporarily make the app a regular app and activate it,
+        // because menu bar apps (.accessory) may not trigger the TCC prompt.
         if !authorizedAutomationBrowsers.contains(appName) && !deniedAutomationBrowsers.contains(appName) {
-            guard let url = executeURLAppleScript(appName: appName, isSafari: isSafari) else {
+            let previousPolicy = NSApp.activationPolicy()
+            NSApp.setActivationPolicy(.regular)
+            NSApp.activate(ignoringOtherApps: true)
+
+            let url = executeURLAppleScript(appName: appName, isSafari: isSafari)
+
+            // Restore menu bar app mode
+            NSApp.setActivationPolicy(previousPolicy)
+
+            guard let url = url else {
                 return
             }
             authorizedAutomationBrowsers.insert(appName)
