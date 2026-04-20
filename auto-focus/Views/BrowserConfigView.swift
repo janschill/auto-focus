@@ -10,19 +10,19 @@ struct BrowserConfigView: View {
     @State private var selectedURLId: UUID?
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 10) {
-                HeaderView()
+        VStack(spacing: 10) {
+            HeaderView()
 
-                BrowserIntegrationsSection(
-                    permissionService: focusManager.automationPermissionService,
-                    enablementStore: focusManager.browserEnablementStore
-                )
+            BrowserIntegrationsSection(
+                permissionService: focusManager.automationPermissionService,
+                enablementStore: focusManager.browserEnablementStore
+            )
 
-                FocusURLsManagementView(selectedTab: $selectedTab, selectedURLId: $selectedURLId, showingAddURL: $showingAddURL)
-            }
-            .padding()
+            FocusURLsManagementView(selectedTab: $selectedTab, selectedURLId: $selectedURLId, showingAddURL: $showingAddURL)
+
+            Spacer()
         }
+        .padding()
         .sheet(isPresented: $showingAddURL) {
             AddURLSheet(newURL: $newURL, selectedCategory: $selectedCategory)
                 .frame(minWidth: 500, minHeight: 400)

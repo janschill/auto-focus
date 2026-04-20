@@ -290,13 +290,23 @@ jobs:
           codesign --sign "Developer ID Application: Jan Schill (LKQJ2JG34Y)" \
             --timestamp \
             --options runtime \
+            --entitlements auto-focus/auto_focus.entitlements \
             --deep \
             --force \
             build/auto-focus_temp.app
 
           # Verify signature
           codesign --verify --verbose build/auto-focus_temp.app
-          echo "✅ Code signing verified"
+
+          # Verify entitlements are embedded (regression guard)
+          ENTITLEMENTS_OUT=$(codesign -d --entitlements :- build/auto-focus_temp.app 2>/dev/null)
+          if ! echo "$ENTITLEMENTS_OUT" | grep -q "com.apple.security.automation.apple-events"; then
+            echo "❌ ERROR: automation.apple-events entitlement missing from signed app"
+            echo "Embedded entitlements:"
+            echo "$ENTITLEMENTS_OUT"
+            exit 1
+          fi
+          echo "✅ Code signing verified with entitlements"
 
       - name: Create ZIP for notarization
         if: steps.should_release.outputs.proceed == 'true'
