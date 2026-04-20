@@ -23,7 +23,6 @@ protocol BrowserManagerDelegate: AnyObject {
     func browserManager(_ manager: any BrowserManaging, didChangeFocusState isFocus: Bool)
     func browserManager(_ manager: any BrowserManaging, didReceiveTabUpdate tabInfo: BrowserTabInfo)
     func browserManager(_ manager: any BrowserManaging, didUpdateFocusURLs urls: [FocusURL])
-    func browserManager(_ manager: any BrowserManaging, didDenyAutomationPermissionForBrowser browserName: String)
 }
 
 class BrowserManager: ObservableObject, BrowserManaging {
@@ -41,7 +40,6 @@ class BrowserManager: ObservableObject, BrowserManaging {
 
     private var pollingTimer: Timer?
     private var deniedAutomationBrowsers: Set<String> = []
-    private var authorizedAutomationBrowsers: Set<String> = []
 
     init(focusURLRepo: FocusURLRepository = FocusURLRepository(), licenseManager: LicenseManager = LicenseManager(), appEventRepo: AppEventRepository? = AppEventRepository()) {
         self.focusURLRepo = focusURLRepo
@@ -89,29 +87,6 @@ class BrowserManager: ObservableObject, BrowserManaging {
         let appName = frontApp.localizedName ?? bundleId
         let isSafari = AppConfiguration.isSafari(bundleId)
 
-        // First attempt for a browser must run on the main thread so macOS
-        // can display the Automation permission prompt (TCC dialog).
-        // We also temporarily make the app a regular app and activate it,
-        // because menu bar apps (.accessory) may not trigger the TCC prompt.
-        if !authorizedAutomationBrowsers.contains(appName) && !deniedAutomationBrowsers.contains(appName) {
-            let previousPolicy = NSApp.activationPolicy()
-            NSApp.setActivationPolicy(.regular)
-            NSApp.activate(ignoringOtherApps: true)
-
-            let url = executeURLAppleScript(appName: appName, isSafari: isSafari)
-
-            // Restore menu bar app mode
-            NSApp.setActivationPolicy(previousPolicy)
-
-            guard let url = url else {
-                return
-            }
-            authorizedAutomationBrowsers.insert(appName)
-            handlePolledURL(url, appName: appName, bundleId: bundleId)
-            return
-        }
-
-        // Already authorized — poll from background thread for performance
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
 
@@ -152,10 +127,6 @@ class BrowserManager: ObservableObject, BrowserManaging {
                     AppLogger.browser.warning("Automation permission denied for browser - grant permission in System Settings > Privacy & Security > Automation", metadata: [
                         "browser": appName
                     ])
-                    DispatchQueue.main.async { [weak self] in
-                        guard let self = self else { return }
-                        self.delegate?.browserManager(self, didDenyAutomationPermissionForBrowser: appName)
-                    }
                 }
             } else if errorNumber != -600 && errorNumber != -1728 {
                 AppLogger.browser.error("AppleScript error for browser", metadata: [
