@@ -419,7 +419,7 @@ struct BrowserIntegrationStepView: View {
                     .multilineTextAlignment(.center)
                     .foregroundColor(.secondary)
 
-                Text("Auto-Focus automatically detects focus websites in Safari, Chrome, Brave, Edge, and Arc. No browser extension needed.")
+                Text("After onboarding, open the Browsers tab to choose which browsers Auto-Focus should watch. macOS will ask for Automation permission one browser at a time — no extension required.")
                     .font(.callout)
                     .multilineTextAlignment(.center)
                     .foregroundColor(.orange)
@@ -843,8 +843,6 @@ struct OnboardingBrowserConfigSheet: View {
     @State private var showingAddURLOptions = false
     @State private var showingAddURL = false
     @State private var showingPresets = false
-    @State private var newURL = FocusURL(name: "", domain: "")
-    @State private var selectedCategory: URLCategory = .work
     @State private var selectedURLId: UUID?
 
     var body: some View {
@@ -1003,8 +1001,8 @@ struct OnboardingBrowserConfigSheet: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.windowBackgroundColor))
         .sheet(isPresented: $showingAddURL) {
-            OnboardingAddURLSheet(newURL: $newURL, selectedCategory: $selectedCategory)
-                .frame(minWidth: 500, minHeight: 400)
+            OnboardingAddURLSheet()
+                .frame(minWidth: 500, minHeight: 300)
         }
         .sheet(isPresented: $showingPresets) {
             OnboardingURLPresetsSheet()
@@ -1020,31 +1018,61 @@ struct OnboardingBrowserConfigSheet: View {
 struct OnboardingAddURLSheet: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var focusManager: FocusManager
-    @Binding var newURL: FocusURL
-    @Binding var selectedCategory: URLCategory
-    @State private var selectedMatchType: URLMatchType = .domain
+    @State private var domain = ""
+
+    private var cleanedDomain: String {
+        var d = domain
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+
+        if let url = URL(string: d), let host = url.host {
+            d = host
+        } else if d.contains("://") {
+            d = d.components(separatedBy: "://").last ?? d
+        }
+
+        d = d.components(separatedBy: "/").first ?? d
+        d = d.components(separatedBy: "?").first ?? d
+
+        return d
+    }
+
+    private var isDuplicate: Bool {
+        let d = cleanedDomain
+        guard !d.isEmpty else { return false }
+        return focusManager.focusURLs.contains { $0.domain == d }
+    }
 
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
-                GroupBox("URL Information") {
-                    VStack(spacing: 12) {
-                        TextField("Name (e.g., 'GitHub')", text: $newURL.name)
-                        TextField("Domain (e.g., 'github.com')", text: $newURL.domain)
+                GroupBox("Website Domain") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        TextField("e.g., github.com or *.google.com", text: $domain)
+                            .textFieldStyle(.roundedBorder)
                             .autocorrectionDisabled()
-                    }
-                    .padding(.vertical, 8)
-                }
+                            .onSubmit { addURL() }
 
-                GroupBox("Category") {
-                    VStack(spacing: 12) {
-                        Picker("Category", selection: $selectedCategory) {
-                            ForEach(URLCategory.allCases, id: \.self) { category in
-                                Label(category.displayName, systemImage: category.icon)
-                                    .tag(category)
+                        Text("You can also paste a full URL — the domain will be extracted automatically.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        if !cleanedDomain.isEmpty {
+                            HStack(spacing: 4) {
+                                Text("Will track:")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text(cleanedDomain)
+                                    .font(.caption.monospaced())
+                                    .bold()
                             }
                         }
-                        .pickerStyle(.menu)
+
+                        if isDuplicate {
+                            Label("This domain is already in your list", systemImage: "exclamationmark.triangle.fill")
+                                .font(.caption)
+                                .foregroundColor(.orange)
+                        }
                     }
                     .padding(.vertical, 8)
                 }
@@ -1064,25 +1092,18 @@ struct OnboardingAddURLSheet: View {
                     Button("Add") {
                         addURL()
                     }
-                    .disabled(newURL.name.isEmpty || newURL.domain.isEmpty)
+                    .disabled(cleanedDomain.isEmpty || isDuplicate)
                 }
             }
         }
     }
 
     private func addURL() {
-        var urlToAdd = newURL
-        urlToAdd.category = selectedCategory
-        urlToAdd.matchType = selectedMatchType
-        urlToAdd.domain = urlToAdd.domain.lowercased()
+        let d = cleanedDomain
+        guard !d.isEmpty, !isDuplicate else { return }
 
+        let urlToAdd = FocusURL(name: FocusURL.displayName(from: d), domain: d)
         focusManager.addFocusURL(urlToAdd)
-
-        // Reset form
-        newURL = FocusURL(name: "", domain: "")
-        selectedCategory = .work
-        selectedMatchType = .domain
-
         dismiss()
     }
 }

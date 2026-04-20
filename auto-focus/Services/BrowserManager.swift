@@ -25,6 +25,10 @@ protocol BrowserManagerDelegate: AnyObject {
     func browserManager(_ manager: any BrowserManaging, didUpdateFocusURLs urls: [FocusURL])
 }
 
+protocol BrowserURLQuerying {
+    func fetchURL(appName: String, isSafari: Bool) -> (url: String?, errorNumber: Int?)
+}
+
 class BrowserManager: ObservableObject, BrowserManaging {
     @Published var focusURLs: [FocusURL] = []
     @Published var currentBrowserTab: BrowserTabInfo?
@@ -35,16 +39,28 @@ class BrowserManager: ObservableObject, BrowserManaging {
     private let focusURLRepo: FocusURLRepository
     private let licenseManager: LicenseManager
     private let appEventRepo: AppEventRepository?
+    private let enablementStore: BrowserEnablementStore
+    private let permissionService: AutomationPermissionService
+    private let urlQuerier: BrowserURLQuerying
     private var urlObservationCancellable: AnyCancellable?
     private var lastRecordedURL: String?
 
     private var pollingTimer: Timer?
-    private var deniedAutomationBrowsers: Set<String> = []
 
-    init(focusURLRepo: FocusURLRepository = FocusURLRepository(), licenseManager: LicenseManager = LicenseManager(), appEventRepo: AppEventRepository? = AppEventRepository()) {
+    init(
+        focusURLRepo: FocusURLRepository = FocusURLRepository(),
+        licenseManager: LicenseManager = LicenseManager(),
+        appEventRepo: AppEventRepository? = AppEventRepository(),
+        enablementStore: BrowserEnablementStore,
+        permissionService: AutomationPermissionService,
+        urlQuerier: BrowserURLQuerying = AppleScriptBrowserURLQuerier()
+    ) {
         self.focusURLRepo = focusURLRepo
         self.licenseManager = licenseManager
         self.appEventRepo = appEventRepo
+        self.enablementStore = enablementStore
+        self.permissionService = permissionService
+        self.urlQuerier = urlQuerier
 
         loadFocusURLs()
 
@@ -65,7 +81,6 @@ class BrowserManager: ObservableObject, BrowserManaging {
         pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             self?.pollCurrentURL()
         }
-        // Poll immediately on start
         pollCurrentURL()
     }
 
@@ -76,6 +91,13 @@ class BrowserManager: ObservableObject, BrowserManaging {
         AppLogger.browser.info("Stopped URL polling")
     }
 
+    /// Returns true when the given browser is currently eligible to be polled: the user has
+    /// explicitly enabled it and automation permission has been granted.
+    func shouldPoll(bundleId: String) -> Bool {
+        enablementStore.isEnabled(bundleId) &&
+            permissionService.status(for: bundleId) == .granted
+    }
+
     private func pollCurrentURL() {
         guard pollingTimer != nil else { return }
         guard let frontApp = NSWorkspace.shared.frontmostApplication,
@@ -84,61 +106,31 @@ class BrowserManager: ObservableObject, BrowserManaging {
             return
         }
 
+        guard shouldPoll(bundleId: bundleId) else { return }
+
         let appName = frontApp.localizedName ?? bundleId
         let isSafari = AppConfiguration.isSafari(bundleId)
 
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
 
-            guard let url = self.executeURLAppleScript(appName: appName, isSafari: isSafari) else {
-                return
-            }
+            let (url, errorNumber) = self.urlQuerier.fetchURL(appName: appName, isSafari: isSafari)
 
             DispatchQueue.main.async {
-                // Don't process results if polling was stopped while on background thread
                 guard self.pollingTimer != nil else { return }
+                if let errorNumber = errorNumber, errorNumber == -1743 {
+                    // User revoked permission while the app was running. Reconcile.
+                    AppLogger.browser.warning("Automation permission revoked during polling", metadata: [
+                        "bundleId": bundleId
+                    ])
+                    self.permissionService.refresh(bundleId: bundleId)
+                    self.enablementStore.updateCachedStatus(.denied, for: bundleId)
+                    return
+                }
+                guard let url = url else { return }
                 self.handlePolledURL(url, appName: appName, bundleId: bundleId)
             }
         }
-    }
-
-    private func executeURLAppleScript(appName: String, isSafari: Bool) -> String? {
-        let script: String
-        if isSafari {
-            script = "tell application \"\(appName)\" to return URL of front document"
-        } else {
-            script = "tell application \"\(appName)\" to return URL of active tab of front window"
-        }
-
-        guard let appleScript = NSAppleScript(source: script) else { return nil }
-
-        var errorInfo: NSDictionary?
-        let result = appleScript.executeAndReturnError(&errorInfo)
-
-        if let error = errorInfo {
-            let errorNumber = error[NSAppleScript.errorNumber] as? Int ?? 0
-            let errorMessage = error[NSAppleScript.errorMessage] as? String ?? "unknown"
-            // -1743 = not authorized (Automation permission denied)
-            // -600 = app not running
-            // -1728 = no front window/document
-            if errorNumber == -1743 {
-                if !deniedAutomationBrowsers.contains(appName) {
-                    deniedAutomationBrowsers.insert(appName)
-                    AppLogger.browser.warning("Automation permission denied for browser - grant permission in System Settings > Privacy & Security > Automation", metadata: [
-                        "browser": appName
-                    ])
-                }
-            } else if errorNumber != -600 && errorNumber != -1728 {
-                AppLogger.browser.error("AppleScript error for browser", metadata: [
-                    "browser": appName,
-                    "error_number": String(errorNumber),
-                    "error_message": errorMessage
-                ])
-            }
-            return nil
-        }
-
-        return result.stringValue
     }
 
     private func handlePolledURL(_ url: String, appName: String, bundleId: String) {
@@ -283,5 +275,41 @@ class BrowserManager: ObservableObject, BrowserManaging {
         for preset in presets where !focusURLs.contains(where: { $0.domain == preset.domain }) {
             addFocusURL(preset)
         }
+    }
+}
+
+// MARK: - AppleScript-backed URL querier
+
+struct AppleScriptBrowserURLQuerier: BrowserURLQuerying {
+    func fetchURL(appName: String, isSafari: Bool) -> (url: String?, errorNumber: Int?) {
+        let script: String
+        if isSafari {
+            script = "tell application \"\(appName)\" to return URL of front document"
+        } else {
+            script = "tell application \"\(appName)\" to return URL of active tab of front window"
+        }
+
+        guard let appleScript = NSAppleScript(source: script) else {
+            return (nil, nil)
+        }
+
+        var errorInfo: NSDictionary?
+        let result = appleScript.executeAndReturnError(&errorInfo)
+
+        if let error = errorInfo {
+            let errorNumber = error[NSAppleScript.errorNumber] as? Int ?? 0
+            let errorMessage = error[NSAppleScript.errorMessage] as? String ?? "unknown"
+            // -600 = app not running, -1728 = no front window/document, -1743 = denied
+            if errorNumber != -600 && errorNumber != -1728 && errorNumber != -1743 {
+                AppLogger.browser.error("AppleScript error for browser", metadata: [
+                    "browser": appName,
+                    "error_number": String(errorNumber),
+                    "error_message": errorMessage
+                ])
+            }
+            return (nil, errorNumber)
+        }
+
+        return (result.stringValue, nil)
     }
 }

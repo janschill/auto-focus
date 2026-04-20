@@ -24,7 +24,7 @@ To prevent losing focus during quick context switches (like checking documentati
 - **Automatic Focus Detection**: Detects when you're in deep work and enables focus mode automatically
 - **Smart Buffer**: Configurable buffer time prevents losing focus during quick switches
 - **Focus Insights**: Track your focus sessions and productivity patterns
-- **Browser Integration**: Chrome extension for tracking focus URLs (GitHub, Linear, Figma, etc.)
+- **Browser Integration**: Built-in URL tracking for Safari, Chrome, Brave, Edge, Arc, and more
 - **Menu Bar Interface**: Quick access to your focus status and settings
 - **Multiple Apps Support**: Choose which applications should trigger focus mode
 - **Configurable Thresholds**: Customize how long before focus mode activates
@@ -46,7 +46,7 @@ Releases are fully automated via GitHub Actions. **The release workflow only run
    - Builds and archives the app
    - Code signs with Developer ID certificate
    - Notarizes with Apple
-   - Packages app and extension
+   - Packages app for distribution
    - Creates git tag (e.g., `v1.2.1`)
    - Creates GitHub release with assets
    - Updates distribution files

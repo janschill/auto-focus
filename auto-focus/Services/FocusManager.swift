@@ -30,6 +30,8 @@ class FocusManager: ObservableObject {
     private let focusModeController: any FocusModeControlling
     private let browserManager: any BrowserManaging
     private let licenseManager: LicenseManager
+    let automationPermissionService: AutomationPermissionService
+    let browserEnablementStore: BrowserEnablementStore
 
     @Published var timeSpent: TimeInterval = 0
     @Published var isFocusAppActive = false
@@ -157,11 +159,15 @@ class FocusManager: ObservableObject {
         bufferManager: (any BufferManaging)? = nil,
         focusModeController: (any FocusModeControlling)? = nil,
         browserManager: (any BrowserManaging)? = nil,
-        licenseManager: LicenseManager? = nil
+        licenseManager: LicenseManager? = nil,
+        automationPermissionService: AutomationPermissionService? = nil,
+        browserEnablementStore: BrowserEnablementStore? = nil
     ) {
         self.settingsRepo = settingsRepo
         self.focusAppRepo = focusAppRepo
         self.licenseManager = licenseManager ?? LicenseManager()
+        self.automationPermissionService = automationPermissionService ?? AutomationPermissionService()
+        self.browserEnablementStore = browserEnablementStore ?? BrowserEnablementStore(settingsRepo: settingsRepo)
 
         // Create default implementations if not provided
         let checkInterval = AppConfiguration.checkInterval
@@ -169,7 +175,10 @@ class FocusManager: ObservableObject {
         self.appMonitor = appMonitor ?? AppMonitor(checkInterval: checkInterval)
         self.bufferManager = bufferManager ?? BufferManager()
         self.focusModeController = focusModeController ?? FocusModeManager()
-        self.browserManager = browserManager ?? BrowserManager()
+        self.browserManager = browserManager ?? BrowserManager(
+            enablementStore: self.browserEnablementStore,
+            permissionService: self.automationPermissionService
+        )
 
         self.focusTimer = FocusTimer(interval: checkInterval)
 
@@ -198,6 +207,15 @@ class FocusManager: ObservableObject {
         self.focusTimer.onTick = { [weak self] elapsedTime in
             self?.handleTimerTick(elapsedTime: elapsedTime)
         }
+
+        // Seed browser enablements for existing users on first launch, then refresh
+        // permission statuses silently so the UI paints accurately on first view.
+        let installed = AppConfiguration.installedSupportedBrowsers()
+        self.browserEnablementStore.runInitialMigrationIfNeeded(
+            installedBundleIds: installed.map(\.bundleId),
+            hasExistingFocusURLs: !self.browserManager.focusURLs.isEmpty
+        )
+        self.automationPermissionService.refreshAll(bundleIds: installed.map(\.bundleId))
 
         // Check shortcut status asynchronously to avoid AppleScript blocking
         refreshShortcutStatus()
@@ -655,5 +673,4 @@ extension FocusManager: BrowserManagerDelegate {
         // This will trigger UI updates for focusURLs computed property
         self.objectWillChange.send()
     }
-
 }
