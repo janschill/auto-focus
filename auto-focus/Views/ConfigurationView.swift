@@ -254,6 +254,10 @@ struct GeneralSettingsView: View {
 
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+
+                Divider().padding(.vertical, 5).contrast(0.5)
+
+                ShortcutsPermissionRow(permissionService: focusManager.automationPermissionService)
             }
             .padding(.horizontal, 5)
             .padding(.vertical)
@@ -261,6 +265,7 @@ struct GeneralSettingsView: View {
         .frame(maxWidth: .infinity)
         .onAppear {
             focusManager.refreshShortcutStatus()
+            focusManager.automationPermissionService.refresh(bundleId: AppConfiguration.shortcutsEventsBundleIdentifier)
             versionCheckManager.checkForUpdates()
         }
     }
@@ -449,6 +454,72 @@ struct ConfigurationView: View {
         .environmentObject(LicenseManager())
         .environmentObject(FocusManager.shared)
         .frame(width: 600, height: 900)
+}
+
+private struct ShortcutsPermissionRow: View {
+    @ObservedObject var permissionService: AutomationPermissionService
+
+    private var status: BrowserPermissionStatus {
+        permissionService.status(for: AppConfiguration.shortcutsEventsBundleIdentifier)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Shortcuts Permission")
+                    .frame(width: 150, alignment: .leading)
+
+                Spacer()
+
+                statusBadge
+
+                if status == .denied {
+                    Button("Fix in System Settings…") {
+                        permissionService.openSystemSettings()
+                    }
+                    .controlSize(.small)
+                } else if status != .granted {
+                    Button("Request Permission") {
+                        permissionService.requestPermission(bundleId: AppConfiguration.shortcutsEventsBundleIdentifier)
+                    }
+                    .controlSize(.small)
+                }
+            }
+
+            Text("Auto-Focus needs Automation permission for Shortcuts Events to toggle Do Not Disturb. macOS will prompt you once — if you denied it previously, open System Settings to re-enable it.")
+                .font(.callout)
+                .fontDesign(.default)
+                .fontWeight(.regular)
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    @ViewBuilder
+    private var statusBadge: some View {
+        switch status {
+        case .granted:
+            Label("Granted", systemImage: "checkmark.circle.fill")
+                .foregroundColor(.green)
+                .font(.callout)
+        case .denied:
+            Label("Denied", systemImage: "xmark.octagon.fill")
+                .foregroundColor(.red)
+                .font(.callout)
+        case .notDetermined:
+            Label("Not determined", systemImage: "questionmark.circle.fill")
+                .foregroundColor(.orange)
+                .font(.callout)
+        case .unknown:
+            Label("Not checked", systemImage: "circle")
+                .foregroundColor(.secondary)
+                .font(.callout)
+        case .notInstalled:
+            Label("Not installed", systemImage: "slash.circle")
+                .foregroundColor(.secondary)
+                .font(.callout)
+        }
+    }
 }
 
 private func installShortcut() {
