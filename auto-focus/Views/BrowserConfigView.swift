@@ -5,8 +5,6 @@ struct BrowserConfigView: View {
     @EnvironmentObject var licenseManager: LicenseManager
     @Binding var selectedTab: Int
     @State private var showingAddURL = false
-    @State private var newURL = FocusURL(name: "", domain: "")
-    @State private var selectedCategory: URLCategory = .work
     @State private var selectedURLId: UUID?
 
     var body: some View {
@@ -24,8 +22,8 @@ struct BrowserConfigView: View {
         }
         .padding()
         .sheet(isPresented: $showingAddURL) {
-            AddURLSheet(newURL: $newURL, selectedCategory: $selectedCategory)
-                .frame(minWidth: 500, minHeight: 400)
+            AddURLSheet()
+                .frame(minWidth: 500, minHeight: 300)
         }
     }
 }
@@ -277,11 +275,41 @@ private struct FocusURLsList: View {
     @EnvironmentObject var licenseManager: LicenseManager
     @Binding var selectedTab: Int
     @Binding var selectedURLId: UUID?
+    @State private var searchText = ""
+
+    private var sortedAndFilteredURLs: [FocusURL] {
+        let sorted = focusManager.focusURLs.sorted {
+            $0.sortableDomain.localizedCaseInsensitiveCompare($1.sortableDomain) == .orderedAscending
+        }
+        guard !searchText.isEmpty else { return sorted }
+        let query = searchText.lowercased()
+        return sorted.filter {
+            $0.domain.lowercased().contains(query) || $0.name.lowercased().contains(query)
+        }
+    }
 
     var body: some View {
-        VStack {
+        VStack(spacing: 0) {
+            HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.secondary)
+                TextField("Filter URLs…", text: $searchText)
+                    .textFieldStyle(.plain)
+                if !searchText.isEmpty {
+                    Button {
+                        searchText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(8)
+            .background(.quaternary, in: RoundedRectangle(cornerRadius: 6))
+
             List(selection: $selectedURLId) {
-                ForEach(focusManager.focusURLs) { focusURL in
+                ForEach(sortedAndFilteredURLs) { focusURL in
                     FocusURLRowSimple(focusURL: focusURL)
                 }
             }
@@ -299,7 +327,7 @@ private struct FocusURLsList: View {
                     Spacer()
 
                     Button("Upgrade") {
-                        selectedTab = 4 // Navigate to Auto-Focus+ tab
+                        selectedTab = 4
                     }
                     .controlSize(.small)
                 }
@@ -314,6 +342,11 @@ private struct FocusURLsList: View {
 private struct FocusURLRowSimple: View {
     let focusURL: FocusURL
 
+    private var showName: Bool {
+        !focusURL.name.isEmpty && focusURL.name.lowercased() != focusURL.domain.lowercased()
+            && focusURL.name.lowercased() != FocusURL.displayName(from: focusURL.domain).lowercased()
+    }
+
     var body: some View {
         HStack {
             Image(systemName: focusURL.category.icon)
@@ -321,9 +354,15 @@ private struct FocusURLRowSimple: View {
                 .frame(width: 20)
 
             VStack(alignment: .leading, spacing: 2) {
-                HStack {
-                    Text(focusURL.name)
-                        .font(.headline)
+                HStack(spacing: 6) {
+                    Text(focusURL.domain)
+                        .font(.body.monospaced())
+
+                    if showName {
+                        Text(focusURL.name)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
 
                     if focusURL.isPremium {
                         Image(systemName: "crown.fill")
@@ -337,10 +376,6 @@ private struct FocusURLRowSimple: View {
                             .font(.caption)
                     }
                 }
-
-                Text(focusURL.domain)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
             }
         }
         .tag(focusURL.id)
@@ -348,22 +383,14 @@ private struct FocusURLRowSimple: View {
 
     private func colorForCategory(_ category: URLCategory) -> Color {
         switch category.color {
-        case "blue":
-            return .blue
-        case "green":
-            return .green
-        case "purple":
-            return .purple
-        case "pink":
-            return .pink
-        case "orange":
-            return .orange
-        case "indigo":
-            return .indigo
-        case "yellow":
-            return .yellow
-        default:
-            return .gray
+        case "blue": .blue
+        case "green": .green
+        case "purple": .purple
+        case "pink": .pink
+        case "orange": .orange
+        case "indigo": .indigo
+        case "yellow": .yellow
+        default: .gray
         }
     }
 }
@@ -371,29 +398,70 @@ private struct FocusURLRowSimple: View {
 private struct AddURLSheet: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var focusManager: FocusManager
-    @Binding var newURL: FocusURL
-    @Binding var selectedCategory: URLCategory
+    @State private var domain = ""
+    @State private var duplicateWarning = false
+
+    private var cleanedDomain: String {
+        var d = domain
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+
+        if let url = URL(string: d), let host = url.host {
+            d = host
+        } else if d.contains("://") {
+            d = d.components(separatedBy: "://").last ?? d
+        }
+
+        d = d.components(separatedBy: "/").first ?? d
+        d = d.components(separatedBy: "?").first ?? d
+
+        return d
+    }
+
+    private var derivedName: String {
+        FocusURL.displayName(from: cleanedDomain)
+    }
+
+    private var isDuplicate: Bool {
+        let d = cleanedDomain
+        guard !d.isEmpty else { return false }
+        return focusManager.focusURLs.contains { $0.domain == d }
+    }
 
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Name")
-                        .font(.headline)
-                    TextField("e.g., GitHub", text: $newURL.name)
-                        .textFieldStyle(.roundedBorder)
-                }
-
-                VStack(alignment: .leading, spacing: 12) {
                     Text("Domain")
                         .font(.headline)
-                    TextField("e.g., github.com or *.google.com", text: $newURL.domain)
+                    TextField("e.g., github.com or *.google.com", text: $domain)
                         .textFieldStyle(.roundedBorder)
                         .autocorrectionDisabled()
+                        .onSubmit { addURL() }
 
-                    Text("Use *.domain.com to match all subdomains")
+                    Text("Use *.domain.com to match all subdomains. You can also paste a full URL.")
                         .font(.caption)
                         .foregroundColor(.secondary)
+
+                    if !cleanedDomain.isEmpty {
+                        HStack(spacing: 4) {
+                            Text("Will be saved as:")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text(derivedName)
+                                .font(.caption)
+                                .bold()
+                            Text("(\(cleanedDomain))")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+
+                    if isDuplicate {
+                        Label("This domain is already in your list", systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    }
                 }
 
                 Spacer()
@@ -411,24 +479,18 @@ private struct AddURLSheet: View {
                     Button("Add") {
                         addURL()
                     }
-                    .disabled(newURL.name.isEmpty || newURL.domain.isEmpty)
+                    .disabled(cleanedDomain.isEmpty || isDuplicate)
                 }
             }
         }
     }
 
     private func addURL() {
-        var urlToAdd = newURL
-        urlToAdd.category = selectedCategory
-        urlToAdd.matchType = .domain // Default to domain matching
-        urlToAdd.domain = urlToAdd.domain.lowercased()
+        let d = cleanedDomain
+        guard !d.isEmpty, !isDuplicate else { return }
 
+        let urlToAdd = FocusURL(name: FocusURL.displayName(from: d), domain: d)
         focusManager.addFocusURL(urlToAdd)
-
-        // Reset form
-        newURL = FocusURL(name: "", domain: "")
-        selectedCategory = .work
-
         dismiss()
     }
 }

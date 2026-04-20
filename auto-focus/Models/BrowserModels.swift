@@ -226,6 +226,29 @@ enum URLCategory: String, CaseIterable, Codable {
     }
 }
 
+extension FocusURL {
+    /// Derives a human-readable display name from a domain string.
+    static func displayName(from domain: String) -> String {
+        var d = domain
+        if d.hasPrefix("*.") { d = String(d.dropFirst(2)) }
+        if d.hasPrefix("www.") { d = String(d.dropFirst(4)) }
+
+        guard let basePart = d.components(separatedBy: ".").first, !basePart.isEmpty else {
+            return domain
+        }
+
+        return basePart.prefix(1).uppercased() + basePart.dropFirst()
+    }
+
+    /// Sort key that strips www. and *. so domains group naturally.
+    var sortableDomain: String {
+        var d = domain.lowercased()
+        if d.hasPrefix("*.") { d = String(d.dropFirst(2)) }
+        if d.hasPrefix("www.") { d = String(d.dropFirst(4)) }
+        return d
+    }
+}
+
 // MARK: - Browser Tab Information
 
 struct BrowserTabInfo: Codable {
