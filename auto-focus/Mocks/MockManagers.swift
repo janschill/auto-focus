@@ -316,5 +316,31 @@ class MockBrowserManager: ObservableObject, BrowserManaging {
     }
 }
 
+// MARK: - Mock Automation Permission Service
+
+final class MockAETargetPermissionChecker: AETargetPermissionChecking {
+    var scriptedStatuses: [String: OSStatus] = [:]
+    var defaultStatus: OSStatus = OSStatus(noErr)
+    private(set) var callLog: [(bundleId: String, askUserIfNeeded: Bool)] = []
+
+    func checkPermission(bundleId: String, askUserIfNeeded: Bool) -> OSStatus {
+        callLog.append((bundleId, askUserIfNeeded))
+        return scriptedStatuses[bundleId] ?? defaultStatus
+    }
+}
+
+// MARK: - Mock Browser URL Querier
+
+final class MockBrowserURLQuerier: BrowserURLQuerying {
+    var scriptedURL: String?
+    var scriptedError: Int?
+    private(set) var fetchCallCount = 0
+
+    func fetchURL(appName: String, isSafari: Bool) -> (url: String?, errorNumber: Int?) {
+        fetchCallCount += 1
+        return (scriptedURL, scriptedError)
+    }
+}
+
 #endif
 

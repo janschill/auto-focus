@@ -10,17 +10,170 @@ struct BrowserConfigView: View {
     @State private var selectedURLId: UUID?
 
     var body: some View {
-        VStack(spacing: 10) {
-            HeaderView()
+        ScrollView {
+            VStack(spacing: 10) {
+                HeaderView()
 
-            FocusURLsManagementView(selectedTab: $selectedTab, selectedURLId: $selectedURLId, showingAddURL: $showingAddURL)
+                BrowserIntegrationsSection(
+                    permissionService: focusManager.automationPermissionService,
+                    enablementStore: focusManager.browserEnablementStore
+                )
 
-            Spacer()
+                FocusURLsManagementView(selectedTab: $selectedTab, selectedURLId: $selectedURLId, showingAddURL: $showingAddURL)
+            }
+            .padding()
         }
-        .padding()
         .sheet(isPresented: $showingAddURL) {
             AddURLSheet(newURL: $newURL, selectedCategory: $selectedCategory)
                 .frame(minWidth: 500, minHeight: 400)
+        }
+    }
+}
+
+private struct BrowserIntegrationsSection: View {
+    @ObservedObject var permissionService: AutomationPermissionService
+    @ObservedObject var enablementStore: BrowserEnablementStore
+
+    @State private var browsers: [BrowserDescriptor] = []
+
+    var body: some View {
+        GroupBox(label: Text("Browser integrations").font(.headline)) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Auto-Focus reads only the domain of your active tab so it knows when you're on a focus website. No page content is accessed. Enable each browser you'd like Auto-Focus to watch — macOS will ask for Automation permission the first time.")
+                    .font(.callout)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if browsers.isEmpty {
+                    Text("No supported browsers installed.")
+                        .font(.callout)
+                        .foregroundColor(.secondary)
+                        .padding(.vertical, 8)
+                } else {
+                    VStack(spacing: 0) {
+                        ForEach(Array(browsers.enumerated()), id: \.element.id) { index, browser in
+                            BrowserRow(
+                                browser: browser,
+                                status: permissionService.status(for: browser.bundleId),
+                                isEnabled: enablementStore.isEnabled(browser.bundleId),
+                                onToggle: { enabled in handleToggle(enabled, for: browser) },
+                                onRequestPermission: { permissionService.requestPermission(bundleId: browser.bundleId) },
+                                onOpenSettings: { permissionService.openSystemSettings() }
+                            )
+                            if index < browsers.count - 1 {
+                                Divider()
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 5)
+            .padding(.vertical)
+        }
+        .frame(maxWidth: .infinity)
+        .onAppear {
+            browsers = AppConfiguration.installedSupportedBrowsers()
+            permissionService.refreshAll(bundleIds: browsers.map(\.bundleId))
+        }
+    }
+
+    private func handleToggle(_ enabled: Bool, for browser: BrowserDescriptor) {
+        enablementStore.setEnabled(enabled, for: browser.bundleId)
+        guard enabled else { return }
+        let current = permissionService.status(for: browser.bundleId)
+        if current != .granted {
+            let resolved = permissionService.requestPermission(bundleId: browser.bundleId)
+            enablementStore.updateCachedStatus(resolved, for: browser.bundleId)
+        }
+    }
+}
+
+private struct BrowserRow: View {
+    let browser: BrowserDescriptor
+    let status: BrowserPermissionStatus
+    let isEnabled: Bool
+    let onToggle: (Bool) -> Void
+    let onRequestPermission: () -> Void
+    let onOpenSettings: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            browserIcon
+                .frame(width: 28, height: 28)
+
+            Text(browser.displayName)
+                .font(.body)
+
+            statusBadge
+
+            Spacer()
+
+            if isEnabled {
+                contextualAction
+            }
+
+            Toggle("", isOn: Binding(
+                get: { isEnabled },
+                set: { onToggle($0) }
+            ))
+            .labelsHidden()
+            .toggleStyle(.switch)
+            .controlSize(.small)
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 4)
+    }
+
+    private var browserIcon: some View {
+        Group {
+            if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: browser.bundleId) {
+                Image(nsImage: NSWorkspace.shared.icon(forFile: url.path))
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+            } else {
+                Image(systemName: "globe")
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var statusBadge: some View {
+        switch status {
+        case .granted:
+            badge(systemImage: "checkmark.circle.fill", text: "Granted", color: .green)
+        case .denied:
+            badge(systemImage: "xmark.octagon.fill", text: "Denied", color: .red)
+        case .notDetermined:
+            badge(systemImage: "questionmark.circle.fill", text: "Not determined", color: .orange)
+        case .unknown:
+            badge(systemImage: "circle", text: "Not checked", color: .secondary)
+        case .notInstalled:
+            badge(systemImage: "slash.circle", text: "Not installed", color: .secondary)
+        }
+    }
+
+    private func badge(systemImage: String, text: String, color: Color) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: systemImage)
+                .foregroundColor(color)
+            Text(text)
+                .font(.caption)
+                .foregroundColor(color)
+        }
+    }
+
+    @ViewBuilder
+    private var contextualAction: some View {
+        switch status {
+        case .denied:
+            Button("Fix in System Settings…") { onOpenSettings() }
+                .controlSize(.small)
+        case .notDetermined, .unknown:
+            Button("Request permission") { onRequestPermission() }
+                .controlSize(.small)
+        default:
+            EmptyView()
         }
     }
 }

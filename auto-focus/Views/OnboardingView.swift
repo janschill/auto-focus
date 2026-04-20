@@ -419,7 +419,7 @@ struct BrowserIntegrationStepView: View {
                     .multilineTextAlignment(.center)
                     .foregroundColor(.secondary)
 
-                Text("Auto-Focus automatically detects focus websites in Safari, Chrome, Brave, Edge, and Arc. No browser extension needed.")
+                Text("After onboarding, open the Browsers tab to choose which browsers Auto-Focus should watch. macOS will ask for Automation permission one browser at a time — no extension required.")
                     .font(.callout)
                     .multilineTextAlignment(.center)
                     .foregroundColor(.orange)

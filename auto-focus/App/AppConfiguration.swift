@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 struct AppConfiguration {
@@ -62,6 +63,51 @@ struct AppConfiguration {
 
     static func isSafari(_ bundleId: String) -> Bool {
         safariBundleIds.contains(bundleId)
+    }
+
+    // MARK: - Browser Display Names
+    static let browserDisplayNames: [String: String] = [
+        "com.apple.Safari": "Safari",
+        "com.apple.SafariTechnologyPreview": "Safari Technology Preview",
+        "com.google.Chrome": "Google Chrome",
+        "com.google.Chrome.canary": "Google Chrome Canary",
+        "com.google.Chrome.beta": "Google Chrome Beta",
+        "com.google.Chrome.dev": "Google Chrome Dev",
+        "com.microsoft.Edge": "Microsoft Edge",
+        "com.microsoft.Edge.Canary": "Microsoft Edge Canary",
+        "com.microsoft.Edge.Beta": "Microsoft Edge Beta",
+        "com.microsoft.Edge.Dev": "Microsoft Edge Dev",
+        "com.brave.Browser": "Brave",
+        "com.brave.Browser.beta": "Brave Beta",
+        "com.operasoftware.Opera": "Opera",
+        "com.operasoftware.OperaNext": "Opera Next",
+        "com.operasoftware.OperaDeveloper": "Opera Developer",
+        "com.vivaldi.Vivaldi": "Vivaldi",
+        "com.yandex.browser": "Yandex Browser",
+        "com.arc.Arc": "Arc",
+        "com.360.Chrome": "360 Chrome",
+        "com.chromium.Chromium": "Chromium",
+    ]
+
+    static func displayName(forBundleId bundleId: String) -> String {
+        browserDisplayNames[bundleId] ?? bundleId
+    }
+
+    /// Builds descriptors for all supported browsers, filtering to those actually installed on this Mac.
+    /// Sorted by display name for stable UI ordering.
+    static func installedSupportedBrowsers() -> [BrowserDescriptor] {
+        supportedBrowserBundleIds
+            .compactMap { bundleId -> BrowserDescriptor? in
+                guard NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleId) != nil else {
+                    return nil
+                }
+                return BrowserDescriptor(
+                    bundleId: bundleId,
+                    displayName: displayName(forBundleId: bundleId),
+                    isInstalled: true
+                )
+            }
+            .sorted { $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending }
     }
 
     // MARK: - Helper Methods
