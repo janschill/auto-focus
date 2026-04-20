@@ -108,18 +108,15 @@ final class AutomationPermissionService: ObservableObject {
 /// Default wrapper around `AEDeterminePermissionToAutomateTarget`.
 struct AEDetermineChecker: AETargetPermissionChecking {
     func checkPermission(bundleId: String, askUserIfNeeded: Bool) -> OSStatus {
-        var bundleIdBytes = Array(bundleId.utf8)
-        var target = AEAddressDesc()
-        let createStatus = bundleIdBytes.withUnsafeMutableBufferPointer { buffer -> OSStatus in
-            AECreateDesc(
-                AEDescType(typeApplicationBundleID),
-                buffer.baseAddress,
-                buffer.count,
-                &target
-            )
+        guard let data = bundleId.data(using: .utf8) else {
+            return OSStatus(errAEEventNotPermitted)
         }
-        guard createStatus == noErr else {
-            return createStatus
+        var target = AEAddressDesc()
+        let createErr: OSErr = data.withUnsafeBytes { raw in
+            AECreateDesc(typeApplicationBundleID, raw.baseAddress, raw.count, &target)
+        }
+        guard createErr == noErr else {
+            return OSStatus(createErr)
         }
         defer { AEDisposeDesc(&target) }
 
@@ -127,8 +124,8 @@ struct AEDetermineChecker: AETargetPermissionChecking {
         // it authorizes AppleEvents dispatch to the target without actually executing one.
         return AEDeterminePermissionToAutomateTarget(
             &target,
-            AEEventClass(typeWildCard),
-            AEEventID(typeWildCard),
+            typeWildCard,
+            typeWildCard,
             askUserIfNeeded
         )
     }
