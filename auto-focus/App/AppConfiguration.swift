@@ -28,7 +28,7 @@ struct AppConfiguration {
     // MARK: - System Integration
     static let shortcutName = "Toggle Do Not Disturb"
     static let shortcutsAppBundleIdentifier = "com.apple.shortcuts"
-    static let shortcutsEventsBundleIdentifier = "com.apple.ShortcutsEvents"
+    static let shortcutsEventsBundleIdentifier = "com.apple.shortcuts.events"
     static let applicationsDirectory = "/Applications"
 
     // MARK: - Supported Browser Bundle IDs
