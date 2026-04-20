@@ -435,7 +435,7 @@ jobs:
           # Remove old versioned zip files from git tracking (keep only the latest)
           git rm --cached --ignore-unmatch docs/downloads/Auto-Focus-v*.zip 2>/dev/null || true
 
-          # Add new distribution files (versioned zip, backward-compat zip, extension, and version.json)
+          # Add new distribution files (versioned zip, backward-compat zip, and version.json)
           git add docs/downloads/${ZIP_NAME} \
                   docs/downloads/Auto-Focus.zip \
                   docs/downloads/version.json \
