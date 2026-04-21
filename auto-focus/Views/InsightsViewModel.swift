@@ -159,6 +159,39 @@ class InsightsViewModel: ObservableObject {
             ?? DisruptionSummary(totalSwitches: 0, distractors: [])
     }
 
+    var disruptionOverTime: [HourlyDisruptionData] {
+        dataProvider?.disruptionOverTime(timeframe: selectedTimeframe, selectedDate: selectedDate) ?? []
+    }
+
+    var previousPeriodDisruptions: DisruptionSummary {
+        dataProvider?.previousPeriodDisruptions(timeframe: selectedTimeframe, selectedDate: selectedDate)
+            ?? DisruptionSummary(totalSwitches: 0, distractors: [])
+    }
+
+    var longestSession: FocusSession? {
+        dataProvider?.longestSession(timeframe: selectedTimeframe, selectedDate: selectedDate)
+    }
+
+    var averageSessionLength: TimeInterval {
+        dataProvider?.averageSessionLength(timeframe: selectedTimeframe, selectedDate: selectedDate) ?? 0
+    }
+
+    var deepFocusSessions: (deep: Int, total: Int) {
+        dataProvider?.deepFocusSessionCount(timeframe: selectedTimeframe, selectedDate: selectedDate) ?? (0, 0)
+    }
+
+    var contextSwitchesPerSession: Double {
+        dataProvider?.contextSwitchesPerSession(timeframe: selectedTimeframe, selectedDate: selectedDate) ?? 0
+    }
+
+    var focusScore: Int {
+        dataProvider?.focusScore(timeframe: selectedTimeframe, selectedDate: selectedDate) ?? 0
+    }
+
+    var focusVsOtherRatio: (focusDuration: TimeInterval, otherDuration: TimeInterval) {
+        dataProvider?.focusVsOtherRatio(timeframe: selectedTimeframe, selectedDate: selectedDate) ?? (0, 0)
+    }
+
     var productiveTimeRange: (startHour: Int, endHour: Int, duration: TimeInterval)? {
         return dataProvider?.calculateProductiveTimeRange()
     }
