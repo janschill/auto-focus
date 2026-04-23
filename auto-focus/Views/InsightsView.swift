@@ -470,6 +470,7 @@ struct FocusRatioBarView: View {
 struct ActivityBreakdownView: View {
     @ObservedObject var dataProvider: InsightsViewModel
     @EnvironmentObject var focusManager: FocusManager
+    @State private var recentlyAddedDomain: String?
 
     var body: some View {
         let apps = dataProvider.topApps
@@ -515,7 +516,7 @@ struct ActivityBreakdownView: View {
                                 appSection(apps: otherApps, totalDuration: totalAppDuration, accentColor: .gray)
                             }
                             if !otherDomainsList.isEmpty {
-                                domainSection(domains: otherDomainsList, totalDuration: totalDomainDuration, accentColor: .purple)
+                                domainSection(domains: otherDomainsList, totalDuration: totalDomainDuration, accentColor: .purple, showAddButton: true)
                             }
                         }
                         .padding(4)
@@ -561,7 +562,7 @@ struct ActivityBreakdownView: View {
                     }
                     .frame(height: 14)
 
-                    Text("\(TimeFormatter.duration(Int(app.totalDuration / 60)))")
+                    Text(TimeFormatter.humanReadable(app.totalDuration))
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .frame(width: 50, alignment: .trailing)
@@ -575,7 +576,7 @@ struct ActivityBreakdownView: View {
         }
     }
 
-    private func domainSection(domains: [DomainUsageSummary], totalDuration: TimeInterval, accentColor: Color) -> some View {
+    private func domainSection(domains: [DomainUsageSummary], totalDuration: TimeInterval, accentColor: Color, showAddButton: Bool = false) -> some View {
         let maxDuration = domains.first?.totalDuration ?? 1
 
         return VStack(alignment: .leading, spacing: 6) {
@@ -587,10 +588,30 @@ struct ActivityBreakdownView: View {
                 let percent = totalDuration > 0 ? Int((domain.totalDuration / totalDuration) * 100) : 0
 
                 HStack(spacing: 8) {
-                    Image(systemName: "globe")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .frame(width: 18)
+                    if showAddButton {
+                        if recentlyAddedDomain == domain.domain {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.caption)
+                                .foregroundColor(.green)
+                                .frame(width: 18)
+                        } else {
+                            Button {
+                                addDomainAsFocusURL(domain.domain)
+                            } label: {
+                                Image(systemName: "plus.circle")
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
+                            }
+                            .buttonStyle(.plain)
+                            .frame(width: 18)
+                            .help("Add as focus URL")
+                        }
+                    } else {
+                        Image(systemName: "globe")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .frame(width: 18)
+                    }
 
                     Text(domain.domain)
                         .font(.callout)
@@ -605,7 +626,7 @@ struct ActivityBreakdownView: View {
                     .frame(height: 14)
 
                     VStack(alignment: .trailing, spacing: 0) {
-                        Text(TimeFormatter.duration(Int(domain.totalDuration / 60)))
+                        Text(TimeFormatter.humanReadable(domain.totalDuration))
                             .font(.caption)
                             .foregroundColor(.secondary)
                         if domain.visitCount > 0 {
@@ -622,6 +643,16 @@ struct ActivityBreakdownView: View {
                         .frame(width: 30, alignment: .trailing)
                 }
             }
+        }
+    }
+
+    private func addDomainAsFocusURL(_ domain: String) {
+        let name = FocusURL.displayName(from: domain)
+        let focusURL = FocusURL(name: name, domain: domain)
+        focusManager.addFocusURL(focusURL)
+        recentlyAddedDomain = domain
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            recentlyAddedDomain = nil
         }
     }
 }
@@ -761,7 +792,7 @@ struct FocusQualityMetricsView: View {
                 if let longest = dataProvider.longestSession {
                     MetricCard(
                         title: "Longest Focus Stretch",
-                        value: TimeFormatter.duration(Int(longest.duration / 60))
+                        value: TimeFormatter.humanReadable(longest.duration)
                     )
                 } else {
                     MetricCard(
@@ -773,7 +804,7 @@ struct FocusQualityMetricsView: View {
                 MetricCard(
                     title: "Avg Session Length",
                     value: dataProvider.averageSessionLength > 0
-                        ? TimeFormatter.duration(Int(dataProvider.averageSessionLength / 60))
+                        ? TimeFormatter.humanReadable(dataProvider.averageSessionLength)
                         : "—"
                 )
             }

@@ -61,12 +61,6 @@ struct MenuBarView: View {
         return focusManager.weekSessions.map { $0.duration }.max() ?? 0
     }
 
-    // Progress to DND activation
-    var progressToDND: Double {
-        guard focusManager.isInOverallFocus && !focusManager.isInFocusMode else { return 0 }
-        return min(focusManager.timeSpent / (focusManager.focusThreshold * 60), 1.0)
-    }
-
     // Get current app name
     var currentAppName: String? {
         return focusManager.currentAppInfo?.name
@@ -92,18 +86,9 @@ struct MenuBarView: View {
         }
     }
 
-    // Get next action hint
     var nextActionHint: String? {
-        if focusManager.isInOverallFocus && !focusManager.isInFocusMode {
-            let remainingMinutes = Int((focusManager.focusThreshold * 60 - focusManager.timeSpent) / 60)
-            if remainingMinutes > 0 {
-                return "\(remainingMinutes) more minute\(remainingMinutes == 1 ? "" : "s") to enter focus mode"
-            } else {
-                let remainingSeconds = Int(focusManager.focusThreshold * 60 - focusManager.timeSpent)
-                return "\(remainingSeconds) seconds to enter focus mode"
-            }
-        } else if focusManager.isInFocusMode && focusManager.timeSpent > 5400 { // 90 minutes
-            return "Take a break? You've been focused for \(TimeFormatter.duration(focusManager.timeSpent))"
+        if focusManager.isInFocusMode && focusManager.timeSpent > 5400 {
+            return "Take a break? You've been focused for \(TimeFormatter.humanReadable(focusManager.timeSpent))"
         }
         return nil
     }
@@ -121,38 +106,6 @@ struct MenuBarView: View {
                 Spacer()
             }
 
-            // Smart Progress Indicator (only show when building up to focus mode)
-            if focusManager.isInOverallFocus && !focusManager.isInFocusMode {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text("Progress to DND")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Text("\(Int(progressToDND * 100))%")
-                            .font(.system(size: 11, weight: .medium))
-                        let remaining = Int((focusManager.focusThreshold * 60 - focusManager.timeSpent) / 60)
-                        Text("(\(remaining)m left)")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
-                    }
-
-                    GeometryReader { geometry in
-                        ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(Color.gray.opacity(0.2))
-                                .frame(height: 4)
-
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(Color.blue)
-                                .frame(width: geometry.size.width * progressToDND, height: 4)
-                        }
-                    }
-                    .frame(height: 4)
-                }
-                .padding(.vertical, 4)
-            }
-
             Divider()
 
             // Today's Focus Summary
@@ -162,7 +115,7 @@ struct MenuBarView: View {
                         Text("Today")
                             .font(.system(size: 12, weight: .medium))
                         Spacer()
-                        Text(TimeFormatter.duration(totalFocusTimeToday))
+                        Text(TimeFormatter.humanReadable(totalFocusTimeToday))
                             .font(.system(size: 12, weight: .semibold))
 
                         // Show comparison to average
@@ -205,7 +158,7 @@ struct MenuBarView: View {
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                     Spacer()
-                    Text(TimeFormatter.duration(focusManager.weekSessions.reduce(0) { $0 + $1.duration }))
+                    Text(TimeFormatter.humanReadable(focusManager.weekSessions.reduce(0) { $0 + $1.duration }))
                         .font(.system(size: 12, weight: .medium))
                 }
 
@@ -218,8 +171,8 @@ struct MenuBarView: View {
                             .font(.system(size: 12))
                             .foregroundStyle(.secondary)
                         Spacer()
-                        Text(TimeFormatter.duration(bestSessionDuration))
-                            .font(.system(size: 12, weight: .medium))
+                    Text(TimeFormatter.humanReadable(bestSessionDuration))
+                        .font(.system(size: 12, weight: .medium))
                     }
                 }
             }
@@ -274,12 +227,11 @@ struct MenuBarView: View {
                 }
             }
 
-            // Add Current Site button
+            // Add Current Site — uses the last-known browser tab since clicking the
+            // menu bar makes auto-focus the frontmost app.
             if let tab = focusManager.currentBrowserTab,
                !tab.isFocusURL,
-               tab.url != "about:blank",
-               let frontApp = NSWorkspace.shared.frontmostApplication?.bundleIdentifier,
-               AppConfiguration.isSupportedBrowser(frontApp) {
+               tab.url != "about:blank" {
                 Divider()
 
                 HStack {

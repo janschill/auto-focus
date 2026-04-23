@@ -50,13 +50,16 @@ final class AppEventRepository {
     }
 
     func fetchTopApps(since date: Date, until endDate: Date?, limit: Int = 10) throws -> [AppUsageSummary] {
-        try dbQueue.read { db in
+        let excludedBundles = AppConfiguration.screenInactiveBundleIds
+        return try dbQueue.read { db in
             var args: [DatabaseValueConvertible] = [date.timeIntervalSinceReferenceDate]
             var whereClause = "WHERE timestamp >= ?"
             if let endDate = endDate {
                 whereClause += " AND timestamp < ?"
                 args.append(endDate.timeIntervalSinceReferenceDate)
             }
+            let excludePlaceholders = excludedBundles.map { _ in "?" }.joined(separator: ", ")
+            args.append(contentsOf: excludedBundles.sorted())
             args.append(limit)
             let sql = """
                 WITH durations AS (
@@ -73,6 +76,7 @@ final class AppEventRepository {
                     SUM(duration) AS totalDuration
                 FROM durations
                 WHERE duration > 0
+                    AND bundleIdentifier NOT IN (\(excludePlaceholders))
                 GROUP BY bundleIdentifier
                 ORDER BY totalDuration DESC
                 LIMIT ?

@@ -331,15 +331,18 @@ class InsightsDataProvider {
         return (try? appEventRepo.fetchTopDomains(since: bounds.start, until: bounds.end, limit: limit)) ?? []
     }
 
+    /// Only count context switches that happened during an active focus session.
     func disruptionSummary(timeframe: Timeframe, selectedDate: Date) -> DisruptionSummary {
         let bounds = dateBounds(timeframe: timeframe, selectedDate: selectedDate)
         guard let events = try? appEventRepo.fetchEvents(since: bounds.start, until: bounds.end) else {
             return DisruptionSummary(totalSwitches: 0, distractors: [])
         }
+        let sessions = relevantSessions(timeframe: timeframe, selectedDate: selectedDate)
+        let sessionEvents = filterEventsToSessions(events, sessions: sessions)
         let focusBundleIDs = Set(focusManager.focusApps.map(\.bundleIdentifier))
         let focusDomains = focusManager.focusURLs
         return ActivityInsightsService.calculateDisruptions(
-            events: events,
+            events: sessionEvents,
             focusBundleIDs: focusBundleIDs,
             focusDomains: focusDomains
         )
@@ -350,19 +353,28 @@ class InsightsDataProvider {
         guard let events = try? appEventRepo.fetchEvents(since: bounds.start, until: bounds.end) else {
             return []
         }
+        let sessions = relevantSessions(timeframe: timeframe, selectedDate: selectedDate)
+        let sessionEvents = filterEventsToSessions(events, sessions: sessions)
         let focusBundleIDs = Set(focusManager.focusApps.map(\.bundleIdentifier))
         let focusDomains = focusManager.focusURLs
 
         switch timeframe {
         case .day:
             return ActivityInsightsService.calculateHourlyDisruptions(
-                events: events, focusBundleIDs: focusBundleIDs, focusDomains: focusDomains
+                events: sessionEvents, focusBundleIDs: focusBundleIDs, focusDomains: focusDomains
             )
         case .week:
             let weekStart = Calendar.current.startOfWeek(for: selectedDate)
             return ActivityInsightsService.calculateDailyDisruptions(
-                events: events, focusBundleIDs: focusBundleIDs, focusDomains: focusDomains, weekStart: weekStart
+                events: sessionEvents, focusBundleIDs: focusBundleIDs, focusDomains: focusDomains, weekStart: weekStart
             )
+        }
+    }
+
+    private func filterEventsToSessions(_ events: [AppEvent], sessions: [FocusSession]) -> [AppEvent] {
+        guard !sessions.isEmpty else { return [] }
+        return events.filter { event in
+            sessions.contains { event.timestamp >= $0.startTime && event.timestamp <= $0.endTime }
         }
     }
 

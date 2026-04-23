@@ -25,6 +25,16 @@ struct AppConfiguration {
     static let validationIntervalHours: TimeInterval = 168 // Validate once per week (7 days)
     static let gracePeriodDays: TimeInterval = 30 // Allow 30 days offline before requiring validation
 
+    // MARK: - Screen-Inactive Apps (lock screen, screensaver, etc.)
+    static let screenInactiveBundleIds: Set<String> = [
+        "com.apple.loginwindow",
+        "com.apple.ScreenSaver.Engine",
+    ]
+
+    static func isScreenInactiveApp(_ bundleId: String) -> Bool {
+        screenInactiveBundleIds.contains(bundleId)
+    }
+
     // MARK: - System Integration
     static let shortcutName = "Toggle Do Not Disturb"
     static let shortcutsAppBundleIdentifier = "com.apple.shortcuts"
