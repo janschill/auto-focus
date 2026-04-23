@@ -133,6 +133,21 @@ class FocusManager: ObservableObject {
         return focusApps.first { $0.bundleIdentifier == bundleId }
     }
 
+    /// The last non-Auto-Focus app the user had open (bundle ID + display name).
+    /// Persists across the switch to Auto-Focus when the menu bar is clicked.
+    var previousNonSelfAppBundleId: String? {
+        return appMonitor.previousNonSelfApp
+    }
+
+    var previousNonSelfAppName: String? {
+        return appMonitor.previousNonSelfAppName
+    }
+
+    var isPreviousAppAlreadyFocusApp: Bool {
+        guard let bundleId = previousNonSelfAppBundleId else { return true }
+        return focusApps.contains { $0.bundleIdentifier == bundleId }
+    }
+
     var canAddMoreApps: Bool {
         if licenseManager.isLicensed {
             // Licensed users: check their specific limit (-1 means unlimited)
@@ -424,6 +439,13 @@ class FocusManager: ObservableObject {
 
     func importSession(_ session: FocusSession) {
         sessionManager.importSessions([session])
+    }
+
+    func addFocusAppByBundleId(_ bundleId: String, name: String) {
+        guard canAddMoreApps else { return }
+        guard !focusApps.contains(where: { $0.bundleIdentifier == bundleId }) else { return }
+        let newApp = AppInfo(id: UUID().uuidString, name: name, bundleIdentifier: bundleId)
+        focusApps.append(newApp)
     }
 
     func selectFocusApplication() {

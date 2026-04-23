@@ -24,11 +24,6 @@ class DataExportService {
     }
 
     func exportDataToFile(options: ExportOptions = .default) {
-        guard licenseManager.isLicensed else {
-            AppLogger.focus.warning("Export feature requires premium subscription")
-            return
-        }
-
         let data = exportData(options: options)
 
         do {
@@ -61,11 +56,6 @@ class DataExportService {
     }
 
     func importDataFromFile(completion: @escaping (ImportResult) -> Void) {
-        guard licenseManager.isLicensed else {
-            completion(.failure(.readError))
-            return
-        }
-
         let openPanel = NSOpenPanel()
         openPanel.title = "Import Auto-Focus Data"
         openPanel.allowedContentTypes = [.json]

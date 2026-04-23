@@ -3,7 +3,8 @@ import SwiftUI
 struct MenuBarView: View {
     @EnvironmentObject var focusManager: FocusManager
     @ObservedObject private var versionCheckManager = VersionCheckManager.shared
-    @State private var showAddedConfirmation = false
+    @State private var showAddedSiteConfirmation = false
+    @State private var showAddedAppConfirmation = false
 
     var version: String {
     #if DEBUG
@@ -17,56 +18,14 @@ struct MenuBarView: View {
         return version.contains("-beta")
     }
 
-    // Calculate total focus time today
     var totalFocusTimeToday: TimeInterval {
         return focusManager.todaysSessions.reduce(0) { $0 + $1.duration }
     }
 
-    // Calculate average daily focus time (last 7 days)
-    var averageDailyFocus: TimeInterval {
-        let lastWeekSessions = focusManager.weekSessions
-        let daysWithSessions = Set(lastWeekSessions.map { Calendar.current.startOfDay(for: $0.startTime) }).count
-        guard daysWithSessions > 0 else { return 0 }
-        let totalTime = lastWeekSessions.reduce(0) { $0 + $1.duration }
-        return totalTime / Double(daysWithSessions)
-    }
-
-    // Calculate focus streak (consecutive days with focus sessions)
-    var focusStreak: Int {
-        let calendar = Calendar.current
-        var streak = 0
-        var currentDate = Date()
-
-        while true {
-            let dayStart = calendar.startOfDay(for: currentDate)
-            let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart)!
-
-            let hasSessions = focusManager.focusSessions.contains { session in
-                session.startTime >= dayStart && session.startTime < dayEnd
-            }
-
-            if hasSessions {
-                streak += 1
-                currentDate = calendar.date(byAdding: .day, value: -1, to: currentDate)!
-            } else {
-                break
-            }
-        }
-
-        return streak
-    }
-
-    // Get best session duration
-    var bestSessionDuration: TimeInterval {
-        return focusManager.weekSessions.map { $0.duration }.max() ?? 0
-    }
-
-    // Get current app name
     var currentAppName: String? {
         return focusManager.currentAppInfo?.name
     }
 
-    // Get primary status with icon
     var primaryStatus: (icon: String, text: String, color: Color) {
         if focusManager.isPaused {
             return ("pause.circle.fill", "Paused", .orange)
@@ -86,16 +45,18 @@ struct MenuBarView: View {
         }
     }
 
-    var nextActionHint: String? {
-        if focusManager.isInFocusMode && focusManager.timeSpent > 5400 {
-            return "Take a break? You've been focused for \(TimeFormatter.humanReadable(focusManager.timeSpent))"
-        }
-        return nil
+    /// Whether the previous (non-Auto-Focus) app can be offered as a new focus app.
+    private var canOfferAddApp: Bool {
+        guard let bundleId = focusManager.previousNonSelfAppBundleId,
+              !focusManager.isPreviousAppAlreadyFocusApp,
+              !AppConfiguration.isSupportedBrowser(bundleId),
+              focusManager.canAddMoreApps else { return false }
+        return true
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Primary Status Line
+            // Primary Status
             HStack(spacing: 6) {
                 Image(systemName: primaryStatus.icon)
                     .foregroundStyle(primaryStatus.color)
@@ -108,100 +69,62 @@ struct MenuBarView: View {
 
             Divider()
 
-            // Today's Focus Summary
+            // Today (single line, no comparison)
             if totalFocusTimeToday > 0 {
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack {
-                        Text("Today")
-                            .font(.system(size: 12, weight: .medium))
-                        Spacer()
-                        Text(TimeFormatter.humanReadable(totalFocusTimeToday))
-                            .font(.system(size: 12, weight: .semibold))
+                HStack {
+                    Text("Today")
+                        .font(.system(size: 12, weight: .medium))
+                    Spacer()
+                    Text(TimeFormatter.humanReadable(totalFocusTimeToday))
+                        .font(.system(size: 12, weight: .semibold))
+                }
 
-                        // Show comparison to average
-                        if averageDailyFocus > 0 {
-                            let percentChange = ((totalFocusTimeToday - averageDailyFocus) / averageDailyFocus) * 100
-                            let changeSymbol = percentChange >= 0 ? "↑" : "↓"
-                            let changeColor = percentChange >= 0 ? Color.green : Color.red
+                Divider()
+            }
 
-                            Text("(\(changeSymbol) \(Int(abs(percentChange)))% vs avg)")
-                                .font(.system(size: 11))
-                                .foregroundStyle(changeColor)
+            // Quick-add current app
+            if canOfferAddApp, let appName = focusManager.previousNonSelfAppName {
+                HStack {
+                    if showAddedAppConfirmation {
+                        Label("Added!", systemImage: "checkmark.circle.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.green)
+                    } else {
+                        Button {
+                            addCurrentApp()
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "plus.circle")
+                                Text("Add \(appName)")
+                            }
+                            .font(.system(size: 12))
                         }
                     }
-                }
-
-                Divider()
-            }
-
-            // Quick Stats Section
-            VStack(alignment: .leading, spacing: 6) {
-                if focusStreak > 0 {
-                    HStack {
-                        Image(systemName: "flame.fill")
-                            .foregroundStyle(.orange)
-                            .font(.system(size: 11))
-                        Text("Streak")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Text("\(focusStreak) day\(focusStreak == 1 ? "" : "s")")
-                            .font(.system(size: 12, weight: .medium))
-                    }
-                }
-
-                HStack {
-                    Image(systemName: "chart.bar.fill")
-                        .foregroundStyle(.blue)
-                        .font(.system(size: 11))
-                    Text("This week")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
                     Spacer()
-                    Text(TimeFormatter.humanReadable(focusManager.weekSessions.reduce(0) { $0 + $1.duration }))
-                        .font(.system(size: 12, weight: .medium))
-                }
-
-                if bestSessionDuration > 0 {
-                    HStack {
-                        Image(systemName: "star.fill")
-                            .foregroundStyle(.yellow)
-                            .font(.system(size: 11))
-                        Text("Best session")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                    Text(TimeFormatter.humanReadable(bestSessionDuration))
-                        .font(.system(size: 12, weight: .medium))
-                    }
                 }
             }
 
-            // Next Action Hint
-            if let hint = nextActionHint {
-                Divider()
-
-                HStack(spacing: 6) {
-                    Image(systemName: "lightbulb.fill")
-                        .foregroundStyle(.yellow)
-                        .font(.system(size: 11))
-                    Text(hint)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            // App limit status for free users
-            if focusManager.isPremiumRequired {
-                Divider()
-
+            // Quick-add current site
+            if let tab = focusManager.currentBrowserTab,
+               !tab.isFocusURL,
+               tab.url != "about:blank" {
                 HStack {
-                    Image(systemName: "star.fill")
-                        .foregroundStyle(.yellow)
-                        .font(.system(size: 11))
-                    Text("App limit reached - Premium needed")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
+                    if showAddedSiteConfirmation {
+                        Label("Added!", systemImage: "checkmark.circle.fill")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.green)
+                    } else {
+                        Button {
+                            addCurrentSite(url: tab.url)
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "plus.circle")
+                                Text("Add Current Site")
+                            }
+                            .font(.system(size: 12))
+                        }
+                    }
+                    Spacer()
                 }
             }
 
@@ -227,33 +150,6 @@ struct MenuBarView: View {
                 }
             }
 
-            // Add Current Site — uses the last-known browser tab since clicking the
-            // menu bar makes auto-focus the frontmost app.
-            if let tab = focusManager.currentBrowserTab,
-               !tab.isFocusURL,
-               tab.url != "about:blank" {
-                Divider()
-
-                HStack {
-                    if showAddedConfirmation {
-                        Label("Added!", systemImage: "checkmark.circle.fill")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.green)
-                    } else {
-                        Button {
-                            addCurrentSite(url: tab.url)
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "plus.circle")
-                                Text("Add Current Site")
-                            }
-                            .font(.system(size: 12))
-                        }
-                    }
-                    Spacer()
-                }
-            }
-
             Divider()
 
             // Beta indicator
@@ -271,7 +167,7 @@ struct MenuBarView: View {
                 }
             }
 
-            // Controls section
+            // Controls
             HStack {
                 if #available(macOS 14.0, *) {
                     SettingsLink(label: {
@@ -307,7 +203,7 @@ struct MenuBarView: View {
             }
         }
         .padding(12)
-        .frame(width: 290) // Slightly wider to accommodate new info
+        .frame(width: 290)
         .onAppear {
             versionCheckManager.checkForUpdates()
         }
@@ -317,29 +213,24 @@ struct MenuBarView: View {
         NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
     }
 
+    private func addCurrentApp() {
+        guard let bundleId = focusManager.previousNonSelfAppBundleId,
+              let name = focusManager.previousNonSelfAppName else { return }
+        focusManager.addFocusAppByBundleId(bundleId, name: name)
+        showAddedAppConfirmation = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            showAddedAppConfirmation = false
+        }
+    }
+
     private func addCurrentSite(url: String) {
         guard let urlObj = URL(string: url), let host = urlObj.host else { return }
         let domain = host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
         let focusURL = FocusURL(name: domain.capitalized, domain: domain)
         focusManager.addFocusURL(focusURL)
-        showAddedConfirmation = true
+        showAddedSiteConfirmation = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-            showAddedConfirmation = false
+            showAddedSiteConfirmation = false
         }
-    }
-}
-
-struct StatusRow: View {
-    let title: String
-    let value: String
-
-    var body: some View {
-        HStack {
-            Text(title)
-                .foregroundStyle(.secondary)
-            Spacer()
-            Text(value)
-        }
-        .font(.system(size: 13))
     }
 }

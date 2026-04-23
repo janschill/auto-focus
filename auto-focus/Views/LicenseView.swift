@@ -240,7 +240,7 @@ struct LicenseInputView: View {
             .buttonStyle(.borderedProminent)
 
             Link("Don't have a license key? Get Auto-Focus+",
-                 destination: URL(string: "https://auto-focus.app")!)
+                 destination: URL(string: "https://auto-focus.app/#pricing")!)
         }
         .frame(maxWidth: 300)
     }
@@ -268,12 +268,6 @@ struct LicenseBenefitsView: View {
             )
 
             PremiumFeatureRow(
-                icon: "externaldrive",
-                title: "Data Export & Import",
-                description: "Backup and transfer your focus data"
-            )
-
-            PremiumFeatureRow(
                 icon: "arrow.clockwise",
                 title: "Free Updates",
                 description: "Access to all future premium features"
@@ -290,39 +284,47 @@ struct LicenseBenefitsView: View {
 
 struct UnlicensedView: View {
     @ObservedObject var licenseManager: LicenseManager
+    @State private var showLicenseInput = false
 
     var body: some View {
         GroupBox {
-            VStack {
-                Text("Join Auto-Focus+").font(.title)
+            VStack(spacing: 16) {
+                Text("Get Auto-Focus+").font(.title)
                     .fontDesign(.default)
                     .fontWeight(.bold)
-                    .bold()
                 Text("Unlimited focus apps, unlimited focus websites, advanced insights and more.")
                     .font(.callout)
-                    .fontDesign(.default)
-                    .fontWeight(.regular)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
-                    .padding(.bottom, 16)
 
-                LicenseInputView(licenseManager: licenseManager)
-
-                Divider().padding(16)
-
-                Link(destination: URL(string: "https://auto-focus.app")!) {
+                Link(destination: URL(string: "https://auto-focus.app/#pricing")!) {
                     HStack {
-                        Text("Visit auto-focus.app")
-                            .fontWeight(.medium)
+                        Text("Get Auto-Focus+")
+                            .fontWeight(.semibold)
                         Image(systemName: "arrow.up.forward.app")
                     }
-                    .foregroundColor(.blue)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.accentColor)
+                    .cornerRadius(8)
                 }
                 .buttonStyle(.plain)
-                .padding(.bottom, 8)
+
+                Divider()
+
+                DisclosureGroup(isExpanded: $showLicenseInput) {
+                    LicenseInputView(licenseManager: licenseManager)
+                        .padding(.top, 8)
+                } label: {
+                    Text("Already have a license key?")
+                        .font(.callout)
+                        .foregroundColor(.secondary)
+                }
+
+                Divider()
 
                 LicenseBenefitsView()
-
             }
             .padding(.horizontal, 40)
             .padding(.vertical)
@@ -408,7 +410,7 @@ struct BetaUpgradeView: View {
             }
 
             HStack(spacing: 12) {
-                Link(destination: URL(string: "https://auto-focus.app")!) {
+                Link(destination: URL(string: "https://auto-focus.app/#pricing")!) {
                     HStack {
                         Text("Get License")
                             .fontWeight(.medium)

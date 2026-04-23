@@ -21,7 +21,8 @@ protocol SessionManaging: AnyObject, ObservableObject {
 // MARK: - App Monitoring Protocol
 protocol AppMonitoring: AnyObject, ObservableObject {
     var currentApp: String? { get }
-//    var isFocusAppActive: Bool { get }
+    var previousNonSelfApp: String? { get }
+    var previousNonSelfAppName: String? { get }
     var delegate: AppMonitorDelegate? { get set }
 
     func startMonitoring()

@@ -321,14 +321,9 @@ struct DataExportImportView: View {
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                if !licenseManager.isLicensed {
-                    PremiumRequiredView(selectedTab: $selectedTab)
-                } else {
-                    VStack(spacing: 16) {
-                        // Export preview card
+                VStack(spacing: 16) {
                         ExportPreviewCard(preview: exportPreview, options: $exportOptions)
 
-                        // Action buttons
                         HStack(spacing: 16) {
                             Button("Customize Export") {
                                 showingExportOptions = true
@@ -351,7 +346,6 @@ struct DataExportImportView: View {
                             .buttonStyle(.bordered)
                         }
                     }
-                }
             }
             .padding(.horizontal, 5)
             .padding(.vertical)

@@ -9,6 +9,10 @@ protocol AppMonitorDelegate: AnyObject {
 
 class AppMonitor: ObservableObject, AppMonitoring {
     @Published var currentApp: String?
+    /// The last frontmost app that was not Auto-Focus itself.
+    /// Used by MenuBarView to offer "Add current app" when the menu bar is clicked.
+    @Published var previousNonSelfApp: String?
+    @Published var previousNonSelfAppName: String?
 
     private var timer: Timer?
     private let checkInterval: TimeInterval
@@ -98,6 +102,11 @@ class AppMonitor: ObservableObject, AppMonitoring {
 
         if let bundleId = currentAppBundleId, AppConfiguration.isScreenInactiveApp(bundleId) {
             return
+        }
+
+        if let bundleId = currentAppBundleId, bundleId != AppConfiguration.ownBundleId {
+            previousNonSelfApp = bundleId
+            previousNonSelfAppName = workspace.localizedName
         }
 
         currentApp = currentAppBundleId

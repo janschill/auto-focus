@@ -92,6 +92,8 @@ class MockSessionManager: ObservableObject, SessionManaging {
 // MARK: - Mock App Monitor
 class MockAppMonitor: ObservableObject, AppMonitoring {
     @Published var currentApp: String?
+    @Published var previousNonSelfApp: String?
+    @Published var previousNonSelfAppName: String?
 
     weak var delegate: AppMonitorDelegate?
 

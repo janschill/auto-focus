@@ -703,7 +703,6 @@ struct LicenseOnboardingStepView: View {
                     VStack(spacing: 10) {
                         OnboardingPremiumFeature(icon: "list.bullet", title: "Unlimited Focus Apps", description: "Add as many focus-triggering apps as you need")
                         OnboardingPremiumFeature(icon: "globe", title: "Unlimited Focus Websites", description: "Track unlimited websites with browser integration")
-                        OnboardingPremiumFeature(icon: "externaldrive", title: "Data Export & Import", description: "Backup and transfer your focus data")
                         OnboardingPremiumFeature(icon: "chart.bar.fill", title: "Advanced Insights", description: "Detailed statistics about your focus habits")
                         OnboardingPremiumFeature(icon: "arrow.clockwise", title: "Future Updates", description: "Access to all new premium features")
                     }
@@ -715,7 +714,7 @@ struct LicenseOnboardingStepView: View {
 
                 VStack(spacing: 16) {
                     VStack(spacing: 12) {
-                        Link(destination: URL(string: "https://auto-focus.app")!) {
+                        Link(destination: URL(string: "https://auto-focus.app/#pricing")!) {
                             HStack {
                                 Text("Get Auto-Focus+ License")
                                     .fontWeight(.medium)

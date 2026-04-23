@@ -35,6 +35,9 @@ struct AppConfiguration {
         screenInactiveBundleIds.contains(bundleId)
     }
 
+    // MARK: - Auto-Focus Identity
+    static let ownBundleId = Bundle.main.bundleIdentifier ?? "com.janschill.auto-focus"
+
     // MARK: - System Integration
     static let shortcutName = "Toggle Do Not Disturb"
     static let shortcutsAppBundleIdentifier = "com.apple.shortcuts"

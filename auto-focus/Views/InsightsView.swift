@@ -881,6 +881,7 @@ struct InsightsView: View {
                             InsightsFocusQualityPane(dataProvider: dataProvider)
                         }
                     } else {
+                        // Visible header with real data
                         GroupBox {
                             VStack {
                                 Text("You've focussed for").font(.title2)
@@ -892,51 +893,35 @@ struct InsightsView: View {
                                 Text("\(TimeFormatter.duration(totalMinutes)) this month")
                                     .font(.title)
                                     .fontWeight(.bold)
-                                Text("Here you can find your curated focus insights. From daily to weekly detailed views, your most productive times and more.")
-                                    .font(.callout)
-                                    .fontDesign(.default)
-                                    .fontWeight(.regular)
-                                    .foregroundColor(.secondary)
-                                    .multilineTextAlignment(.center)
                             }
                             .padding(.horizontal, 40)
                             .padding(.vertical)
                             .frame(maxWidth: .infinity)
                         }
 
-                        GroupBox {
-                            VStack {
-                                Text("You are currently on a free plan of Auto-Focus. To unlock more detailed insights, please upgrade to Auto-Focus+.")
-                                    .font(.callout)
-                                    .fontDesign(.default)
-                                    .fontWeight(.regular)
-                                    .foregroundColor(.secondary)
-                                    .multilineTextAlignment(.center)
-
-                                LicenseBenefitsView()
+                        // Blurred preview of premium insights
+                        ZStack {
+                            VStack(spacing: 10) {
+                                FocusScoreView(score: dataProvider.focusScore)
+                                ProductivityMetricsView(dataProvider: dataProvider)
                             }
-                            .padding(.horizontal, 40)
-                            .padding(.vertical)
-                            .frame(maxWidth: .infinity)
+                            .blur(radius: 4)
+                            .allowsHitTesting(false)
 
-                            HStack {
+                            VStack(spacing: 12) {
                                 Image(systemName: "lock.fill")
+                                    .font(.title2)
                                     .foregroundColor(.secondary)
-                                Text("Upgrade to Auto-Focus+ for detailed insights")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-
-                                Spacer()
-
-                                Button("Upgrade") {
+                                Text("Unlock detailed insights")
+                                    .font(.headline)
+                                Button("Get Auto-Focus+") {
                                     selectedTab = 4
                                 }
-                                .controlSize(.small)
+                                .buttonStyle(.borderedProminent)
+                                .controlSize(.regular)
                             }
-                            .padding(.vertical, 6)
-                            .padding(.horizontal, 8)
-                            .background(Color.secondary.opacity(0.1))
-                            .cornerRadius(6)
+                            .padding(20)
+                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
                         }
                     }
                 }
