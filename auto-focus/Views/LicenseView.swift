@@ -284,7 +284,6 @@ struct LicenseBenefitsView: View {
 
 struct UnlicensedView: View {
     @ObservedObject var licenseManager: LicenseManager
-    @State private var showLicenseInput = false
 
     var body: some View {
         GroupBox {
@@ -313,14 +312,7 @@ struct UnlicensedView: View {
 
                 Divider()
 
-                DisclosureGroup(isExpanded: $showLicenseInput) {
-                    LicenseInputView(licenseManager: licenseManager)
-                        .padding(.top, 8)
-                } label: {
-                    Text("Already have a license key?")
-                        .font(.callout)
-                        .foregroundColor(.secondary)
-                }
+                LicenseInputView(licenseManager: licenseManager)
 
                 Divider()
 
