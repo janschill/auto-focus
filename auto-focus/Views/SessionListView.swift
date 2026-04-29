@@ -67,7 +67,7 @@ struct SessionListView: View {
         .alert(isPresented: $showingDeleteConfirmation) {
             deleteConfirmationAlert
         }
-        .alert("Delete \(filteredAndSortedSessions.count) sessions?", isPresented: $showingBulkDeleteConfirmation) {
+        .alert("Delete \(filteredAndSortedSessions.count) session\(filteredAndSortedSessions.count == 1 ? "" : "s")?", isPresented: $showingBulkDeleteConfirmation) {
             Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) {
                 let toDelete = filteredAndSortedSessions
@@ -120,7 +120,7 @@ struct SessionListView: View {
                     Button(role: .destructive) {
                         showingBulkDeleteConfirmation = true
                     } label: {
-                        Label("Delete \(filteredAndSortedSessions.count) sessions", systemImage: "trash")
+                        Label("Delete \(filteredAndSortedSessions.count) session\(filteredAndSortedSessions.count == 1 ? "" : "s")", systemImage: "trash")
                     }
                     .buttonStyle(.bordered)
                     .tint(.red)
