@@ -123,6 +123,10 @@ class FocusManager: ObservableObject {
         sessionManager.deleteSession(session)
     }
 
+    func deleteSessions(_ sessions: [FocusSession]) {
+        sessionManager.deleteSessions(sessions)
+    }
+
     // MARK: - Current App Access
     var currentAppBundleId: String? {
         return appMonitor.currentApp
