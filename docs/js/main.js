@@ -22,19 +22,109 @@ document.addEventListener('DOMContentLoaded', function() {
     // Configuration
     const config = {
         production: {
-            stripe: Stripe('pk_live_51RJsTJHG3jEF4MbtWkI32NWB3j69lMvPnwlAhH81xKsWwko0vNrj9rTZzsvzaUzmSYqMbSnTGrS7Xs24ymwIoqay008AuEGDQG'),
+            publishableKey: 'pk_live_51RJsTJHG3jEF4MbtWkI32NWB3j69lMvPnwlAhH81xKsWwko0vNrj9rTZzsvzaUzmSYqMbSnTGrS7Xs24ymwIoqay008AuEGDQG',
             priceId: 'price_1RqXaoHG3jEF4MbtgS8HRwXE', // Multi-currency price ID
             successUrl: 'https://auto-focus.app/success',
             cancelUrl: 'https://auto-focus.app/canceled'
         },
         staging: {
-            stripe: Stripe('pk_test_51RJsTSQnG2sk4c6Rt00Ew1IrNguokLwQkvBcpTwVLsM92rYoQeqBW56MkrE2nZoIRacFMxCf9y9uv2UrxXUN0Cum00tPXy1cEW'),
+            publishableKey: 'pk_test_51RJsTSQnG2sk4c6Rt00Ew1IrNguokLwQkvBcpTwVLsM92rYoQeqBW56MkrE2nZoIRacFMxCf9y9uv2UrxXUN0Cum00tPXy1cEW',
             priceId: 'price_1RYAKiQnG2sk4c6RQTPMZ6HT',
             successUrl: 'https://auto-focus.app/success?env=staging',
             cancelUrl: 'https://auto-focus.app/canceled?env=staging',
             apiUrl: 'https://staging.auto-focus.app/api/'
         }
     };
+
+    let stripeScriptPromise = null;
+    const stripeClients = {};
+
+    function loadStripeJs() {
+        if (window.Stripe) {
+            return Promise.resolve(window.Stripe);
+        }
+
+        if (stripeScriptPromise) {
+            return stripeScriptPromise;
+        }
+
+        stripeScriptPromise = new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://js.stripe.com/v3';
+            script.async = true;
+            script.dataset.stripeJs = 'true';
+            script.onload = () => {
+                if (window.Stripe) {
+                    resolve(window.Stripe);
+                    return;
+                }
+
+                reject(new Error('Stripe loaded but was not initialized.'));
+            };
+            script.onerror = () => reject(new Error('Could not load Stripe Checkout.'));
+            document.head.appendChild(script);
+        });
+
+        return stripeScriptPromise;
+    }
+
+    async function getStripeClient(environment) {
+        if (stripeClients[environment]) {
+            return stripeClients[environment];
+        }
+
+        const stripeFactory = await loadStripeJs();
+        stripeClients[environment] = stripeFactory(config[environment].publishableKey);
+        return stripeClients[environment];
+    }
+
+    function warmStripeJs() {
+        loadStripeJs().catch(() => {
+            // Ignore warm-up failures; click handling will surface a user-facing message.
+        });
+    }
+
+    async function startCheckout(environment, errorElementId) {
+        const currentConfig = config[environment];
+        const displayError = document.getElementById(errorElementId);
+
+        if (displayError) {
+            displayError.textContent = '';
+        }
+
+        try {
+            const stripe = await getStripeClient(environment);
+            const result = await stripe.redirectToCheckout({
+                lineItems: [{price: currentConfig.priceId, quantity: 1}],
+                mode: 'payment',
+                successUrl: currentConfig.successUrl,
+                cancelUrl: currentConfig.cancelUrl,
+            });
+
+            if (result && result.error && displayError) {
+                displayError.textContent = result.error.message;
+            }
+        } catch (error) {
+            console.error('Checkout failed to start:', error);
+
+            if (displayError) {
+                displayError.textContent = 'Could not start checkout. Please try again.';
+            }
+        }
+    }
+
+    function attachCheckoutHandler(buttonId, environment, errorElementId) {
+        const button = document.getElementById(buttonId);
+        if (!button) {
+            return;
+        }
+
+        button.addEventListener('pointerenter', warmStripeJs, { once: true });
+        button.addEventListener('focus', warmStripeJs, { once: true });
+        button.addEventListener('click', function () {
+            startCheckout(environment, errorElementId);
+        });
+    }
 
     // Currency detection function
     function detectUserCurrency() {
@@ -143,46 +233,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Production checkout
-    const productionButton = document.getElementById('checkout-button');
-    if (productionButton) {
-        productionButton.addEventListener('click', function () {
-            const prod = config.production;
-            prod.stripe.redirectToCheckout({
-                lineItems: [{price: prod.priceId, quantity: 1}],
-                mode: 'payment',
-                successUrl: prod.successUrl,
-                cancelUrl: prod.cancelUrl,
-            })
-            .then(function (result) {
-                if (result.error) {
-                    const displayError = document.getElementById('error-message');
-                    displayError.textContent = result.error.message;
-                }
-            });
-        });
-    }
-
-    // Staging checkout
-    const stagingButton = document.getElementById('staging-checkout-button');
-    if (stagingButton) {
-        stagingButton.addEventListener('click', function () {
-            const staging = config.staging;
-
-            staging.stripe.redirectToCheckout({
-                lineItems: [{price: staging.priceId, quantity: 1}],
-                mode: 'payment',
-                successUrl: staging.successUrl,
-                cancelUrl: staging.cancelUrl,
-            })
-            .then(function (result) {
-                if (result.error) {
-                    const displayError = document.getElementById('staging-error-message');
-                    displayError.textContent = result.error.message;
-                }
-            });
-        });
-    }
+    attachCheckoutHandler('checkout-button', 'production', 'error-message');
+    attachCheckoutHandler('staging-checkout-button', 'staging', 'staging-error-message');
 
     // Demo Animation Logic
     function startDemoAnimation() {

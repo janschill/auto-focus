@@ -9,7 +9,6 @@
     <script defer data-domain="auto-focus.app" src="https://nsa.janschill.de/js/script.file-downloads.js"></script>
     <script>window.plausible = window.plausible || function () { (window.plausible.q = window.plausible.q || []).push(arguments) }</script>
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
-    <script src="https://js.stripe.com/v3"></script>
     <style>
         :root {
             --primary-color: rgb(123, 170, 191);
@@ -79,23 +78,69 @@
 
     <script>
     (function() {
-        var stripe = Stripe('pk_live_51RJsTJHG3jEF4MbtWkI32NWB3j69lMvPnwlAhH81xKsWwko0vNrj9rTZzsvzaUzmSYqMbSnTGrS7Xs24ymwIoqay008AuEGDQG');
+        var stripePromise;
+
+        function loadStripeJs() {
+            if (window.Stripe) {
+                return Promise.resolve(window.Stripe);
+            }
+
+            if (stripePromise) {
+                return stripePromise;
+            }
+
+            stripePromise = new Promise(function(resolve, reject) {
+                var script = document.createElement('script');
+                script.src = 'https://js.stripe.com/v3';
+                script.async = true;
+                script.onload = function() {
+                    if (window.Stripe) {
+                        resolve(window.Stripe);
+                        return;
+                    }
+
+                    reject(new Error('Stripe loaded but was not initialized.'));
+                };
+                script.onerror = function() {
+                    reject(new Error('Could not load Stripe Checkout.'));
+                };
+                document.head.appendChild(script);
+            });
+
+            return stripePromise;
+        }
+
+        function warmStripeJs() {
+            loadStripeJs().catch(function() {
+                // Ignore warm-up failures; click handling will surface a user-facing message.
+            });
+        }
 
         var checkoutButton = document.getElementById('checkout-button');
         if (checkoutButton) {
-            checkoutButton.addEventListener('click', function () {
-                stripe.redirectToCheckout({
-                    lineItems: [{price: 'price_1RqXaoHG3jEF4MbtgS8HRwXE', quantity: 1}],
-                    mode: 'payment',
-                    successUrl: 'https://auto-focus.app/success',
-                    cancelUrl: 'https://auto-focus.app/canceled',
-                })
-                .then(function (result) {
-                    if (result.error) {
-                        var displayError = document.getElementById('error-message');
+            checkoutButton.addEventListener('pointerenter', warmStripeJs, { once: true });
+            checkoutButton.addEventListener('focus', warmStripeJs, { once: true });
+            checkoutButton.addEventListener('click', async function () {
+                var displayError = document.getElementById('error-message');
+                displayError.textContent = '';
+
+                try {
+                    var StripeFactory = await loadStripeJs();
+                    var stripe = StripeFactory('pk_live_51RJsTJHG3jEF4MbtWkI32NWB3j69lMvPnwlAhH81xKsWwko0vNrj9rTZzsvzaUzmSYqMbSnTGrS7Xs24ymwIoqay008AuEGDQG');
+                    var result = await stripe.redirectToCheckout({
+                        lineItems: [{price: 'price_1RqXaoHG3jEF4MbtgS8HRwXE', quantity: 1}],
+                        mode: 'payment',
+                        successUrl: 'https://auto-focus.app/success',
+                        cancelUrl: 'https://auto-focus.app/canceled',
+                    });
+
+                    if (result && result.error) {
                         displayError.textContent = result.error.message;
                     }
-                });
+                } catch (error) {
+                    console.error('Checkout failed to start:', error);
+                    displayError.textContent = 'Could not start checkout. Please try again.';
+                }
             });
         }
     })();

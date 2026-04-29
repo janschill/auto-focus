@@ -6,14 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Auto-Focus - Detects Focus. Disables Notifications.</title>
     <meta name="description"
-        content="Auto-Focus detects when you're in deep work and automatically enables Do Not Disturb. No timers. No tracking. Just focus.">
+        content="Auto-Focus detects when you're in deep work and automatically enables Do Not Disturb. Open source, local-first, and no activity data leaves your Mac.">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <link rel="manifest" href="/site.webmanifest">
     <script defer data-domain="auto-focus.app" src="https://nsa.janschill.de/js/script.file-downloads.js"></script>
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
-    <script src="https://js.stripe.com/v3"></script>
     <style>
         :root {
             --bg: #FFFEF5;
@@ -56,6 +55,7 @@
             color: var(--text);
             border: 3px solid var(--border);
             box-shadow: 4px 4px 0 var(--border);
+            cursor: pointer;
             transition: all 0.1s ease;
         }
 
@@ -74,6 +74,7 @@
             color: var(--text);
             border: 3px solid var(--border);
             box-shadow: 4px 4px 0 var(--border);
+            cursor: pointer;
             transition: all 0.1s ease;
         }
 
@@ -153,7 +154,7 @@
                         Detects Focus.<br>Disables Notifications.
                     </p>
                     <p class="text-lg mb-8 max-w-md">
-                        A tiny macOS menu bar app that watches what you're working on and automatically enables Do Not Disturb when you're in the zone.
+                        A tiny macOS menu bar app that detects what you're working on locally and automatically enables Do Not Disturb when you're in the zone.
                     </p>
                     <div class="flex flex-wrap gap-4">
                         <a href="downloads/Auto-Focus.zip"
@@ -165,6 +166,11 @@
                             Buy Plus &rarr;
                         </a>
                     </div>
+                    <p class="mt-6 text-sm font-bold">
+                        Open source. Local-first.
+                        <a href="https://github.com/janschill/auto-focus" target="_blank" rel="noopener noreferrer"
+                            class="underline">Inspect the code on GitHub</a>.
+                    </p>
                 </div>
 
                 <!-- Animated Demo -->
@@ -254,10 +260,67 @@
                         <span class="text-2xl">&#x2717;</span>
                         <div>
                             <strong>Not cloud-based.</strong>
-                            <span class="text-gray-600">All data stays on your Mac. Nothing sent anywhere.</span>
+                            <span class="text-gray-600">Your activity data stays on your Mac. License validation and update checks are the only app network requests.</span>
                         </div>
                     </li>
                 </ul>
+            </div>
+        </section>
+
+        <!-- TRUST -->
+        <section class="mb-20">
+            <h2 class="text-4xl font-black mb-8">No activity data leaves your Mac</h2>
+            <div class="border-brutal p-8 shadow-brutal bg-white">
+                <p class="text-lg mb-8">
+                    Auto-Focus needs sensitive macOS permissions, so the code is public. You should be able to verify
+                    what is monitored, what is stored, and what network requests the app makes.
+                </p>
+
+                <div class="grid md:grid-cols-3 gap-6 mb-8">
+                    <div class="border-brutal-thin p-5">
+                        <h3 class="text-xl font-bold mb-2">Open source</h3>
+                        <p class="text-gray-700 mb-3">The macOS app source is public, including app monitoring, browser detection, licensing, and update checks.</p>
+                        <a href="https://github.com/janschill/auto-focus" target="_blank" rel="noopener noreferrer"
+                            class="font-bold underline">View source &rarr;</a>
+                    </div>
+                    <div class="border-brutal-thin p-5">
+                        <h3 class="text-xl font-bold mb-2">Local-first</h3>
+                        <p class="text-gray-700">Focus sessions, app activity, browser URL data, settings, and insights are stored locally on your Mac.</p>
+                    </div>
+                    <div class="border-brutal-thin p-5">
+                        <h3 class="text-xl font-bold mb-2">Explicit network use</h3>
+                        <p class="text-gray-700">Auto-Focus only contacts the server to validate Plus licenses and check whether a new version is available.</p>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-brutal-thin">
+                        <thead>
+                            <tr class="border-b-2 border-current">
+                                <th class="p-4 font-black">Data</th>
+                                <th class="p-4 font-black">Where it goes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-b-2 border-current">
+                                <td class="p-4">Focus sessions, active apps, settings, insights</td>
+                                <td class="p-4 font-bold">Stored locally on your Mac</td>
+                            </tr>
+                            <tr class="border-b-2 border-current">
+                                <td class="p-4">Active browser URL data used for focus matching</td>
+                                <td class="p-4 font-bold">Read and stored locally, not uploaded</td>
+                            </tr>
+                            <tr class="border-b-2 border-current">
+                                <td class="p-4">License key and app version</td>
+                                <td class="p-4 font-bold">Sent only for Plus license validation</td>
+                            </tr>
+                            <tr>
+                                <td class="p-4">Update checks</td>
+                                <td class="p-4 font-bold">Fetches the latest version file, no activity data included</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </section>
 
@@ -373,6 +436,8 @@
             <div class="flex flex-wrap gap-6 mb-6 text-sm">
                 <a href="/guide.html" class="hover:underline font-bold">Guide & FAQ</a>
                 <a href="/privacy.html" class="hover:underline">Privacy</a>
+                <a href="https://github.com/janschill/auto-focus" target="_blank" rel="noopener noreferrer"
+                    class="hover:underline">Source Code</a>
                 <a href="/terms.html" class="hover:underline">Terms</a>
                 <a href="/refunds.html" class="hover:underline">Refunds</a>
                 <a href="mailto:help@auto-focus.app" class="hover:underline">Contact</a>

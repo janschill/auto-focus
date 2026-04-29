@@ -50,12 +50,12 @@
         <header class="mb-12">
             <a href="/" class="font-bold hover:underline">&larr; Back to Auto-Focus</a>
             <h1 class="text-4xl font-black mt-6 mb-2">Privacy Policy</h1>
-            <p class="text-gray-600">Last updated: January 22, 2026</p>
+            <p class="text-gray-600">Last updated: April 29, 2026</p>
         </header>
 
         <div class="border-brutal shadow-brutal p-8 mb-8 bg-white">
             <h2 class="text-2xl font-bold mb-4">The Simple Version</h2>
-            <p class="text-gray-700">Auto-Focus is built privacy-first. The app runs completely offline on your Mac and doesn't collect or store your personal data. We only collect the minimum information needed to process purchases and manage licenses.</p>
+            <p class="text-gray-700">Auto-Focus is built privacy-first. Your activity data stays on your Mac: focus sessions, active apps, browser URL data, settings, and insights are not sent to our server. The app only contacts our server for Plus license validation and update checks. We only collect the minimum information needed to process purchases and manage licenses.</p>
         </div>
 
         <div class="border-brutal shadow-brutal p-8 mb-8 bg-white">
@@ -65,7 +65,10 @@
             <p class="text-gray-700 mb-6">When you buy Auto-Focus+, we collect your email address and name through Stripe to send you your license key. This information is stored on our license server hosted by Hetzner in Germany.</p>
 
             <h3 class="text-xl font-bold mb-2">License Verification</h3>
-            <p class="text-gray-700 mb-6">Auto-Focus+ periodically checks your license with our server. Only your license key is sent - no personal data, usage patterns, or app data is transmitted.</p>
+            <p class="text-gray-700 mb-6">Auto-Focus+ periodically checks your license with our server. The request includes your license key and app version. No focus sessions, app activity, browser URL data, usage patterns, or settings are transmitted.</p>
+
+            <h3 class="text-xl font-bold mb-2">Update Checks</h3>
+            <p class="text-gray-700 mb-6">Auto-Focus periodically checks whether a newer version is available by fetching a small version file from auto-focus.app. This does not include any activity data from the app.</p>
 
             <h3 class="text-xl font-bold mb-2">Website Analytics</h3>
             <p class="text-gray-700">We use self-hosted Plausible Analytics (hosted by Hetzner in Germany) to understand website usage. This data is not linked to purchases or personal information.</p>
@@ -74,11 +77,11 @@
         <div class="border-brutal shadow-brutal p-8 mb-8 bg-white">
             <h2 class="text-2xl font-bold mb-4">Data We Don't Collect</h2>
             <ul class="space-y-2 text-gray-700">
-                <li>&#x2717; Your focus sessions, apps, or productivity data</li>
-                <li>&#x2717; Websites you visit (browser URL data stays on your Mac)</li>
+                <li>&#x2717; Your focus sessions, app activity, or productivity insights on our servers</li>
+                <li>&#x2717; Active browser URLs, page content, or browsing history on our servers</li>
                 <li>&#x2717; Usage patterns or behavior tracking</li>
                 <li>&#x2717; Device information or system details</li>
-                <li>&#x2717; Any data from the Auto-Focus app itself</li>
+                <li>&#x2717; Your local app database or settings</li>
             </ul>
         </div>
 
@@ -89,7 +92,10 @@
             <p class="text-gray-700 mb-6">All your focus data, settings, and insights are stored locally on your Mac. You can export this data anytime in CSV or JSON format.</p>
 
             <h3 class="text-xl font-bold mb-2">Browser Integration</h3>
-            <p class="text-gray-700 mb-6">Auto-Focus reads only the domain of your active browser tab via macOS Automation to detect focus websites. No page content, browsing history, or URL data is stored or transmitted. Domain matching happens entirely on your Mac.</p>
+            <p class="text-gray-700 mb-6">Auto-Focus reads your active browser tab URL via macOS Automation to detect focus websites. Matching happens entirely on your Mac. No page content or browsing history is read, and browser URL data is not transmitted to our server.</p>
+
+            <h3 class="text-xl font-bold mb-2">Open Source Verification</h3>
+            <p class="text-gray-700 mb-6">The macOS app source code is public so you can verify what Auto-Focus monitors, stores, and sends. See <a href="https://github.com/janschill/auto-focus" target="_blank" rel="noopener noreferrer">the Auto-Focus source code on GitHub</a>.</p>
 
             <h3 class="text-xl font-bold mb-2">Server Security</h3>
             <p class="text-gray-700">Our license server uses industry-standard encryption and is hosted by Hetzner in Germany, subject to strict European data protection laws.</p>
@@ -99,10 +105,10 @@
             <h2 class="text-2xl font-bold mb-6">Third-Party Services</h2>
 
             <h3 class="text-xl font-bold mb-2">Stripe</h3>
-            <p class="text-gray-700 mb-6">Payment processing is handled by Stripe. See <a href="https://stripe.com/privacy" target="_blank">Stripe's Privacy Policy</a> for details on how they handle payment data.</p>
+            <p class="text-gray-700 mb-6">Payment processing is handled by Stripe. Stripe Checkout is only loaded when you choose to start a purchase. At that point, Stripe may use cookies or similar technologies for payment processing and fraud prevention. See <a href="https://stripe.com/privacy" target="_blank">Stripe's Privacy Policy</a> for details on how they handle payment data.</p>
 
             <h3 class="text-xl font-bold mb-2">CDNs</h3>
-            <p class="text-gray-700 mb-6">Our website uses unpkg.com for Tailwind CSS and js.stripe.com for payment processing. These services may log IP addresses for security purposes.</p>
+            <p class="text-gray-700 mb-6">Our website uses unpkg.com for Tailwind CSS. We load js.stripe.com only when you initiate checkout. These services may log IP addresses for security purposes.</p>
 
             <h3 class="text-xl font-bold mb-2">macOS Automation</h3>
             <p class="text-gray-700">Browser URL tracking uses macOS Automation (AppleScript) to read the active tab URL. This requires your explicit permission, granted per browser through System Settings.</p>
