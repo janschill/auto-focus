@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Auto-Focus - Detects Focus. Disables Notifications.</title>
     <meta name="description"
-        content="Auto-Focus detects when you're in deep work and automatically enables Do Not Disturb. Open source, local-first, and no activity data leaves your Mac.">
+        content="Auto-Focus watches the apps and sites you choose and automatically turns on Do Not Disturb when you've settled into work. Open source, local-first, and no activity data leaves your Mac.">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
@@ -153,8 +153,8 @@
                     <p class="text-2xl md:text-3xl font-bold mb-8" style="color: var(--accent);">
                         Detects Focus.<br>Disables Notifications.
                     </p>
-                    <p class="text-lg mb-8 max-w-md">
-                        A tiny macOS menu bar app that detects what you're working on locally and automatically enables Do Not Disturb when you're in the zone.
+                    <p class="text-lg mb-8 max-w-lg">
+                        Auto-Focus watches the apps and sites you choose and turns on Do Not Disturb when you've settled into work. No timers. No manual toggling. No activity data leaves your Mac.
                     </p>
                     <div class="flex flex-wrap gap-4">
                         <a href="downloads/Auto-Focus.zip"
@@ -166,8 +166,8 @@
                             Buy Plus &rarr;
                         </a>
                     </div>
-                    <p class="mt-6 text-sm font-bold">
-                        Open source. Local-first.
+                    <p class="mt-6 text-sm font-bold max-w-lg">
+                        Open source. Local-first. No activity data leaves your Mac.
                         <a href="https://github.com/janschill/auto-focus" target="_blank" rel="noopener noreferrer"
                             class="underline">Inspect the code on GitHub</a>.
                     </p>
@@ -210,22 +210,54 @@
 
         <!-- WHAT IT IS -->
         <section class="mb-20">
-            <h2 class="text-4xl font-black mb-12">How it works</h2>
-            <div class="grid md:grid-cols-3 gap-6">
+            <h2 class="text-4xl font-black mb-4">Focus tools shouldn't need babysitting</h2>
+            <p class="text-lg mb-12 max-w-3xl">
+                Timers, manual DND, and scheduled focus modes all depend on you remembering to flip a switch.
+                Auto-Focus flips the model: when you've actually been working for long enough, it protects that time automatically.
+            </p>
+            <div class="grid md:grid-cols-2 xl:grid-cols-4 gap-6">
                 <div class="border-brutal p-6 shadow-brutal bg-white">
                     <div class="text-4xl mb-4">1</div>
-                    <h3 class="text-xl font-bold mb-2">Watches your apps</h3>
-                    <p class="text-gray-700">Tell it which apps are "focus apps" (your IDE, Figma, writing app). It monitors which one is active.</p>
+                    <h3 class="text-xl font-bold mb-2">You start working</h3>
+                    <p class="text-gray-700">Open VS Code, review a PR, design in Figma, or settle into a writing app.</p>
                 </div>
                 <div class="border-brutal p-6 shadow-brutal bg-white">
                     <div class="text-4xl mb-4">2</div>
-                    <h3 class="text-xl font-bold mb-2">Waits 12 minutes</h3>
-                    <p class="text-gray-700">Stay in a focus app for 12 minutes and it automatically enables Do Not Disturb. No buttons to press.</p>
+                    <h3 class="text-xl font-bold mb-2">It watches for your focus setup</h3>
+                    <p class="text-gray-700">Choose the apps and browser URLs that count as focus. Matching happens locally on your Mac.</p>
                 </div>
                 <div class="border-brutal p-6 shadow-brutal bg-white">
                     <div class="text-4xl mb-4">3</div>
-                    <h3 class="text-xl font-bold mb-2">Brings them back</h3>
-                    <p class="text-gray-700">Switch away from focus apps? After a short buffer, notifications return. Seamless.</p>
+                    <h3 class="text-xl font-bold mb-2">Do Not Disturb turns on</h3>
+                    <p class="text-gray-700">Stay there for 12 minutes and Auto-Focus enables Do Not Disturb for you. No timer to start. No toggle to remember.</p>
+                </div>
+                <div class="border-brutal p-6 shadow-brutal bg-white">
+                    <div class="text-4xl mb-4">4</div>
+                    <h3 class="text-xl font-bold mb-2">Notifications come back</h3>
+                    <p class="text-gray-700">Leave your focus apps and Auto-Focus restores notifications after a short buffer. Quiet when you need it, normal when you don't.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- USE CASES -->
+        <section class="mb-20">
+            <h2 class="text-4xl font-black mb-8">Built for the work you already do</h2>
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="border-brutal p-6 shadow-brutal bg-white">
+                    <h3 class="text-xl font-bold mb-2">Coding sessions</h3>
+                    <p class="text-gray-700">Keep Slack, Messages, and the rest of Notification Center quiet while you stay in VS Code, Xcode, Cursor, or your editor of choice.</p>
+                </div>
+                <div class="border-brutal p-6 shadow-brutal bg-white">
+                    <h3 class="text-xl font-bold mb-2">Pull request reviews</h3>
+                    <p class="text-gray-700">Treat GitHub review time like real focus time instead of letting it turn into inbox triage halfway through.</p>
+                </div>
+                <div class="border-brutal p-6 shadow-brutal bg-white">
+                    <h3 class="text-xl font-bold mb-2">Design work</h3>
+                    <p class="text-gray-700">Protect long Figma sessions without starting a timer first. Open the tool, get into the work, and let Auto-Focus handle the rest.</p>
+                </div>
+                <div class="border-brutal p-6 shadow-brutal bg-white">
+                    <h3 class="text-xl font-bold mb-2">Browser-heavy workflows</h3>
+                    <p class="text-gray-700">Match focus on GitHub, Linear, Notion, docs, and other domains you choose. No browser extension needed.</p>
                 </div>
             </div>
         </section>
@@ -238,22 +270,22 @@
                     <li class="flex items-start gap-4">
                         <span class="text-2xl">&#x2717;</span>
                         <div>
-                            <strong>Not a time tracker.</strong>
-                            <span class="text-gray-600">No Pomodoro timers. No sessions to start or stop.</span>
+                            <strong>Not a timer app.</strong>
+                            <span class="text-gray-600">No Pomodoro cycles. No sessions to start. No clock to babysit.</span>
                         </div>
                     </li>
                     <li class="flex items-start gap-4">
                         <span class="text-2xl">&#x2717;</span>
                         <div>
                             <strong>Not a productivity score.</strong>
-                            <span class="text-gray-600">No judgment. No daily goals. No streaks to maintain.</span>
+                            <span class="text-gray-600">No streaks, leaderboards, or guilt dashboards.</span>
                         </div>
                     </li>
                     <li class="flex items-start gap-4">
                         <span class="text-2xl">&#x2717;</span>
                         <div>
                             <strong>Not a distraction blocker.</strong>
-                            <span class="text-gray-600">It doesn't block apps or websites. Just silences notifications.</span>
+                            <span class="text-gray-600">It doesn't block apps or websites. It just silences notifications at the right time.</span>
                         </div>
                     </li>
                     <li class="flex items-start gap-4">
@@ -269,23 +301,23 @@
 
         <!-- TRUST -->
         <section class="mb-20">
-            <h2 class="text-4xl font-black mb-8">No activity data leaves your Mac</h2>
+            <h2 class="text-4xl font-black mb-8">Private enough to inspect</h2>
             <div class="border-brutal p-8 shadow-brutal bg-white">
                 <p class="text-lg mb-8">
-                    Auto-Focus needs sensitive macOS permissions, so the code is public. You should be able to verify
-                    what is monitored, what is stored, and what network requests the app makes.
+                    Auto-Focus asks for sensitive macOS permissions, so the code is public. You should be able to verify
+                    what is monitored, what stays local, and what network requests the app actually makes.
                 </p>
 
                 <div class="grid md:grid-cols-3 gap-6 mb-8">
                     <div class="border-brutal-thin p-5">
                         <h3 class="text-xl font-bold mb-2">Open source</h3>
-                        <p class="text-gray-700 mb-3">The macOS app source is public, including app monitoring, browser detection, licensing, and update checks.</p>
+                        <p class="text-gray-700 mb-3">The macOS app source is public, including app monitoring, browser matching, licensing, and update checks.</p>
                         <a href="https://github.com/janschill/auto-focus" target="_blank" rel="noopener noreferrer"
                             class="font-bold underline">View source &rarr;</a>
                     </div>
                     <div class="border-brutal-thin p-5">
                         <h3 class="text-xl font-bold mb-2">Local-first</h3>
-                        <p class="text-gray-700">Focus sessions, app activity, browser URL data, settings, and insights are stored locally on your Mac.</p>
+                        <p class="text-gray-700">Focus sessions, app activity, browser URL matching, settings, and insights are stored locally on your Mac.</p>
                     </div>
                     <div class="border-brutal-thin p-5">
                         <h3 class="text-xl font-bold mb-2">Explicit network use</h3>
@@ -326,18 +358,21 @@
 
         <!-- SCREENSHOT -->
         <section class="mb-20">
-            <h2 class="text-4xl font-black mb-8">See it in action</h2>
+            <h2 class="text-4xl font-black mb-8">Small enough to stay out of your way</h2>
             <div class="border-brutal shadow-brutal overflow-hidden bg-white">
                 <img src="images/auto-focus-menubar-window-in-focus-2.png"
                      alt="Auto-Focus menu bar showing active focus session"
                      class="w-full">
             </div>
-            <p class="mt-4 text-gray-600 text-center">The menu bar shows your focus status and session time.</p>
+            <p class="mt-4 text-gray-600 text-center">A simple menu bar view shows whether focus protection is active, without turning into another dashboard to manage.</p>
         </section>
 
         <!-- PRICING -->
         <section id="pricing" class="mb-20">
-            <h2 class="text-4xl font-black mb-12">Simple pricing</h2>
+            <h2 class="text-4xl font-black mb-4">One-time purchase. Lifetime focus.</h2>
+            <p class="text-lg mb-12 max-w-3xl">
+                Start free, then upgrade when you want Auto-Focus on every app and browser workflow that matters to you.
+            </p>
             <div class="grid md:grid-cols-2 gap-6">
                 <!-- Free -->
                 <div class="border-brutal p-8 shadow-brutal bg-white">
@@ -346,7 +381,7 @@
                     <ul class="space-y-3 mb-8">
                         <li class="flex items-center gap-2">
                             <span style="color: var(--accent);">&#10003;</span>
-                            Automatic DND
+                            Automatic Do Not Disturb
                         </li>
                         <li class="flex items-center gap-2">
                             <span style="color: var(--accent);">&#10003;</span>
@@ -358,7 +393,7 @@
                         </li>
                         <li class="flex items-center gap-2">
                             <span style="color: var(--accent);">&#10003;</span>
-                            Browser URL tracking
+                            Browser URL matching
                         </li>
                         <li class="flex items-center gap-2">
                             <span style="color: var(--accent);">&#10003;</span>
@@ -405,6 +440,7 @@
                         Buy Auto-Focus+
                     </button>
                     <div id="error-message" class="text-red-600 mt-2 text-center text-sm"></div>
+                    <p class="mt-4 text-sm text-center">Secure Stripe checkout opens only when you choose to buy.</p>
 
                     <!-- Staging button (hidden by default) -->
                     <button id="staging-checkout-button" type="button"
@@ -422,9 +458,32 @@
             <div class="border-brutal p-8 shadow-brutal bg-white">
                 <h3 class="text-2xl font-bold mb-4">Works with your browser too</h3>
                 <p class="mb-6 text-lg">
-                    Auto-Focus reads your active browser tab to track focus on web apps like GitHub, Linear, Figma, and Notion &mdash; no extension needed.
-                    Works with Safari, Chrome, Brave, Edge, Arc, and more. Just grant Automation permission and add your focus URLs.
+                    Auto-Focus can match your active browser tab against the domains you choose for focus, so web apps like GitHub, Linear, Figma, and Notion count too &mdash; no extension needed.
+                    It works with Safari, Chrome, Brave, Edge, Arc, and more. Just grant Automation permission and add your focus URLs.
                 </p>
+            </div>
+        </section>
+
+        <!-- FAQ -->
+        <section class="mb-20">
+            <h2 class="text-4xl font-black mb-8">FAQ</h2>
+            <div class="grid md:grid-cols-2 gap-6">
+                <div class="border-brutal p-6 shadow-brutal bg-white">
+                    <h3 class="text-xl font-bold mb-2">Does it track my activity?</h3>
+                    <p class="text-gray-700">No. Focus sessions, app activity, and browser URL matching stay on your Mac. Plus only contacts the server for license validation and update checks.</p>
+                </div>
+                <div class="border-brutal p-6 shadow-brutal bg-white">
+                    <h3 class="text-xl font-bold mb-2">Can I choose what counts as focus?</h3>
+                    <p class="text-gray-700">Yes. You choose the apps and browser URLs that should trigger focus protection, then let Auto-Focus watch for them locally.</p>
+                </div>
+                <div class="border-brutal p-6 shadow-brutal bg-white">
+                    <h3 class="text-xl font-bold mb-2">Will it block websites or apps?</h3>
+                    <p class="text-gray-700">No. Auto-Focus only controls Do Not Disturb. It silences notifications; it does not block tools or restrict your browsing.</p>
+                </div>
+                <div class="border-brutal p-6 shadow-brutal bg-white">
+                    <h3 class="text-xl font-bold mb-2">Does it work with browser-based tools?</h3>
+                    <p class="text-gray-700">Yes. It can match your active browser tab against the domains you choose in Safari, Chrome, Brave, Edge, Arc, and other Chromium-based browsers.</p>
+                </div>
             </div>
         </section>
 
@@ -434,7 +493,7 @@
                 You don't need more time. You need more focus.
             </p>
             <div class="flex flex-wrap gap-6 mb-6 text-sm">
-                <a href="/guide.html" class="hover:underline font-bold">Guide & FAQ</a>
+                <a href="/guide.html" class="hover:underline font-bold">Guide &amp; FAQ</a>
                 <a href="/privacy.html" class="hover:underline">Privacy</a>
                 <a href="https://github.com/janschill/auto-focus" target="_blank" rel="noopener noreferrer"
                     class="hover:underline">Source Code</a>
