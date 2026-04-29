@@ -137,6 +137,22 @@
             text-decoration: line-through;
             text-decoration-thickness: 3px;
         }
+
+        .step-card {
+            min-height: 100%;
+        }
+
+        .step-number {
+            width: 3.5rem;
+            height: 3.5rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: 900;
+            line-height: 1;
+            background: white;
+        }
     </style>
 </head>
 
@@ -215,26 +231,26 @@
                 Timers, manual DND, and scheduled focus modes all depend on you remembering to flip a switch.
                 Auto-Focus flips the model: when you've actually been working for long enough, it protects that time automatically.
             </p>
-            <div class="grid md:grid-cols-2 xl:grid-cols-4 gap-6">
-                <div class="border-brutal p-6 shadow-brutal bg-white">
-                    <div class="text-4xl mb-4">1</div>
-                    <h3 class="text-xl font-bold mb-2">You start working</h3>
-                    <p class="text-gray-700">Open VS Code, review a PR, design in Figma, or settle into a writing app.</p>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="border-brutal p-6 md:p-8 shadow-brutal bg-white step-card">
+                    <div class="step-number border-brutal mb-5">1</div>
+                    <h3 class="text-2xl font-black mb-3">You start working</h3>
+                    <p class="text-gray-700 text-lg">Open VS Code, review a PR, design in Figma, or settle into a writing app.</p>
                 </div>
-                <div class="border-brutal p-6 shadow-brutal bg-white">
-                    <div class="text-4xl mb-4">2</div>
-                    <h3 class="text-xl font-bold mb-2">It watches for your focus setup</h3>
-                    <p class="text-gray-700">Choose the apps and browser URLs that count as focus. Matching happens locally on your Mac.</p>
+                <div class="border-brutal p-6 md:p-8 shadow-brutal bg-white step-card">
+                    <div class="step-number border-brutal mb-5">2</div>
+                    <h3 class="text-2xl font-black mb-3">It watches for your focus setup</h3>
+                    <p class="text-gray-700 text-lg">Choose the apps and browser URLs that count as focus. Matching happens locally on your Mac.</p>
                 </div>
-                <div class="border-brutal p-6 shadow-brutal bg-white">
-                    <div class="text-4xl mb-4">3</div>
-                    <h3 class="text-xl font-bold mb-2">Do Not Disturb turns on</h3>
-                    <p class="text-gray-700">Stay there for 12 minutes and Auto-Focus enables Do Not Disturb for you. No timer to start. No toggle to remember.</p>
+                <div class="border-brutal p-6 md:p-8 shadow-brutal bg-white step-card">
+                    <div class="step-number border-brutal mb-5">3</div>
+                    <h3 class="text-2xl font-black mb-3">Do Not Disturb turns on</h3>
+                    <p class="text-gray-700 text-lg">Stay there for 12 minutes and Auto-Focus enables Do Not Disturb for you. No timer to start. No toggle to remember.</p>
                 </div>
-                <div class="border-brutal p-6 shadow-brutal bg-white">
-                    <div class="text-4xl mb-4">4</div>
-                    <h3 class="text-xl font-bold mb-2">Notifications come back</h3>
-                    <p class="text-gray-700">Leave your focus apps and Auto-Focus restores notifications after a short buffer. Quiet when you need it, normal when you don't.</p>
+                <div class="border-brutal p-6 md:p-8 shadow-brutal bg-white step-card">
+                    <div class="step-number border-brutal mb-5">4</div>
+                    <h3 class="text-2xl font-black mb-3">Notifications come back</h3>
+                    <p class="text-gray-700 text-lg">Leave your focus apps and Auto-Focus restores notifications after a short buffer. Quiet when you need it, normal when you don't.</p>
                 </div>
             </div>
         </section>
@@ -506,7 +522,7 @@
 
     </div>
 
-    <script src="js/main.js"></script>
+    <script src="js/main.js?v=20260429-2"></script>
 </body>
 
 </html>
