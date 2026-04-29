@@ -149,6 +149,12 @@ struct DataOverviewView: View {
 struct DataSessionManagementView: View {
     @EnvironmentObject var focusManager: FocusManager
     @State private var showingSessionList = false
+    @State private var sheetInitialFilter: SessionDurationFilter = .all
+    @State private var sheetInitialSort: SessionSortOrder = .newest
+
+    private var veryShortSessionCount: Int {
+        focusManager.focusSessions.filter { $0.duration < 60 }.count
+    }
 
     var body: some View {
         GroupBox(label: Text("Session Management").font(.headline)) {
@@ -198,10 +204,34 @@ struct DataSessionManagementView: View {
                     }
                 }
 
+                if veryShortSessionCount > 0 {
+                    HStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                        Text("\(veryShortSessionCount) session\(veryShortSessionCount == 1 ? "" : "s") under 1 minute")
+                            .font(.callout)
+                        Spacer()
+                        Button("Review & clean up") {
+                            sheetInitialFilter = .veryShort
+                            sheetInitialSort = .oldest
+                            showingSessionList = true
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.orange.opacity(0.1))
+                    )
+                }
+
                 HStack {
                     Spacer()
 
                     Button("Manage Sessions") {
+                        sheetInitialFilter = .all
+                        sheetInitialSort = .newest
                         showingSessionList = true
                     }
                     .buttonStyle(.borderedProminent)
@@ -214,7 +244,7 @@ struct DataSessionManagementView: View {
         .frame(maxWidth: .infinity)
         .sheet(isPresented: $showingSessionList) {
             NavigationView {
-                SessionListView()
+                SessionListView(initialFilter: sheetInitialFilter, initialSort: sheetInitialSort)
                     .navigationTitle("Focus Sessions")
                     .toolbar {
                         ToolbarItem(placement: .automatic) {
