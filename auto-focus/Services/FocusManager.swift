@@ -238,6 +238,8 @@ class FocusManager: ObservableObject {
 
         // Check shortcut status asynchronously to avoid AppleScript blocking
         refreshShortcutStatus()
+
+        setUpScreenInactivityObservers()
     }
 
     func togglePause() {
@@ -383,6 +385,29 @@ class FocusManager: ObservableObject {
         focusTimer.reset()
     }
 
+    func handleScreenInactive() {
+        guard !isPaused else { return }
+        guard isFocusAppActive || isBrowserInFocus || timeSpent > 0 || bufferManager.isInBufferPeriod else {
+            return
+        }
+
+        bufferManager.cancelBuffer()
+
+        if didReachFocusThreshold {
+            sessionManager.endSession()
+        } else {
+            sessionManager.cancelCurrentSession()
+        }
+
+        resetFocusState()
+
+        if !isNotificationsEnabled {
+            focusModeController.setFocusMode(enabled: false)
+        }
+
+        AppLogger.focus.info("Screen inactive — session ended")
+    }
+
     func checkShortcutExists() -> Bool {
         return focusModeController.checkShortcutExists()
     }
@@ -397,6 +422,32 @@ class FocusManager: ObservableObject {
                 self.isShortcutInstalled = exists
             }
         }
+    }
+
+    private func setUpScreenInactivityObservers() {
+        let workspaceNC = NSWorkspace.shared.notificationCenter
+        workspaceNC.addObserver(
+            self,
+            selector: #selector(screenInactivityNotification),
+            name: NSWorkspace.screensDidSleepNotification,
+            object: nil
+        )
+        workspaceNC.addObserver(
+            self,
+            selector: #selector(screenInactivityNotification),
+            name: NSWorkspace.willSleepNotification,
+            object: nil
+        )
+        DistributedNotificationCenter.default().addObserver(
+            self,
+            selector: #selector(screenInactivityNotification),
+            name: NSNotification.Name("com.apple.screenIsLocked"),
+            object: nil
+        )
+    }
+
+    @objc private func screenInactivityNotification() {
+        handleScreenInactive()
     }
 
     func completeOnboarding() {
@@ -483,6 +534,11 @@ class FocusManager: ObservableObject {
                 }
             }
         }
+    }
+
+    deinit {
+        NSWorkspace.shared.notificationCenter.removeObserver(self)
+        DistributedNotificationCenter.default().removeObserver(self)
     }
 }
 
