@@ -168,6 +168,19 @@ class SessionManager: ObservableObject, SessionManaging {
         }
     }
 
+    func deleteSessions(_ sessions: [FocusSession]) {
+        guard !sessions.isEmpty else { return }
+
+        do {
+            try sessionRepo.delete(sessions)
+            AppLogger.session.info("Sessions deleted in batch", metadata: [
+                "count": String(sessions.count)
+            ])
+        } catch {
+            AppLogger.session.error("Failed to batch-delete sessions", error: error)
+        }
+    }
+
     // MARK: - Debug Methods
 
     func addSampleSessions(_ sessions: [FocusSession]) {

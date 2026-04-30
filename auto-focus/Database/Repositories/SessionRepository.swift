@@ -29,6 +29,15 @@ final class SessionRepository {
         }
     }
 
+    func delete(_ sessions: [FocusSession]) throws {
+        try dbQueue.write { db in
+            let ids = sessions.map { $0.id.uuidString }
+            _ = try FocusSession
+                .filter(ids.contains(Column("id")))
+                .deleteAll(db)
+        }
+    }
+
     func deleteAll() throws {
         try dbQueue.write { db in
             _ = try FocusSession.deleteAll(db)

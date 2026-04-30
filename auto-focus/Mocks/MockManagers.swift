@@ -81,6 +81,11 @@ class MockSessionManager: ObservableObject, SessionManaging {
         focusSessions.removeAll { $0.id == session.id }
     }
 
+    func deleteSessions(_ sessions: [FocusSession]) {
+        let idsToDelete = Set(sessions.map { $0.id })
+        focusSessions.removeAll { idsToDelete.contains($0.id) }
+    }
+
     // Test helpers
     func reset() {
         clearAllSessions()

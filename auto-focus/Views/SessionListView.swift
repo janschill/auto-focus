@@ -10,9 +10,15 @@ import SwiftUI
 struct SessionListView: View {
     @EnvironmentObject var focusManager: FocusManager
     @State private var showingDeleteConfirmation = false
+    @State private var showingBulkDeleteConfirmation = false
     @State private var sessionToDelete: FocusSession?
-    @State private var sortOrder: SessionSortOrder = .newest
-    @State private var filterDuration: SessionDurationFilter = .all
+    @State private var sortOrder: SessionSortOrder
+    @State private var filterDuration: SessionDurationFilter
+
+    init(initialFilter: SessionDurationFilter = .all, initialSort: SessionSortOrder = .newest) {
+        _filterDuration = State(initialValue: initialFilter)
+        _sortOrder = State(initialValue: initialSort)
+    }
 
     private var filteredAndSortedSessions: [FocusSession] {
         let filtered = filteredSessions
@@ -61,6 +67,15 @@ struct SessionListView: View {
         .alert(isPresented: $showingDeleteConfirmation) {
             deleteConfirmationAlert
         }
+        .alert("Delete \(filteredAndSortedSessions.count) session\(filteredAndSortedSessions.count == 1 ? "" : "s")?", isPresented: $showingBulkDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                let toDelete = filteredAndSortedSessions
+                focusManager.deleteSessions(toDelete)
+            }
+        } message: {
+            Text("This will delete every session matching '\(filterDuration.displayName)'. This action cannot be undone.")
+        }
     }
 
     // MARK: - View Components
@@ -100,6 +115,17 @@ struct SessionListView: View {
                 .frame(maxWidth: 150)
 
                 Spacer()
+
+                if filterDuration != .all && !filteredAndSortedSessions.isEmpty {
+                    Button(role: .destructive) {
+                        showingBulkDeleteConfirmation = true
+                    } label: {
+                        Label("Delete \(filteredAndSortedSessions.count) session\(filteredAndSortedSessions.count == 1 ? "" : "s")", systemImage: "trash")
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.red)
+                    .help("Delete every session matching the current filter")
+                }
             }
         }
     }
