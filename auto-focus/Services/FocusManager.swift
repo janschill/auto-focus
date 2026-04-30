@@ -50,10 +50,20 @@ class FocusManager: ObservableObject {
                 focusApps = sorted
                 return // This will trigger didSet again, but with sorted array
             }
-            try? focusAppRepo.save(focusApps)
             appMonitor.updateFocusApps(focusApps)
+            // Don't write back to disk while we're loading from disk — otherwise
+            // a transient read failure (loadedApps == []) would persist as a wipe.
+            guard !isLoadingFocusApps else { return }
+            do {
+                try focusAppRepo.save(focusApps)
+            } catch {
+                AppLogger.focus.error("Failed to persist focus apps", error: error, metadata: [
+                    "count": String(focusApps.count)
+                ])
+            }
         }
     }
+    private var isLoadingFocusApps = false
     @Published var focusThreshold: TimeInterval = 12 {
         didSet {
             try? settingsRepo.setDouble(focusThreshold, forKey: "focusThreshold")
@@ -271,8 +281,16 @@ class FocusManager: ObservableObject {
     }
 
     private func loadFocusApps() {
-        let loadedApps = (try? focusAppRepo.fetchAll()) ?? []
+        let loadedApps: [AppInfo]
+        do {
+            loadedApps = try focusAppRepo.fetchAll()
+        } catch {
+            AppLogger.focus.error("Failed to load focus apps — keeping in-memory list", error: error)
+            return
+        }
+        isLoadingFocusApps = true
         focusApps = loadedApps
+        isLoadingFocusApps = false
     }
 
     private func handleFocusAppInFront() {

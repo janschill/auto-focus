@@ -31,9 +31,18 @@ final class FocusAppRepository {
 
     func save(_ apps: [AppInfo]) throws {
         try dbQueue.write { db in
-            _ = try AppInfo.deleteAll(db)
+            let existingIds = Set(try String.fetchAll(db, sql: "SELECT id FROM focusApp"))
+            let newIds = Set(apps.map { $0.id })
+
+            let idsToDelete = existingIds.subtracting(newIds)
+            if !idsToDelete.isEmpty {
+                _ = try AppInfo
+                    .filter(idsToDelete.contains(Column("id")))
+                    .deleteAll(db)
+            }
+
             for app in apps {
-                try app.insert(db, onConflict: .ignore)
+                try app.insert(db, onConflict: .replace)
             }
         }
     }
