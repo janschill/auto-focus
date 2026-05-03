@@ -75,6 +75,21 @@ final class ScreenLockSessionEndTests: XCTestCase {
 
         XCTAssertEqual(mockSessionManager.focusSessions.count, 0)
     }
+
+    func testScreenLockResetsAppMonitorStateSoTimerCanRestartAfterUnlock() {
+        focusManager.isFocusAppActive = true
+        focusManager.didReachFocusThreshold = true
+        focusManager.timeSpent = 600
+        let resetsBefore = mockAppMonitor.resetStateCallCount
+
+        focusManager.handleScreenInactive()
+
+        XCTAssertEqual(
+            mockAppMonitor.resetStateCallCount,
+            resetsBefore + 1,
+            "AppMonitor.resetState() must be called so its lastFocusAppActive flips to false; otherwise the next tick after unlock won't fire didDetectFocusApp and the timer won't restart"
+        )
+    }
 }
 
 #endif

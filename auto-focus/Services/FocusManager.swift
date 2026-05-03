@@ -267,9 +267,7 @@ class FocusManager: ObservableObject {
                 }
             }
         } else {
-            if let monitor = appMonitor as? AppMonitor {
-                monitor.resetState()
-            }
+            appMonitor.resetState()
         }
     }
 
@@ -418,6 +416,11 @@ class FocusManager: ObservableObject {
         }
 
         resetFocusState()
+
+        // AppMonitor skips ticks while the lock screen / screensaver is frontmost,
+        // so its lastFocusAppActive flag stays true. Resetting it ensures the next
+        // tick after unlock fires didDetectFocusApp and restarts the timer.
+        appMonitor.resetState()
 
         if !isNotificationsEnabled {
             focusModeController.setFocusMode(enabled: false)
