@@ -312,7 +312,7 @@ jobs:
         if: steps.should_release.outputs.proceed == 'true'
         run: |
           cd build
-          zip -r auto-focus_notarization.zip auto-focus_temp.app
+          ditto -c -k --keepParent auto-focus_temp.app auto-focus_notarization.zip
           echo "Created notarization ZIP"
 
       - name: Notarize app
@@ -322,12 +322,28 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          # Submit for notarization
-          xcrun notarytool submit build/auto-focus_notarization.zip \
+          set +e
+          NOTARY_OUTPUT=$(xcrun notarytool submit build/auto-focus_notarization.zip \
             --apple-id "$APPLE_ID" \
             --password "$APPLE_APP_SPECIFIC_PASSWORD" \
             --team-id "$APPLE_TEAM_ID" \
-            --wait
+            --wait 2>&1)
+          NOTARY_EXIT=$?
+          set -e
+
+          echo "$NOTARY_OUTPUT"
+          SUBMISSION_ID=$(echo "$NOTARY_OUTPUT" | awk '/^[[:space:]]*id:/ { print $2; exit }')
+
+          if [ "$NOTARY_EXIT" -ne 0 ] || ! echo "$NOTARY_OUTPUT" | grep -q "status: Accepted"; then
+            echo "❌ Notarization failed"
+            if [ -n "$SUBMISSION_ID" ]; then
+              xcrun notarytool log "$SUBMISSION_ID" \
+                --apple-id "$APPLE_ID" \
+                --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+                --team-id "$APPLE_TEAM_ID" || true
+            fi
+            exit 1
+          fi
 
           echo "✅ Notarization successful"
 
@@ -350,12 +366,12 @@ jobs:
 
           if [ "${{ steps.should_release.outputs.is_beta }}" = "true" ]; then
             # Beta: write zip to build/ only (not docs/downloads/)
-            zip -r ${ZIP_NAME} auto-focus.app
+            ditto -c -k --keepParent auto-focus.app ${ZIP_NAME}
             echo "✅ Created build/${ZIP_NAME} (beta — not updating docs/downloads/)"
           else
             # Stable: write to docs/downloads/ for website distribution
             mkdir -p ../docs/downloads
-            zip -r ../docs/downloads/${ZIP_NAME} auto-focus.app
+            ditto -c -k --keepParent auto-focus.app ../docs/downloads/${ZIP_NAME}
 
             # Also create a copy for backward compatibility
             cd ../docs/downloads
