@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		4B0DB0A32F580A0000A00003 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 4B0DB0A22F580A0000A00002 /* GRDB */; };
 		4B41B4932D58EA0000171A3C /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 4B41B4922D58EA0000171A3C /* LaunchAtLogin */; };
+		4B5C5A1A2F580A0000A00003 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 4B5C5A1A2F580A0000A00002 /* Sparkle */; };
 		4B6156142D4AC4A900937136 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 4B6156132D4AC4A400937136 /* README.md */; };
 /* End PBXBuildFile section */
 
@@ -69,6 +70,7 @@
 			files = (
 				4B0DB0A32F580A0000A00003 /* GRDB in Frameworks */,
 				4B41B4932D58EA0000171A3C /* LaunchAtLogin in Frameworks */,
+				4B5C5A1A2F580A0000A00003 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -147,6 +149,7 @@
 			packageProductDependencies = (
 				4B0DB0A22F580A0000A00002 /* GRDB */,
 				4B41B4922D58EA0000171A3C /* LaunchAtLogin */,
+				4B5C5A1A2F580A0000A00002 /* Sparkle */,
 			);
 			productName = "auto-focus";
 			productReference = 4BA2A8C62D452D6A00F62E0A /* auto-focus.app */;
@@ -206,6 +209,7 @@
 			packageReferences = (
 				4B0DB0A12F580A0000A00001 /* XCRemoteSwiftPackageReference "GRDB.swift" */,
 				4B41B4912D58E91B00171A3C /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */,
+				4B5C5A1A2F580A0000A00001 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 4BA2A8C72D452D6A00F62E0A /* Products */;
@@ -555,6 +559,14 @@
 				kind = branch;
 			};
 		};
+		4B5C5A1A2F580A0000A00001 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.6.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -567,6 +579,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 4B41B4912D58E91B00171A3C /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */;
 			productName = LaunchAtLogin;
+		};
+		4B5C5A1A2F580A0000A00002 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4B5C5A1A2F580A0000A00001 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -12,5 +12,15 @@
     <true/>
     <key>HMAC_SECRET</key>
     <string>$(HMAC_SECRET)</string>
+    <key>SUFeedURL</key>
+    <string>https://auto-focus.app/downloads/appcast.xml</string>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
+    <key>SUScheduledCheckInterval</key>
+    <integer>86400</integer>
+    <key>SUPublicEDKey</key>
+    <string>REPLACE_WITH_PUBLIC_KEY_FROM_GENERATE_KEYS</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
 </dict>
 </plist>

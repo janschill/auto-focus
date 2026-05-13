@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @EnvironmentObject var focusManager: FocusManager
     @EnvironmentObject var licenseManager: LicenseManager
     @Environment(\.dismiss) var dismiss
     @State private var selectedTab = 0
@@ -20,7 +19,6 @@ struct SettingsView: View {
                     Label("Browser", systemImage: "globe")
                 }
                 .tag(1)
-                .environmentObject(focusManager)
                 .environmentObject(licenseManager)
 
             InsightsView(selectedTab: $selectedTab)
@@ -35,7 +33,6 @@ struct SettingsView: View {
                     Label("Data", systemImage: "externaldrive")
                 }
                 .tag(3)
-                .environmentObject(focusManager)
                 .environmentObject(licenseManager)
 
             LicenseView()
@@ -45,15 +42,14 @@ struct SettingsView: View {
                 .tag(4)
                 .environmentObject(licenseManager)
 
-            if focusManager.canShowDebugOptions {
-                DebugMenuView()
-                    .tabItem {
-                        Label("Debug", systemImage: "ladybug")
-                    }
-                    .tag(5)
-                    .environmentObject(focusManager)
-                    .environmentObject(licenseManager)
-            }
+            #if DEBUG
+            DebugMenuView()
+                .tabItem {
+                    Label("Debug", systemImage: "ladybug")
+                }
+                .tag(5)
+                .environmentObject(licenseManager)
+            #endif
         }
         .frame(width: 600, height: 800)
         .onAppear {

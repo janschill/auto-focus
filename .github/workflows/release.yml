@@ -384,6 +384,51 @@ jobs:
             exit 1
           fi
 
+      - name: Locate Sparkle tools
+        id: sparkle_bin
+        if: steps.should_release.outputs.proceed == 'true' && steps.should_release.outputs.is_beta != 'true'
+        run: |
+          SPARKLE_BIN=$(find build/DerivedData -path '*/Sparkle/bin' -type d 2>/dev/null | head -n 1)
+          if [ -z "$SPARKLE_BIN" ]; then
+            SPARKLE_BIN=$(find ~/Library/Developer/Xcode/DerivedData -path '*/Sparkle/bin' -type d 2>/dev/null | head -n 1)
+          fi
+          if [ -z "$SPARKLE_BIN" ] || [ ! -x "$SPARKLE_BIN/generate_appcast" ]; then
+            echo "❌ Could not locate Sparkle bin directory with generate_appcast"
+            exit 1
+          fi
+          echo "SPARKLE_BIN=$SPARKLE_BIN" >> $GITHUB_ENV
+          echo "✅ Sparkle tools at $SPARKLE_BIN"
+
+      - name: Sign update and generate appcast
+        if: steps.should_release.outputs.proceed == 'true' && steps.should_release.outputs.is_beta != 'true'
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: |
+          if [ -z "$SPARKLE_ED_PRIVATE_KEY" ]; then
+            echo "❌ SPARKLE_ED_PRIVATE_KEY secret is not set"
+            exit 1
+          fi
+
+          KEY_FILE=$(mktemp)
+          trap 'rm -f "$KEY_FILE"' EXIT
+          printf '%s' "$SPARKLE_ED_PRIVATE_KEY" > "$KEY_FILE"
+
+          "$SPARKLE_BIN/generate_appcast" \
+            --ed-key-file "$KEY_FILE" \
+            --download-url-prefix "https://auto-focus.app/downloads/" \
+            --link "https://auto-focus.app" \
+            docs/downloads/
+
+          if [ ! -f docs/downloads/appcast.xml ]; then
+            echo "❌ appcast.xml was not generated"
+            exit 1
+          fi
+          if ! grep -q 'sparkle:edSignature=' docs/downloads/appcast.xml; then
+            echo "❌ appcast.xml is missing sparkle:edSignature — signing failed"
+            exit 1
+          fi
+          echo "✅ appcast.xml generated and signed"
+
       - name: Generate version.json
         if: steps.should_release.outputs.proceed == 'true' && steps.should_release.outputs.is_beta != 'true'
         run: |
@@ -435,10 +480,11 @@ jobs:
           # Remove old versioned zip files from git tracking (keep only the latest)
           git rm --cached --ignore-unmatch docs/downloads/Auto-Focus-v*.zip 2>/dev/null || true
 
-          # Add new distribution files (versioned zip, backward-compat zip, and version.json)
+          # Add new distribution files (versioned zip, backward-compat zip, version.json bridge, and signed appcast)
           git add docs/downloads/${ZIP_NAME} \
                   docs/downloads/Auto-Focus.zip \
                   docs/downloads/version.json \
+                  docs/downloads/appcast.xml \
                   auto-focus.xcodeproj/project.pbxproj
 
           # Commit if there are changes
@@ -518,6 +564,7 @@ jobs:
             docs/downloads/Auto-Focus-v${{ steps.version.outputs.version }}.zip
             docs/downloads/Auto-Focus.zip
             docs/downloads/version.json
+            docs/downloads/appcast.xml
           draft: false
           prerelease: false
         env:
