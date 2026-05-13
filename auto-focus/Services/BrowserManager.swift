@@ -133,7 +133,7 @@ class BrowserManager: ObservableObject, BrowserManaging {
         }
     }
 
-    private func handlePolledURL(_ url: String, appName: String, bundleId: String) {
+    func handlePolledURL(_ url: String, appName: String, bundleId: String) {
         let (isFocus, matchedURL) = checkIfURLIsFocus(url)
 
         let tabInfo = BrowserTabInfo(
@@ -143,10 +143,16 @@ class BrowserManager: ObservableObject, BrowserManaging {
             matchedFocusURL: matchedURL
         )
 
-        currentBrowserTab = tabInfo
+        let shouldPublishTabUpdate = !tabInfo.hasSameObservedState(as: currentBrowserTab)
+        let shouldPublishFocusState = isBrowserInFocus != isFocus
+
+        if shouldPublishTabUpdate {
+            currentBrowserTab = tabInfo
+        }
+
         recordBrowserEvent(tabInfo: tabInfo, bundleId: bundleId)
 
-        if isBrowserInFocus != isFocus {
+        if shouldPublishFocusState {
             AppLogger.browser.stateChange(
                 from: String(isBrowserInFocus),
                 to: String(isFocus),
@@ -154,11 +160,11 @@ class BrowserManager: ObservableObject, BrowserManaging {
             )
             isBrowserInFocus = isFocus
             delegate?.browserManager(self, didChangeFocusState: isFocus)
-        } else if isFocus && isBrowserInFocus {
-            delegate?.browserManager(self, didChangeFocusState: true)
         }
 
-        delegate?.browserManager(self, didReceiveTabUpdate: tabInfo)
+        if shouldPublishTabUpdate {
+            delegate?.browserManager(self, didReceiveTabUpdate: tabInfo)
+        }
     }
 
     private func recordBrowserEvent(tabInfo: BrowserTabInfo, bundleId: String) {

@@ -1,4 +1,5 @@
 import LaunchAtLogin
+import Sparkle
 import SwiftUI
 
 struct AppRowView: View {
@@ -96,7 +97,7 @@ private struct HeaderView: View {
 struct GeneralSettingsView: View {
     @EnvironmentObject var licenseManager: LicenseManager
     @EnvironmentObject var focusManager: FocusManager
-    @ObservedObject private var versionCheckManager = VersionCheckManager.shared
+    @EnvironmentObject var updaterController: UpdaterController
 
     var body: some View {
         GroupBox {
@@ -136,37 +137,13 @@ struct GeneralSettingsView: View {
                                     .padding(.vertical, 2)
                                     .background(Color.orange, in: Capsule())
                             }
-
-                            if versionCheckManager.isUpdateAvailable {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "arrow.up.circle.fill")
-                                        .foregroundColor(.blue)
-                                        .font(.system(size: 12))
-                                    Text("Update available")
-                                        .font(.caption)
-                                        .foregroundColor(.blue)
-                                }
-                            }
-
-                            if versionCheckManager.isChecking {
-                                ProgressView()
-                                    .scaleEffect(0.5)
-                                    .frame(width: 12, height: 12)
-                            }
                         }
 
-                        if versionCheckManager.isUpdateAvailable {
-                            Button("Download v\(versionCheckManager.latestVersion)") {
-                                versionCheckManager.openDownloadPage()
-                            }
-                            .controlSize(.mini)
-                            .buttonStyle(.borderedProminent)
-                        } else if !versionCheckManager.isChecking {
-                            Button("Check for Updates") {
-                                versionCheckManager.checkForUpdates()
-                            }
-                            .controlSize(.mini)
+                        Button("Check for Updates…") {
+                            updaterController.checkForUpdates()
                         }
+                        .controlSize(.mini)
+                        .disabled(!updaterController.canCheckForUpdates)
                     }
                 }
 
@@ -266,7 +243,6 @@ struct GeneralSettingsView: View {
         .onAppear {
             focusManager.refreshShortcutStatus()
             focusManager.automationPermissionService.refresh(bundleId: AppConfiguration.shortcutsEventsBundleIdentifier)
-            versionCheckManager.checkForUpdates()
         }
     }
 
@@ -453,6 +429,7 @@ struct ConfigurationView: View {
     ConfigurationView(selectedTab: .constant(0))
         .environmentObject(LicenseManager())
         .environmentObject(FocusManager.shared)
+        .environmentObject(UpdaterController())
         .frame(width: 600, height: 900)
 }
 

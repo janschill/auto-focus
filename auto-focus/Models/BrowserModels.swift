@@ -265,6 +265,14 @@ struct BrowserTabInfo: Codable {
         self.isFocusURL = isFocusURL
         self.matchedFocusURL = matchedFocusURL
     }
+
+    func hasSameObservedState(as other: BrowserTabInfo?) -> Bool {
+        guard let other else { return false }
+        return url == other.url
+            && title == other.title
+            && isFocusURL == other.isFocusURL
+            && matchedFocusURL?.id == other.matchedFocusURL?.id
+    }
 }
 
 // MARK: - Common Focus URL Presets

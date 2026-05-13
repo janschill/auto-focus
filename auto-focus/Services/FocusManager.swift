@@ -693,6 +693,8 @@ extension FocusManager {
 // MARK: - BrowserManagerDelegate
 extension FocusManager: BrowserManagerDelegate {
     func browserManager(_ manager: any BrowserManaging, didChangeFocusState isFocus: Bool) {
+        guard self.isBrowserInFocus != isFocus else { return }
+
         self.isBrowserInFocus = isFocus
 
         // Handle browser focus like app focus
@@ -704,6 +706,8 @@ extension FocusManager: BrowserManagerDelegate {
     }
 
     func browserManager(_ manager: any BrowserManaging, didReceiveTabUpdate tabInfo: BrowserTabInfo) {
+        guard !tabInfo.hasSameObservedState(as: currentBrowserTab) else { return }
+
         self.currentBrowserTab = tabInfo
     }
 

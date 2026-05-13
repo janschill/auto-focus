@@ -72,6 +72,69 @@ final class BrowserPollingGatingTests: XCTestCase {
         enablementStore.setEnabled(false, for: "com.google.Chrome")
         XCTAssertFalse(browserManager.shouldPoll(bundleId: "com.google.Chrome"))
     }
+
+    func testRepeatedSameFocusURLDoesNotPublishDuplicateUpdates() {
+        let delegate = SpyBrowserManagerDelegate()
+        browserManager.delegate = delegate
+
+        browserManager.handlePolledURL(
+            "https://github.com/janschill/auto-focus",
+            appName: "Google Chrome",
+            bundleId: "com.google.Chrome"
+        )
+        let firstTimestamp = browserManager.currentBrowserTab?.timestamp
+
+        browserManager.handlePolledURL(
+            "https://github.com/janschill/auto-focus",
+            appName: "Google Chrome",
+            bundleId: "com.google.Chrome"
+        )
+
+        XCTAssertEqual(delegate.focusStates, [true])
+        XCTAssertEqual(delegate.tabUpdates.count, 1)
+        XCTAssertEqual(browserManager.currentBrowserTab?.timestamp, firstTimestamp)
+    }
+
+    func testChangingFocusURLPublishesTabButNotDuplicateFocusState() {
+        let delegate = SpyBrowserManagerDelegate()
+        browserManager.delegate = delegate
+
+        browserManager.handlePolledURL(
+            "https://github.com/janschill/auto-focus",
+            appName: "Google Chrome",
+            bundleId: "com.google.Chrome"
+        )
+
+        browserManager.handlePolledURL(
+            "https://stackoverflow.com/questions",
+            appName: "Google Chrome",
+            bundleId: "com.google.Chrome"
+        )
+
+        XCTAssertEqual(delegate.focusStates, [true])
+        XCTAssertEqual(delegate.tabUpdates.map(\.url), [
+            "https://github.com/janschill/auto-focus",
+            "https://stackoverflow.com/questions",
+        ])
+    }
+}
+
+private final class SpyBrowserManagerDelegate: BrowserManagerDelegate {
+    private(set) var focusStates: [Bool] = []
+    private(set) var tabUpdates: [BrowserTabInfo] = []
+    private(set) var urlUpdates: [[FocusURL]] = []
+
+    func browserManager(_ manager: any BrowserManaging, didChangeFocusState isFocus: Bool) {
+        focusStates.append(isFocus)
+    }
+
+    func browserManager(_ manager: any BrowserManaging, didReceiveTabUpdate tabInfo: BrowserTabInfo) {
+        tabUpdates.append(tabInfo)
+    }
+
+    func browserManager(_ manager: any BrowserManaging, didUpdateFocusURLs urls: [FocusURL]) {
+        urlUpdates.append(urls)
+    }
 }
 
 #endif

@@ -15,7 +15,6 @@ public struct AppLogger {
     public static let network = AppLogger(category: "network")
     public static let ui = AppLogger(category: "ui")
     public static let general = AppLogger(category: "general")
-    public static let version = AppLogger(category: "version")
 
     private init(category: String) {
         self.subsystem = "com.janschill.auto-focus"
