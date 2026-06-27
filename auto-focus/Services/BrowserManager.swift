@@ -112,10 +112,13 @@ class BrowserManager: ObservableObject, BrowserManaging {
             return
         }
 
-        guard shouldPoll(bundleId: bundleId) else { return }
-
         let appName = frontApp.localizedName ?? bundleId
         let isSafari = AppConfiguration.isSafari(bundleId)
+
+        guard shouldPoll(bundleId: bundleId) else {
+            handlePollingBlocked(appName: appName, bundleId: bundleId)
+            return
+        }
 
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
@@ -155,6 +158,17 @@ class BrowserManager: ObservableObject, BrowserManaging {
         }
 
         handlePolledURL(url, appName: appName, bundleId: bundleId)
+    }
+
+    func handlePollingBlocked(appName: String, bundleId: String) {
+        let status = permissionService.status(for: bundleId)
+        AppLogger.browser.warning("Browser URL polling blocked", metadata: [
+            "browser": appName,
+            "bundleId": bundleId,
+            "enabled": String(enablementStore.isEnabled(bundleId)),
+            "permission_status": status.rawValue
+        ])
+        handleURLUnavailable(appName: appName, bundleId: bundleId, errorNumber: nil)
     }
 
     private func handlePolledURL(_ url: String, appName: String, bundleId: String) {

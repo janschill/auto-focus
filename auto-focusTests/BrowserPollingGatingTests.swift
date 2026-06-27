@@ -108,6 +108,53 @@ final class BrowserPollingGatingTests: XCTestCase {
         XCTAssertEqual(delegate.focusStates, [true, false])
     }
 
+    func testNonFocusURLClearsStaleBrowserFocus() {
+        let delegate = CapturingBrowserDelegate()
+        browserManager.delegate = delegate
+
+        browserManager.handleURLQueryResult(
+            url: "https://github.com/janschill/auto-focus",
+            errorNumber: nil,
+            appName: "Google Chrome",
+            bundleId: "com.google.Chrome"
+        )
+        XCTAssertTrue(browserManager.isBrowserInFocus)
+
+        browserManager.handleURLQueryResult(
+            url: "https://www.youtube.com/watch?v=abc123",
+            errorNumber: nil,
+            appName: "Google Chrome",
+            bundleId: "com.google.Chrome"
+        )
+
+        XCTAssertFalse(browserManager.isBrowserInFocus)
+        XCTAssertEqual(browserManager.currentBrowserTab?.url, "https://www.youtube.com/watch?v=abc123")
+        XCTAssertEqual(delegate.focusStates, [true, false])
+    }
+
+    func testPollingBlockedClearsStaleBrowserFocus() {
+        let delegate = CapturingBrowserDelegate()
+        browserManager.delegate = delegate
+        enablementStore.setEnabled(true, for: "com.google.Chrome")
+
+        browserManager.handleURLQueryResult(
+            url: "https://github.com/janschill/auto-focus",
+            errorNumber: nil,
+            appName: "Google Chrome",
+            bundleId: "com.google.Chrome"
+        )
+        XCTAssertTrue(browserManager.isBrowserInFocus)
+
+        browserManager.handlePollingBlocked(
+            appName: "Google Chrome",
+            bundleId: "com.google.Chrome"
+        )
+
+        XCTAssertFalse(browserManager.isBrowserInFocus)
+        XCTAssertNil(browserManager.currentBrowserTab)
+        XCTAssertEqual(delegate.focusStates, [true, false])
+    }
+
     func testPermissionDeniedDuringPollClearsFocusAndCachesDenied() {
         let delegate = CapturingBrowserDelegate()
         browserManager.delegate = delegate
