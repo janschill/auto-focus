@@ -1020,20 +1020,7 @@ struct OnboardingAddURLSheet: View {
     @State private var domain = ""
 
     private var cleanedDomain: String {
-        var d = domain
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased()
-
-        if let url = URL(string: d), let host = url.host {
-            d = host
-        } else if d.contains("://") {
-            d = d.components(separatedBy: "://").last ?? d
-        }
-
-        d = d.components(separatedBy: "/").first ?? d
-        d = d.components(separatedBy: "?").first ?? d
-
-        return d
+        FocusURL.focusTarget(from: domain)
     }
 
     private var isDuplicate: Bool {
@@ -1047,7 +1034,7 @@ struct OnboardingAddURLSheet: View {
             VStack(spacing: 20) {
                 GroupBox("Website Domain") {
                     VStack(alignment: .leading, spacing: 12) {
-                        TextField("e.g., github.com or *.google.com", text: $domain)
+                        TextField("e.g., github.com, *.google.com, or localhost:3000", text: $domain)
                             .textFieldStyle(.roundedBorder)
                             .autocorrectionDisabled()
                             .onSubmit { addURL() }

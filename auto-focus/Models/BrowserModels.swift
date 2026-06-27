@@ -63,23 +63,15 @@ struct FocusURL: Identifiable, Codable, Hashable, FetchableRecord, PersistableRe
                 return matchesWildcardDomain(url: urlLowercase, pattern: baseDomain)
             }
 
-            // Extract hostname from URL
-            // Try parsing as-is first
-            if let urlObj = URL(string: url) {
-                if let host = urlObj.host {
-                    // Normalize hostname (remove port if present for comparison)
-                    let hostWithoutPort = host.components(separatedBy: ":").first ?? host
-                    return hostWithoutPort == domainLowercase || hostWithoutPort.hasSuffix("." + domainLowercase)
+            if let urlHost = Self.hostAndPort(from: urlLowercase),
+               let focusHost = Self.hostAndPort(from: domainLowercase) {
+                if let requiredPort = focusHost.port, urlHost.port != requiredPort {
+                    return false
                 }
-            }
-
-            // If URL parsing failed, try adding a scheme (for localhost and other cases)
-            if !urlLowercase.contains("://") {
-                // Try with http:// prefix
-                if let urlObj = URL(string: "http://" + url), let host = urlObj.host {
-                    let hostWithoutPort = host.components(separatedBy: ":").first ?? host
-                    return hostWithoutPort == domainLowercase || hostWithoutPort.hasSuffix("." + domainLowercase)
+                if focusHost.port == nil, Self.isLoopbackHost(focusHost.host), urlHost.port != nil {
+                    return false
                 }
+                return urlHost.host == focusHost.host || urlHost.host.hasSuffix("." + focusHost.host)
             }
 
             // Fallback to contains check for edge cases
@@ -93,29 +85,76 @@ struct FocusURL: Identifiable, Codable, Hashable, FetchableRecord, PersistableRe
 
     // Helper method to match wildcard domains (e.g., *.google.com matches docs.google.com, drive.google.com, etc.)
     private func matchesWildcardDomain(url: String, pattern: String) -> Bool {
-        // Extract hostname from URL
-        var hostname: String?
-
-        if let urlObj = URL(string: url) {
-            hostname = urlObj.host
-        } else if !url.contains("://") {
-            // Try with http:// prefix
-            if let urlObj = URL(string: "http://" + url) {
-                hostname = urlObj.host
-            }
-        }
-
-        guard let host = hostname?.lowercased() else {
+        guard let urlHost = Self.hostAndPort(from: url),
+              let patternHost = Self.hostAndPort(from: pattern) else {
             // Fallback: check if URL contains the pattern
             return url.contains(pattern)
         }
 
-        // Remove port if present
-        let hostWithoutPort = host.components(separatedBy: ":").first ?? host
+        if let requiredPort = patternHost.port, urlHost.port != requiredPort {
+            return false
+        }
+        if patternHost.port == nil, Self.isLoopbackHost(patternHost.host), urlHost.port != nil {
+            return false
+        }
 
         // Check if hostname matches the pattern (e.g., docs.google.com matches *.google.com)
         // This matches any subdomain of the pattern domain
-        return hostWithoutPort == pattern || hostWithoutPort.hasSuffix("." + pattern)
+        return urlHost.host == patternHost.host || urlHost.host.hasSuffix("." + patternHost.host)
+    }
+
+    static func focusTarget(from input: String) -> String {
+        let trimmed = input
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+
+        guard !trimmed.isEmpty else { return "" }
+
+        if trimmed.hasPrefix("*.") {
+            let wildcardTarget = focusTarget(from: String(trimmed.dropFirst(2)))
+            return wildcardTarget.isEmpty ? trimmed : "*.\(wildcardTarget)"
+        }
+
+        guard let parsed = hostAndPort(from: trimmed) else {
+            var fallback = trimmed
+            if fallback.contains("://") {
+                fallback = fallback.components(separatedBy: "://").last ?? fallback
+            }
+            fallback = fallback.components(separatedBy: "/").first ?? fallback
+            fallback = fallback.components(separatedBy: "?").first ?? fallback
+            return Self.normalizedFocusHost(fallback)
+        }
+
+        let host = Self.normalizedFocusHost(parsed.host)
+        if let port = parsed.port {
+            return "\(host):\(port)"
+        }
+        return host
+    }
+
+    private static func hostAndPort(from input: String) -> (host: String, port: Int?)? {
+        let trimmed = input
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+
+        guard !trimmed.isEmpty else { return nil }
+
+        let candidate = trimmed.contains("://") ? trimmed : "http://\(trimmed)"
+        guard let components = URLComponents(string: candidate),
+              let host = components.host?.lowercased(),
+              !host.isEmpty else {
+            return nil
+        }
+
+        return (host, components.port)
+    }
+
+    private static func normalizedFocusHost(_ host: String) -> String {
+        host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
+    }
+
+    private static func isLoopbackHost(_ host: String) -> Bool {
+        host == "localhost" || host == "127.0.0.1" || host == "::1"
     }
 }
 

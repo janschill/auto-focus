@@ -402,20 +402,7 @@ private struct AddURLSheet: View {
     @State private var duplicateWarning = false
 
     private var cleanedDomain: String {
-        var d = domain
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased()
-
-        if let url = URL(string: d), let host = url.host {
-            d = host
-        } else if d.contains("://") {
-            d = d.components(separatedBy: "://").last ?? d
-        }
-
-        d = d.components(separatedBy: "/").first ?? d
-        d = d.components(separatedBy: "?").first ?? d
-
-        return d
+        FocusURL.focusTarget(from: domain)
     }
 
     private var derivedName: String {
@@ -434,7 +421,7 @@ private struct AddURLSheet: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Domain")
                         .font(.headline)
-                    TextField("e.g., github.com or *.google.com", text: $domain)
+                    TextField("e.g., github.com, *.google.com, or localhost:3000", text: $domain)
                         .textFieldStyle(.roundedBorder)
                         .autocorrectionDisabled()
                         .onSubmit { addURL() }
@@ -668,4 +655,3 @@ private struct PresetRow: View {
         }
     }
 }
-

@@ -224,9 +224,10 @@ struct MenuBarView: View {
     }
 
     private func addCurrentSite(url: String) {
-        guard let urlObj = URL(string: url), let host = urlObj.host else { return }
-        let domain = host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
-        let focusURL = FocusURL(name: domain.capitalized, domain: domain)
+        let domain = FocusURL.focusTarget(from: url)
+        guard !domain.isEmpty else { return }
+
+        let focusURL = FocusURL(name: FocusURL.displayName(from: domain), domain: domain)
         focusManager.addFocusURL(focusURL)
         showAddedSiteConfirmation = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
