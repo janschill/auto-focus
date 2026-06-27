@@ -94,8 +94,14 @@ class BrowserManager: ObservableObject, BrowserManaging {
     /// Returns true when the given browser is currently eligible to be polled: the user has
     /// explicitly enabled it and automation permission has been granted.
     func shouldPoll(bundleId: String) -> Bool {
-        enablementStore.isEnabled(bundleId) &&
-            permissionService.status(for: bundleId) == .granted
+        guard enablementStore.isEnabled(bundleId) else { return false }
+
+        let status = permissionService.status(for: bundleId)
+        if status == .unknown {
+            return permissionService.refresh(bundleId: bundleId) == .granted
+        }
+
+        return status == .granted
     }
 
     private func pollCurrentURL() {
@@ -118,19 +124,37 @@ class BrowserManager: ObservableObject, BrowserManaging {
 
             DispatchQueue.main.async {
                 guard self.pollingTimer != nil else { return }
-                if let errorNumber = errorNumber, errorNumber == -1743 {
-                    // User revoked permission while the app was running. Reconcile.
-                    AppLogger.browser.warning("Automation permission revoked during polling", metadata: [
-                        "bundleId": bundleId
-                    ])
-                    self.permissionService.refresh(bundleId: bundleId)
-                    self.enablementStore.updateCachedStatus(.denied, for: bundleId)
-                    return
-                }
-                guard let url = url else { return }
-                self.handlePolledURL(url, appName: appName, bundleId: bundleId)
+                self.handleURLQueryResult(
+                    url: url,
+                    errorNumber: errorNumber,
+                    appName: appName,
+                    bundleId: bundleId
+                )
             }
         }
+    }
+
+    func handleURLQueryResult(url: String?, errorNumber: Int?, appName: String, bundleId: String) {
+        if let errorNumber = errorNumber {
+            if errorNumber == -1743 {
+                // User revoked permission while the app was running. Reconcile.
+                AppLogger.browser.warning("Automation permission revoked during polling", metadata: [
+                    "bundleId": bundleId
+                ])
+                permissionService.refresh(bundleId: bundleId)
+                enablementStore.updateCachedStatus(.denied, for: bundleId)
+            }
+
+            handleURLUnavailable(appName: appName, bundleId: bundleId, errorNumber: errorNumber)
+            return
+        }
+
+        guard let url = url, !url.isEmpty else {
+            handleURLUnavailable(appName: appName, bundleId: bundleId, errorNumber: nil)
+            return
+        }
+
+        handlePolledURL(url, appName: appName, bundleId: bundleId)
     }
 
     private func handlePolledURL(_ url: String, appName: String, bundleId: String) {
@@ -159,6 +183,25 @@ class BrowserManager: ObservableObject, BrowserManaging {
         }
 
         delegate?.browserManager(self, didReceiveTabUpdate: tabInfo)
+    }
+
+    private func handleURLUnavailable(appName: String, bundleId: String, errorNumber: Int?) {
+        currentBrowserTab = nil
+
+        guard isBrowserInFocus else { return }
+
+        let metadata: [String: String] = [
+            "browser": appName,
+            "bundleId": bundleId,
+            "error_number": errorNumber.map(String.init) ?? "none"
+        ]
+        AppLogger.browser.stateChange(
+            from: String(isBrowserInFocus),
+            to: String(false),
+            metadata: metadata
+        )
+        isBrowserInFocus = false
+        delegate?.browserManager(self, didChangeFocusState: false)
     }
 
     private func recordBrowserEvent(tabInfo: BrowserTabInfo, bundleId: String) {
@@ -299,8 +342,8 @@ struct AppleScriptBrowserURLQuerier: BrowserURLQuerying {
         if let error = errorInfo {
             let errorNumber = error[NSAppleScript.errorNumber] as? Int ?? 0
             let errorMessage = error[NSAppleScript.errorMessage] as? String ?? "unknown"
-            // -600 = app not running, -1728 = no front window/document, -1743 = denied
-            if errorNumber != -600 && errorNumber != -1728 && errorNumber != -1743 {
+            // -600 = app not running, -1719/-1728 = no front window/document, -1743 = denied
+            if errorNumber != -600 && errorNumber != -1719 && errorNumber != -1728 && errorNumber != -1743 {
                 AppLogger.browser.error("AppleScript error for browser", metadata: [
                     "browser": appName,
                     "error_number": String(errorNumber),
