@@ -214,6 +214,10 @@ struct GeneralSettingsView: View {
 
                 Divider().padding(.vertical, 5).contrast(0.5)
 
+                AnonymousUsageRow()
+
+                Divider().padding(.vertical, 5).contrast(0.5)
+
                 HStack {
                     Text("Shortcut Installation")
                         .frame(width: 150, alignment: .leading)
@@ -529,4 +533,30 @@ private func installShortcut() {
     }
 
     NSWorkspace.shared.open(shortcutUrl)
+}
+
+private struct AnonymousUsageRow: View {
+    @AppStorage(InstallationTracker.analyticsEnabledKey) private var analyticsEnabled: Bool = true
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Anonymous Usage")
+                    .frame(width: 150, alignment: .leading)
+                Spacer()
+                Toggle("", isOn: $analyticsEnabled)
+                    .toggleStyle(SwitchToggleStyle())
+                    .labelsHidden()
+                    .scaleEffect(0.8)
+                    .padding(.trailing, 5)
+            }
+
+            Text("Sends a daily check-in with a random installation ID, app version, macOS version, and license tier so I can see how many people use Auto-Focus. No personal data, no license key, no usage details. Disabling this never affects the app.")
+                .font(.callout)
+                .fontDesign(.default)
+                .fontWeight(.regular)
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
 }
