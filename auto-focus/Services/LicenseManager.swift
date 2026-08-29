@@ -142,6 +142,11 @@ class LicenseManager: ObservableObject {
             ])
             enableBetaAccess()
         }
+
+        InstallationTracker.shared.checkInIfNeeded(
+            isLicensed: isLicensed,
+            isBeta: licenseOwner == "Beta User"
+        )
     }
 
     private var betaExpiryDate: Date {
