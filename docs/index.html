@@ -21,6 +21,24 @@
             --accent-dark: #5a8a9d;
             --border: #1A1A1A;
             --success: #22C55E;
+            --font-sans: "IIIncrementsSans", "Segoe UI", sans-serif;
+            --font-sans-bold: "IIIncrementsSans-Bold", "Segoe UI", sans-serif;
+        }
+
+        @font-face {
+            font-family: "IIIncrementsSans";
+            src: url("/fonts/IIIncrementsSans.woff") format("woff");
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: "IIIncrementsSans-Bold";
+            src: url("/fonts/IIIncrementsSans-Bold.woff") format("woff");
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
         }
 
         * {
@@ -30,7 +48,7 @@
         body {
             background: var(--bg);
             color: var(--text);
-            font-family: system-ui, -apple-system, sans-serif;
+            font-family: var(--font-sans);
             overflow-x: hidden;
         }
 
