@@ -22,7 +22,6 @@
             --border: #1A1A1A;
             --success: #22C55E;
             --font-sans: "IIIncrementsSans", "Segoe UI", sans-serif;
-            --font-sans-bold: "IIIncrementsSans-Bold", "Segoe UI", sans-serif;
         }
 
         @font-face {
@@ -34,7 +33,7 @@
         }
 
         @font-face {
-            font-family: "IIIncrementsSans-Bold";
+            font-family: "IIIncrementsSans";
             src: url("fonts/IIIncrementsSans-Bold.woff") format("woff");
             font-weight: 700;
             font-style: normal;
@@ -167,7 +166,7 @@
             align-items: center;
             justify-content: center;
             font-size: 2rem;
-            font-weight: 900;
+            font-weight: 700;
             line-height: 1;
             background: white;
         }
@@ -181,7 +180,7 @@
         <header class="mb-20">
             <div class="grid lg:grid-cols-2 gap-12 items-center">
                 <div>
-                    <h1 class="text-6xl md:text-7xl font-black tracking-tight mb-6 leading-none">
+                    <h1 class="text-6xl md:text-7xl font-bold tracking-tight mb-6 leading-none">
                         Auto-Focus
                     </h1>
                     <p class="text-2xl md:text-3xl font-bold mb-8" style="color: var(--accent);">
@@ -244,7 +243,7 @@
 
         <!-- WHAT IT IS -->
         <section class="mb-20">
-            <h2 class="text-4xl font-black mb-4">Focus tools shouldn't need babysitting</h2>
+            <h2 class="text-4xl font-bold mb-4">Focus tools shouldn't need babysitting</h2>
             <p class="text-lg mb-12 max-w-3xl">
                 Timers, manual DND, and scheduled focus modes all depend on you remembering to flip a switch.
                 Auto-Focus flips the model: when you've actually been working for long enough, it protects that time automatically.
@@ -252,22 +251,22 @@
             <div class="grid md:grid-cols-2 gap-8">
                 <div class="border-brutal p-6 md:p-8 shadow-brutal bg-white step-card">
                     <div class="step-number border-brutal mb-5">1</div>
-                    <h3 class="text-2xl font-black mb-3">You start working</h3>
+                    <h3 class="text-2xl font-bold mb-3">You start working</h3>
                     <p class="text-gray-700 text-lg">Open VS Code, review a PR, design in Figma, or settle into a writing app.</p>
                 </div>
                 <div class="border-brutal p-6 md:p-8 shadow-brutal bg-white step-card">
                     <div class="step-number border-brutal mb-5">2</div>
-                    <h3 class="text-2xl font-black mb-3">It watches for your focus setup</h3>
+                    <h3 class="text-2xl font-bold mb-3">It watches for your focus setup</h3>
                     <p class="text-gray-700 text-lg">Choose the apps and browser URLs that count as focus. Matching happens locally on your Mac.</p>
                 </div>
                 <div class="border-brutal p-6 md:p-8 shadow-brutal bg-white step-card">
                     <div class="step-number border-brutal mb-5">3</div>
-                    <h3 class="text-2xl font-black mb-3">Do Not Disturb turns on</h3>
+                    <h3 class="text-2xl font-bold mb-3">Do Not Disturb turns on</h3>
                     <p class="text-gray-700 text-lg">Stay there for 12 minutes and Auto-Focus enables Do Not Disturb for you. No timer to start. No toggle to remember.</p>
                 </div>
                 <div class="border-brutal p-6 md:p-8 shadow-brutal bg-white step-card">
                     <div class="step-number border-brutal mb-5">4</div>
-                    <h3 class="text-2xl font-black mb-3">Notifications come back</h3>
+                    <h3 class="text-2xl font-bold mb-3">Notifications come back</h3>
                     <p class="text-gray-700 text-lg">Leave your focus apps and Auto-Focus restores notifications after a short buffer. Quiet when you need it, normal when you don't.</p>
                 </div>
             </div>
@@ -275,7 +274,7 @@
 
         <!-- USE CASES -->
         <section class="mb-20">
-            <h2 class="text-4xl font-black mb-8">Built for the work you already do</h2>
+            <h2 class="text-4xl font-bold mb-8">Built for the work you already do</h2>
             <div class="grid md:grid-cols-2 gap-6">
                 <div class="border-brutal p-6 shadow-brutal bg-white">
                     <h3 class="text-xl font-bold mb-2">Coding sessions</h3>
@@ -298,7 +297,7 @@
 
         <!-- WHAT IT IS NOT -->
         <section class="mb-20">
-            <h2 class="text-4xl font-black mb-8">What it is <span class="strike">not</span></h2>
+            <h2 class="text-4xl font-bold mb-8">What it is <span class="strike">not</span></h2>
             <div class="border-brutal p-8 shadow-brutal bg-white">
                 <ul class="space-y-4 text-lg">
                     <li class="flex items-start gap-4">
@@ -335,7 +334,7 @@
 
         <!-- TRUST -->
         <section class="mb-20">
-            <h2 class="text-4xl font-black mb-8">Private enough to inspect</h2>
+            <h2 class="text-4xl font-bold mb-8">Private enough to inspect</h2>
             <div class="border-brutal p-8 shadow-brutal bg-white">
                 <p class="text-lg mb-8">
                     Auto-Focus asks for sensitive macOS permissions, so the code is public. You should be able to verify
@@ -363,8 +362,8 @@
                     <table class="w-full text-left border-brutal-thin">
                         <thead>
                             <tr class="border-b-2 border-current">
-                                <th class="p-4 font-black">Data</th>
-                                <th class="p-4 font-black">Where it goes</th>
+                                <th class="p-4 font-bold">Data</th>
+                                <th class="p-4 font-bold">Where it goes</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -392,7 +391,7 @@
 
         <!-- SCREENSHOT -->
         <section class="mb-20">
-            <h2 class="text-4xl font-black mb-8">Small enough to stay out of your way</h2>
+            <h2 class="text-4xl font-bold mb-8">Small enough to stay out of your way</h2>
             <div class="border-brutal shadow-brutal overflow-hidden bg-white">
                 <img src="images/auto-focus-menubar-window-in-focus-2.png"
                      alt="Auto-Focus menu bar showing active focus session"
@@ -403,7 +402,7 @@
 
         <!-- PRICING -->
         <section id="pricing" class="mb-20">
-            <h2 class="text-4xl font-black mb-4">One-time purchase. Lifetime focus.</h2>
+            <h2 class="text-4xl font-bold mb-4">One-time purchase. Lifetime focus.</h2>
             <p class="text-lg mb-12 max-w-3xl">
                 Start free, then upgrade when you want Auto-Focus on every app and browser workflow that matters to you.
             </p>
@@ -411,7 +410,7 @@
                 <!-- Free -->
                 <div class="border-brutal p-8 shadow-brutal bg-white">
                     <h3 class="text-2xl font-bold mb-2">Free</h3>
-                    <p class="text-5xl font-black mb-6">$0</p>
+                    <p class="text-5xl font-bold mb-6">$0</p>
                     <ul class="space-y-3 mb-8">
                         <li class="flex items-center gap-2">
                             <span style="color: var(--accent);">&#10003;</span>
@@ -443,7 +442,7 @@
                 <!-- Plus -->
                 <div class="border-brutal p-8 shadow-brutal pricing-highlight">
                     <h3 class="text-2xl font-bold mb-2">Plus</h3>
-                    <p class="text-5xl font-black mb-1">
+                    <p class="text-5xl font-bold mb-1">
                         <span class="pricing-currency">$</span><span class="pricing-amount">9</span>
                     </p>
                     <p class="text-sm mb-6 font-medium">One-time. Lifetime.</p>
@@ -500,7 +499,7 @@
 
         <!-- FAQ -->
         <section class="mb-20">
-            <h2 class="text-4xl font-black mb-8">FAQ</h2>
+            <h2 class="text-4xl font-bold mb-8">FAQ</h2>
             <div class="grid md:grid-cols-2 gap-6">
                 <div class="border-brutal p-6 shadow-brutal bg-white">
                     <h3 class="text-xl font-bold mb-2">Does it track my activity?</h3>
