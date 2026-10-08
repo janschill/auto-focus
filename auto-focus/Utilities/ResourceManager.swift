@@ -5,15 +5,26 @@
 //  Created by Jan Schill on 09/02/2025.
 //
 
-import Foundation
+import AppKit
 
 struct ResourceManager {
-    static func getShortcutURL() -> URL? {
+    /// Copies the bundled Do Not Disturb shortcut to a temporary location and opens it,
+    /// prompting the Shortcuts app to install it.
+    static func installShortcut() {
+        guard let shortcutUrl = copyShortcutToTemporary() else {
+            AppLogger.ui.error("Could not prepare shortcut for installation")
+            return
+        }
+
+        NSWorkspace.shared.open(shortcutUrl)
+    }
+
+    private static func getShortcutURL() -> URL? {
         return Bundle.main.url(forResource: "Toggle Do Not Disturb",
                              withExtension: "shortcut")
     }
 
-    static func copyShortcutToTemporary() -> URL? {
+    private static func copyShortcutToTemporary() -> URL? {
         guard let shortcutUrl = getShortcutURL() else { return nil }
 
         let tempDir = FileManager.default.temporaryDirectory

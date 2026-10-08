@@ -57,7 +57,7 @@ final class AppEventRepositoryTests: XCTestCase {
         )
         try repo.insert(event)
 
-        let fetched = try repo.fetchRecent(limit: 1)
+        let fetched = try repo.fetchEvents(since: .distantPast, until: .distantFuture)
         XCTAssertEqual(fetched.count, 1)
         XCTAssertEqual(fetched[0].domain, "github.com")
         XCTAssertEqual(fetched[0].url, "https://github.com/pulls")
@@ -68,7 +68,7 @@ final class AppEventRepositoryTests: XCTestCase {
         let event = AppEvent(bundleIdentifier: "com.apple.Xcode", appName: "Xcode")
         try repo.insert(event)
 
-        let fetched = try repo.fetchRecent(limit: 1)
+        let fetched = try repo.fetchEvents(since: .distantPast, until: .distantFuture)
         XCTAssertEqual(fetched.count, 1)
         XCTAssertNil(fetched[0].domain)
         XCTAssertNil(fetched[0].url)
@@ -85,7 +85,7 @@ final class AppEventRepositoryTests: XCTestCase {
         try insertEvent(bundleId: "com.apple.Xcode", appName: "Xcode", at: base.addingTimeInterval(150))
         try insertEvent(bundleId: "com.apple.Terminal", appName: "Terminal", at: base.addingTimeInterval(350))
 
-        let results = try repo.fetchTopApps(since: base.addingTimeInterval(-1))
+        let results = try repo.fetchTopApps(since: base.addingTimeInterval(-1), until: nil)
         XCTAssertFalse(results.isEmpty)
 
         let xcodeResult = results.first(where: { $0.bundleIdentifier == "com.apple.Xcode" })
@@ -107,7 +107,7 @@ final class AppEventRepositoryTests: XCTestCase {
         // End marker
         try insertEvent(bundleId: "com.apple.Xcode", appName: "Xcode", at: base.addingTimeInterval(190))
 
-        let results = try repo.fetchTopDomains(since: base.addingTimeInterval(-1))
+        let results = try repo.fetchTopDomains(since: base.addingTimeInterval(-1), until: nil)
         XCTAssertFalse(results.isEmpty)
 
         let github = results.first(where: { $0.domain == "github.com" })
@@ -133,7 +133,7 @@ final class AppEventRepositoryTests: XCTestCase {
         let cutoff = Date().addingTimeInterval(-3600)
         try repo.deleteEvents(before: cutoff)
 
-        let remaining = try repo.fetchRecent(limit: 100)
+        let remaining = try repo.fetchEvents(since: .distantPast, until: .distantFuture)
         XCTAssertEqual(remaining.count, 1)
         XCTAssertEqual(remaining[0].bundleIdentifier, "com.new.app")
     }

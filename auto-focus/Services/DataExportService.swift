@@ -3,11 +3,9 @@ import Foundation
 
 class DataExportService {
     private let focusManager: FocusManager
-    private let licenseManager: LicenseManager
 
-    init(focusManager: FocusManager, licenseManager: LicenseManager = LicenseManager()) {
+    init(focusManager: FocusManager) {
         self.focusManager = focusManager
-        self.licenseManager = licenseManager
     }
 
     func exportData(options: ExportOptions = .default) -> AutoFocusExportData {

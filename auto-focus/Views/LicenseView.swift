@@ -30,15 +30,10 @@ struct LicensedView: View {
                     }
                     .padding(.vertical, 8)
 
-                    // Show license input for expired, invalid, or beta users
-                    if licenseManager.licenseStatus == .expired || licenseManager.licenseStatus == .invalid || isBetaLicense {
+                    // Show license input for expired or invalid licenses
+                    if licenseManager.licenseStatus == .expired || licenseManager.licenseStatus == .invalid {
                         Divider().padding(.vertical, 6)
-
-                        if isBetaLicense {
-                            BetaUpgradeView(licenseManager: licenseManager)
-                        } else {
-                            LicenseInputView(licenseManager: licenseManager)
-                        }
+                        LicenseInputView(licenseManager: licenseManager)
                     }
 
                 }
@@ -69,8 +64,7 @@ struct LicensedView: View {
 
                     Divider().padding(.vertical, 8)
 
-                    // Action buttons based on license type
-                    if licenseManager.licenseStatus == .valid && !isBetaLicense {
+                    if licenseManager.licenseStatus == .valid {
                         HStack {
                             Spacer()
 
@@ -79,18 +73,6 @@ struct LicensedView: View {
                             }
                             .foregroundColor(.red)
                             .buttonStyle(.bordered)
-                        }
-                        .padding(.bottom, 8)
-                    } else if isBetaLicense {
-                        VStack(spacing: 12) {
-                            Text("Upgrade to Full License")
-                                .font(.headline)
-                                .fontWeight(.semibold)
-
-                            Text("While you enjoy beta access, you can upgrade to a full Auto-Focus+ license for continued access after August 31, 2025.")
-                                .font(.body)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
                         }
                         .padding(.bottom, 8)
                     }
@@ -129,14 +111,10 @@ struct LicensedView: View {
         return "\(prefix)••••••••\(suffix)"
     }
 
-    private var isBetaLicense: Bool {
-        return licenseManager.licenseOwner == "Beta User"
-    }
-
     private var statusTitle: String {
         switch licenseManager.licenseStatus {
         case .valid:
-            return isBetaLicense ? "Beta Access Active" : "Auto-Focus+ Active"
+            return "Auto-Focus+ Active"
         case .expired:
             return "License Expired"
         case .invalid:
@@ -151,11 +129,7 @@ struct LicensedView: View {
     private var statusDescription: String {
         switch licenseManager.licenseStatus {
         case .valid:
-            if isBetaLicense {
-                return "You have beta access until August 31, 2025. All premium features are unlocked."
-            } else {
-                return "Your Auto-Focus+ license is active. All premium features are unlocked."
-            }
+            return "Your Auto-Focus+ license is active. All premium features are unlocked."
         case .expired:
             return "Your license has expired. Please renew to continue using Auto-Focus+ features."
         case .invalid:
@@ -373,61 +347,6 @@ struct PremiumFeatureRow: View {
             }
         }
         .padding(.vertical, 6)
-    }
-}
-
-struct BetaUpgradeView: View {
-    @ObservedObject var licenseManager: LicenseManager
-    @State private var showingLicenseInput = false
-
-    var body: some View {
-        VStack(spacing: 16) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("🎉 You're in Beta!")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-
-                    Text("Enjoying Auto-Focus+? Get a license for continued access after August 31, 2025.")
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                }
-
-                Spacer()
-            }
-
-            HStack(spacing: 12) {
-                Link(destination: URL(string: "https://auto-focus.app/#pricing")!) {
-                    HStack {
-                        Text("Get License")
-                            .fontWeight(.medium)
-                        Image(systemName: "arrow.up.forward.app")
-                    }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(Color.accentColor)
-                    .cornerRadius(6)
-                }
-                .buttonStyle(.plain)
-
-                Button("Enter License Key") {
-                    showingLicenseInput.toggle()
-                }
-                .buttonStyle(.bordered)
-            }
-
-            if showingLicenseInput {
-                Divider()
-                    .padding(.vertical, 4)
-
-                LicenseInputView(licenseManager: licenseManager)
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 12)
-        .background(Color.accentColor.opacity(0.1))
-        .cornerRadius(8)
     }
 }
 

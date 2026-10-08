@@ -561,30 +561,7 @@ struct ActivityBreakdownView: View {
                 let percent = totalDuration > 0 ? Int((domain.totalDuration / totalDuration) * 100) : 0
 
                 HStack(spacing: 8) {
-                    if showAddButton {
-                        if recentlyAddedDomain == domain.domain {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.caption)
-                                .foregroundColor(.green)
-                                .frame(width: 18)
-                        } else {
-                            Button {
-                                addDomainAsFocusURL(domain.domain)
-                            } label: {
-                                Image(systemName: "plus.circle")
-                                    .font(.caption)
-                                    .foregroundColor(.blue)
-                            }
-                            .buttonStyle(.plain)
-                            .frame(width: 18)
-                            .help("Add as focus URL")
-                        }
-                    } else {
-                        Image(systemName: "globe")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .frame(width: 18)
-                    }
+                    domainLeadingIcon(for: domain.domain, showAddButton: showAddButton)
 
                     Text(domain.domain)
                         .font(.callout)
@@ -598,17 +575,7 @@ struct ActivityBreakdownView: View {
                     }
                     .frame(height: 14)
 
-                    VStack(alignment: .trailing, spacing: 0) {
-                        Text(TimeFormatter.humanReadable(domain.totalDuration))
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        if domain.visitCount > 0 {
-                            Text("\(domain.visitCount) visits")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
-                    .frame(width: 55, alignment: .trailing)
+                    domainDurationLabel(for: domain)
 
                     Text("\(percent)%")
                         .font(.caption2)
@@ -617,6 +584,46 @@ struct ActivityBreakdownView: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func domainLeadingIcon(for domain: String, showAddButton: Bool) -> some View {
+        if !showAddButton {
+            Image(systemName: "globe")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .frame(width: 18)
+        } else if recentlyAddedDomain == domain {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.caption)
+                .foregroundColor(.green)
+                .frame(width: 18)
+        } else {
+            Button {
+                addDomainAsFocusURL(domain)
+            } label: {
+                Image(systemName: "plus.circle")
+                    .font(.caption)
+                    .foregroundColor(.blue)
+            }
+            .buttonStyle(.plain)
+            .frame(width: 18)
+            .help("Add as focus URL")
+        }
+    }
+
+    private func domainDurationLabel(for domain: DomainUsageSummary) -> some View {
+        VStack(alignment: .trailing, spacing: 0) {
+            Text(TimeFormatter.humanReadable(domain.totalDuration))
+                .font(.caption)
+                .foregroundColor(.secondary)
+            if domain.visitCount > 0 {
+                Text("\(domain.visitCount) visits")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .frame(width: 55, alignment: .trailing)
     }
 
     private func addDomainAsFocusURL(_ domain: String) {
@@ -832,7 +839,7 @@ struct InsightsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if licenseManager.hasValidLicense() {
+            if licenseManager.isLicensed {
                 Picker("", selection: $selectedSubTab) {
                     ForEach(InsightsSubTab.allCases) { tab in
                         Text(tab.rawValue).tag(tab)
@@ -846,7 +853,7 @@ struct InsightsView: View {
 
             ScrollView {
                 VStack(spacing: 10) {
-                    if licenseManager.hasValidLicense() {
+                    if licenseManager.isLicensed {
                         switch selectedSubTab {
                         case .summary:
                             InsightsSummaryPane(dataProvider: dataProvider)

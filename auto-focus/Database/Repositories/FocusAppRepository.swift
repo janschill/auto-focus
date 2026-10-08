@@ -1,4 +1,3 @@
-import Combine
 import Foundation
 import GRDB
 
@@ -45,15 +44,5 @@ final class FocusAppRepository {
                 try app.insert(db, onConflict: .replace)
             }
         }
-    }
-
-    // MARK: - Observation
-
-    func observeAll() -> DatabasePublishers.Value<[AppInfo]> {
-        ValueObservation
-            .tracking { db in
-                try AppInfo.order(Column("name").collating(.localizedCaseInsensitiveCompare)).fetchAll(db)
-            }
-            .publisher(in: dbQueue, scheduling: .immediate)
     }
 }

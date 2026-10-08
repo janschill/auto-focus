@@ -2,8 +2,6 @@ import Foundation
 import SwiftUI
 
 protocol BufferManagerDelegate: AnyObject {
-    func bufferManagerDidStartBuffer(_ manager: any BufferManaging)
-    func bufferManagerDidEndBuffer(_ manager: any BufferManaging)
     func bufferManagerDidTimeout(_ manager: any BufferManaging)
 }
 
@@ -45,7 +43,6 @@ class BufferManager: ObservableObject, BufferManaging {
 
         RunLoop.current.add(bufferTimer!, forMode: .common)
 
-        delegate?.bufferManagerDidStartBuffer(self)
         AppLogger.focus.info("Buffer started", metadata: [
             "duration": String(format: "%.1f", duration)
         ])
@@ -66,8 +63,6 @@ class BufferManager: ObservableObject, BufferManaging {
 
         if timedOut {
             delegate?.bufferManagerDidTimeout(self)
-        } else {
-            delegate?.bufferManagerDidEndBuffer(self)
         }
     }
 

@@ -57,7 +57,7 @@ class BrowserManager: ObservableObject, BrowserManaging {
 
     init(
         focusURLRepo: FocusURLRepository = FocusURLRepository(),
-        licenseManager: LicenseManager = LicenseManager(),
+        licenseManager: LicenseManager = .shared,
         appEventRepo: AppEventRepository? = AppEventRepository(),
         enablementStore: BrowserEnablementStore,
         permissionService: AutomationPermissionService,
@@ -209,7 +209,8 @@ class BrowserManager: ObservableObject, BrowserManaging {
                 AppLogger.browser.stateChange(
                     from: String(isBrowserInFocus),
                     to: String(isFocus),
-                    metadata: ["url": url]
+                    // Log only the configured focus domain; visited URLs are browsing history
+                    metadata: ["focus_domain": matchedURL?.domain ?? "none"]
                 )
             }
             isBrowserInFocus = isFocus

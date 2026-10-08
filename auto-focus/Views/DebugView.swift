@@ -29,8 +29,6 @@ struct DebugMenuView: View {
                 Button("Add license") {
                     licenseManager.licenseStatus = .valid
                     licenseManager.isLicensed = true
-                    licenseManager.licenseOwner = "Debugger Boy"
-                    licenseManager.licenseEmail = "debugger-boy@janschill.de"
                     licenseManager.licenseKey = "aasdasdd23443tfgsdfgq234"
                     licenseManager.licenseExpiry = Date() + 365 * 24 * 60 * 60
                 }

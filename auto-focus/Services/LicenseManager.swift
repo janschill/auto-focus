@@ -4,6 +4,10 @@ import Foundation
 import SwiftUI
 
 class LicenseManager: ObservableObject {
+    /// The app-wide instance. License state must be shared so activating a license in the UI
+    /// immediately lifts limits enforced by FocusManager and BrowserManager.
+    static let shared = LicenseManager()
+
     private let logger = AppLogger.license
     @Published var isLicensed: Bool = false
     @Published var licenseKey: String = "" {
@@ -18,8 +22,6 @@ class LicenseManager: ObservableObject {
         }
     }
     @Published var licenseStatus: LicenseStatus = .inactive
-    @Published var licenseOwner: String = ""
-    @Published var licenseEmail: String = ""
     @Published var licenseExpiry: Date?
     @Published var isActivating: Bool = false
     @Published var validationError: String?
@@ -131,36 +133,10 @@ class LicenseManager: ObservableObject {
     }
 
     private func performPostInitializationSetup() {
-        // First check if user has a valid license that needs validation
         if shouldValidateLicense() {
             logger.info("License validation required on startup")
             validateLicense()
-        } else if !isLicensed && isInBetaPeriod {
-            // Only enable beta access if user doesn't have a valid license
-            logger.info("No valid license found, enabling beta access", metadata: [
-                "beta_expiry": ISO8601DateFormatter().string(from: betaExpiryDate)
-            ])
-            enableBetaAccess()
         }
-    }
-
-    private var betaExpiryDate: Date {
-        // End of August 2025
-        let components = DateComponents(year: 2025, month: 8, day: 31, hour: 23, minute: 59, second: 59)
-        return Calendar.current.date(from: components) ?? Date.distantFuture
-    }
-
-    private var isInBetaPeriod: Bool {
-        return Date() < betaExpiryDate
-    }
-
-    private func enableBetaAccess() {
-        self.licenseStatus = .valid
-        self.isLicensed = true
-        self.licenseOwner = "Beta User"
-        self.licenseEmail = "beta@auto-focus.app"
-        self.licenseExpiry = betaExpiryDate
-        self.maxAppsAllowed = AppConfiguration.unlimited // Unlimited during beta
     }
 
     private func loadAppVersion() {
@@ -176,8 +152,6 @@ class LicenseManager: ObservableObject {
         // Load saved license data
         if let savedData = userDefaults.data(forKey: licenseDataKey),
            let license = try? JSONDecoder().decode(License.self, from: savedData) {
-            self.licenseOwner = license.ownerName
-            self.licenseEmail = license.email
             self.licenseExpiry = license.expiryDate
             self.appVersion = license.appVersion ?? appVersion
             // For licensed users, default to unlimited (-1) if maxApps is not specified
@@ -231,59 +205,6 @@ class LicenseManager: ObservableObject {
         return hoursSinceLastValidation >= validationIntervalHours
     }
 
-    func hasValidLicense() -> Bool {
-        // Beta period always valid
-        if isInBetaPeriod {
-            return true
-        }
-
-        // If we have a valid license status, it's valid
-        if isLicensed && licenseStatus == .valid {
-            return true
-        }
-
-        // If we have a license key and haven't expired locally, check grace period
-        if !licenseKey.isEmpty {
-            // Check local expiry first
-            if let expiry = licenseExpiry, expiry < Date() {
-                // License has expired locally
-                return false
-            }
-
-            // If we have network error, check grace period
-            if licenseStatus == .networkError {
-                if let lastValidation = lastValidationDate {
-                    let daysSinceLastValidation = Date().timeIntervalSince(lastValidation) / 86400 // days
-                    if daysSinceLastValidation <= gracePeriodDays {
-                        // Still within grace period, keep license valid
-                        return true
-                    }
-                } else {
-                    // No last validation date but we have a license key - allow it (first time offline or never validated)
-                    return true
-                }
-            }
-
-            // If we have a saved license that hasn't expired locally, check grace period
-            if let expiry = licenseExpiry, expiry > Date() {
-                if let lastValidation = lastValidationDate {
-                    let daysSinceLastValidation = Date().timeIntervalSince(lastValidation) / 86400
-                    if daysSinceLastValidation <= gracePeriodDays {
-                        return true
-                    }
-                } else {
-                    // No validation date but license hasn't expired - allow it
-                    return true
-                }
-            } else if licenseExpiry == nil {
-                // No expiry date set - if we have a license key, allow it (lifetime license or first time)
-                return isLicensed
-            }
-        }
-
-        return false
-    }
-
     func activateLicense() {
         guard !licenseKey.isEmpty else {
             validationError = "Please enter a license key"
@@ -301,37 +222,15 @@ class LicenseManager: ObservableObject {
 
                 // Defer @Published property updates to avoid publishing during view updates
                 Task { @MainActor in
-                    self.licenseOwner = license.ownerName
-                    self.licenseEmail = license.email
-                    self.licenseExpiry = license.expiryDate
-                    self.appVersion = license.appVersion ?? appVersion
-                    // For licensed users, default to unlimited (-1) if maxApps is not specified
-                    self.maxAppsAllowed = license.maxApps ?? AppConfiguration.unlimited
-                    self.licenseStatus = .valid
-                    self.isLicensed = true
-                    self.lastValidationDate = Date()
+                    self.applyValidatedLicense(license)
                     self.isActivating = false
-
-                    // Save license data
-                    saveLicenseData(license)
-                    userDefaults.set(Date(), forKey: lastValidationKey)
                 }
             } catch {
                 await MainActor.run {
                     self.validationError = error.localizedDescription
                     self.isActivating = false
-
-                    // During beta period, still give beta access even if license activation fails
-                    if isInBetaPeriod {
-                        logger.info("License activation failed but beta period active, enabling beta access", metadata: [
-                            "error": error.localizedDescription,
-                            "beta_expiry": ISO8601DateFormatter().string(from: betaExpiryDate)
-                        ])
-                        enableBetaAccess()
-                    } else {
-                        self.licenseStatus = .invalid
-                        self.isLicensed = false
-                    }
+                    self.licenseStatus = .invalid
+                    self.isLicensed = false
                 }
             }
         }
@@ -356,8 +255,6 @@ class LicenseManager: ObservableObject {
 
     private func clearLicenseData() {
         self.licenseKey = ""
-        self.licenseOwner = ""
-        self.licenseEmail = ""
         self.licenseExpiry = nil
         self.licenseStatus = .inactive
         self.isLicensed = false
@@ -378,74 +275,58 @@ class LicenseManager: ObservableObject {
         Task { @MainActor in
             do {
                 let license = try await validateLicenseWithServer(licenseKey)
-
-                // Defer updates to next runloop to avoid publishing during view updates
+                // Defer updates to the next runloop to avoid publishing during view updates
                 DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    // Use Task to ensure this runs on the next runloop cycle
-                    Task { @MainActor in
-                        if let expiry = license.expiryDate, expiry < Date() {
-                            self.licenseStatus = .expired
-                            self.isLicensed = false
-                        } else {
-                            // Update all license fields from the validated license
-                            self.licenseOwner = license.ownerName
-                            self.licenseEmail = license.email
-                            self.licenseExpiry = license.expiryDate
-                            self.appVersion = license.appVersion ?? self.appVersion
-                            // For licensed users, default to unlimited (-1) if maxApps is not specified
-                            self.maxAppsAllowed = license.maxApps ?? AppConfiguration.unlimited
-                            self.licenseStatus = .valid
-                            self.isLicensed = true
-                            self.lastValidationDate = Date()
-                            self.userDefaults.set(Date(), forKey: self.lastValidationKey)
-
-                            // Save updated license data
-                            self.saveLicenseData(license)
-                        }
+                    guard let self else { return }
+                    if let expiry = license.expiryDate, expiry < Date() {
+                        self.licenseStatus = .expired
+                        self.isLicensed = false
+                    } else {
+                        self.applyValidatedLicense(license)
                     }
                 }
             } catch {
-                // Defer updates to next runloop to avoid publishing during view updates
                 DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    // During beta period, always give beta access when validation fails
-                    if self.isInBetaPeriod {
-                        self.logger.info("License validation failed but beta period active, enabling beta access", metadata: [
-                            "error": error.localizedDescription,
-                            "beta_expiry": ISO8601DateFormatter().string(from: self.betaExpiryDate)
-                        ])
-                        self.enableBetaAccess()
-                    } else if case LicenseError.networkError = error {
-                        // Handle network errors gracefully - keep license valid if within grace period
-                        self.licenseStatus = .networkError
-                        // Keep license valid if we have a valid expiry date or if we're within grace period
-                        if let expiry = self.licenseExpiry, expiry > Date() {
-                            // License hasn't expired locally, keep it valid
-                            self.isLicensed = true
-                            self.logger.info("Network error during validation, keeping license valid (expires: \(ISO8601DateFormatter().string(from: expiry)))")
-                        } else if let lastValidation = self.lastValidationDate {
-                            // Check if we're within grace period
-                            let daysSinceLastValidation = Date().timeIntervalSince(lastValidation) / 86400
-                            if daysSinceLastValidation <= self.gracePeriodDays {
-                                self.isLicensed = true
-                                self.logger.info("Network error during validation, keeping license valid (within grace period: \(Int(daysSinceLastValidation))/\(Int(self.gracePeriodDays)) days)")
-                            } else {
-                                self.isLicensed = false
-                                self.logger.warning("Network error and grace period expired, invalidating license")
-                            }
-                        } else if self.isLicensed {
-                            // No last validation date but we have a license - keep it valid (first time offline)
-                            self.logger.info("Network error during validation, keeping license valid (no previous validation)")
-                        } else {
-                            self.isLicensed = false
-                        }
-                    } else {
-                        self.licenseStatus = .invalid
-                        self.isLicensed = false
-                    }
+                    self?.handleValidationFailure(error)
                 }
             }
+        }
+    }
+
+    private func applyValidatedLicense(_ license: License) {
+        licenseExpiry = license.expiryDate
+        appVersion = license.appVersion ?? appVersion
+        // For licensed users, default to unlimited (-1) if maxApps is not specified
+        maxAppsAllowed = license.maxApps ?? AppConfiguration.unlimited
+        licenseStatus = .valid
+        isLicensed = true
+        lastValidationDate = Date()
+        userDefaults.set(Date(), forKey: lastValidationKey)
+        saveLicenseData(license)
+    }
+
+    private func handleValidationFailure(_ error: Error) {
+        guard case LicenseError.networkError = error else {
+            licenseStatus = .invalid
+            isLicensed = false
+            return
+        }
+
+        // Transient failure: keep the license while it is unexpired or within the grace period
+        licenseStatus = .networkError
+        if let expiry = licenseExpiry, expiry > Date() {
+            isLicensed = true
+            logger.info("Network error during validation, keeping license valid (expires: \(ISO8601DateFormatter().string(from: expiry)))")
+        } else if let lastValidation = lastValidationDate {
+            let daysSinceLastValidation = Date().timeIntervalSince(lastValidation) / 86400
+            isLicensed = daysSinceLastValidation <= gracePeriodDays
+            if isLicensed {
+                logger.info("Network error during validation, keeping license valid (within grace period: \(Int(daysSinceLastValidation))/\(Int(gracePeriodDays)) days)")
+            } else {
+                logger.warning("Network error and grace period expired, invalidating license")
+            }
+        } else if isLicensed {
+            logger.info("Network error during validation, keeping license valid (no previous validation)")
         }
     }
 
@@ -463,8 +344,6 @@ class LicenseManager: ObservableObject {
             logger.info("Using debug license key")
             return License(
                 licenseKey: key,
-                ownerName: "Developer",
-                email: "dev@auto-focus.app",
                 expiryDate: Calendar.current.date(byAdding: .year, value: 5, to: Date()),
                 appVersion: appVersion,
                 maxApps: AppConfiguration.unlimited // Unlimited
@@ -472,20 +351,7 @@ class LicenseManager: ObservableObject {
         }
         #endif
 
-        guard let url = URL(string: "\(licenseServerURL)/validate") else {
-            throw LicenseError.serverError("Invalid server URL")
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        let requestBody = [
-            "license_key": key,
-            "app_version": appVersion
-        ]
-
-        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        let request = try makeValidationRequest(key: key)
 
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
@@ -510,7 +376,6 @@ class LicenseManager: ObservableObject {
             let license = try parseLicenseResponse(json, licenseKey: key)
 
             logger.info("License validation successful", metadata: [
-                "license_owner": license.ownerName,
                 "expires_at": license.expiryDate?.timeIntervalSince1970.description ?? "never"
             ])
 
@@ -527,6 +392,21 @@ class LicenseManager: ObservableObject {
                 throw LicenseError.networkError
             }
         }
+    }
+
+    private func makeValidationRequest(key: String) throws -> URLRequest {
+        guard let url = URL(string: "\(licenseServerURL)/validate") else {
+            throw LicenseError.serverError("Invalid server URL")
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "license_key": key,
+            "app_version": appVersion
+        ])
+        return request
     }
 
     /// Maps a non-200 validation response to a `LicenseError`.
@@ -601,16 +481,8 @@ class LicenseManager: ObservableObject {
             throw LicenseError.serverError(message)
         }
 
-        // Since your API only returns valid/message, we'll create a basic license
-        // You can extend this if your API returns more license details in the future
-        return License(
-            licenseKey: licenseKey,
-            ownerName: "Licensed User", // Default since API doesn't return this
-            email: "user@example.com", // Default since API doesn't return this
-            expiryDate: nil, // No expiry info from API
-            appVersion: appVersion,
-            maxApps: nil // No limit info from API
-        )
+        // The API only confirms validity; it returns no expiry or app limit
+        return License(licenseKey: licenseKey, appVersion: appVersion)
     }
 
     private func verifyHMACSignature(valid: Bool, message: String, timestamp: Int64, signature: String) -> Bool {
@@ -629,11 +501,13 @@ class LicenseManager: ObservableObject {
         CCHmac(CCHmacAlgorithm(kCCHmacAlgSHA256), secretData.withUnsafeBytes { $0.baseAddress }, secretData.count,
                payloadData.withUnsafeBytes { $0.baseAddress }, payloadData.count, &mac)
 
-        let computedSignature = Data(mac).base64EncodedString()
+        let computedSignature = Array(Data(mac).base64EncodedString().utf8)
+        let receivedSignature = Array(signature.utf8)
+        guard computedSignature.count == receivedSignature.count else { return false }
 
-        // Constant-time comparison to prevent timing attacks
-        return computedSignature.count == signature.count &&
-               zip(computedSignature, signature).allSatisfy { $0 == $1 }
+        // Constant-time comparison to prevent timing attacks: examine every byte before deciding
+        let difference = zip(computedSignature, receivedSignature).reduce(UInt8(0)) { $0 | ($1.0 ^ $1.1) }
+        return difference == 0
     }
 
     private func getHMACSecret() -> String {
@@ -666,16 +540,12 @@ class LicenseManager: ObservableObject {
 
 struct License: Codable {
     let licenseKey: String
-    let ownerName: String
-    let email: String
     let expiryDate: Date?
     let appVersion: String?
     let maxApps: Int?
 
-    init(licenseKey: String, ownerName: String, email: String, expiryDate: Date? = nil, appVersion: String? = nil, maxApps: Int? = nil) {
+    init(licenseKey: String, expiryDate: Date? = nil, appVersion: String? = nil, maxApps: Int? = nil) {
         self.licenseKey = licenseKey
-        self.ownerName = ownerName
-        self.email = email
         self.expiryDate = expiryDate
         self.appVersion = appVersion
         self.maxApps = maxApps

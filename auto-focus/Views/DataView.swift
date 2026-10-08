@@ -317,11 +317,10 @@ struct DataStatCard: View {
 
 struct DataExportImportView: View {
     @EnvironmentObject var focusManager: FocusManager
-    @EnvironmentObject var licenseManager: LicenseManager
     @Binding var selectedTab: Int
 
     private var dataExportService: DataExportService {
-        DataExportService(focusManager: focusManager, licenseManager: licenseManager)
+        DataExportService(focusManager: focusManager)
     }
 
     @State private var showingExportOptions = false
@@ -454,41 +453,6 @@ struct DataExportImportView: View {
             return String(format: "%.1f KB", Double(totalBytes) / 1024)
         } else {
             return String(format: "%.1f MB", Double(totalBytes) / (1024 * 1024))
-        }
-    }
-}
-
-struct PremiumRequiredView: View {
-    @Binding var selectedTab: Int
-
-    var body: some View {
-        HStack {
-            Image(systemName: "lock.fill")
-                .foregroundColor(.secondary)
-            Text("Export and import require Auto-Focus+ subscription")
-                .font(.caption)
-                .foregroundColor(.secondary)
-
-            Spacer()
-
-            Button("Upgrade") {
-                selectedTab = 4 // Navigate to Auto-Focus+ tab
-            }
-            .controlSize(.small)
-        }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 12)
-        .background(backgroundMaterial)
-    }
-
-    @ViewBuilder
-    private var backgroundMaterial: some View {
-        if #available(macOS 11.0, *) {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(.regularMaterial)
-        } else {
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color(.controlBackgroundColor))
         }
     }
 }

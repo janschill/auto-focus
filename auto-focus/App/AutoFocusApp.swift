@@ -3,7 +3,7 @@ import SwiftUI
 @main
 struct AutoFocusApp: App {
     @StateObject private var focusManager = FocusManager.shared
-    @StateObject private var licenseManager = LicenseManager()
+    @StateObject private var licenseManager = LicenseManager.shared
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {

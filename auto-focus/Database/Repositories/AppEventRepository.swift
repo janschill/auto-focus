@@ -27,28 +27,6 @@ final class AppEventRepository {
         }
     }
 
-    func fetchRecent(limit: Int = 100) throws -> [AppEvent] {
-        try dbQueue.read { db in
-            try AppEvent
-                .order(Column("timestamp").desc)
-                .limit(limit)
-                .fetchAll(db)
-        }
-    }
-
-    func fetchEvents(since date: Date) throws -> [AppEvent] {
-        try dbQueue.read { db in
-            try AppEvent
-                .filter(Column("timestamp") >= date.timeIntervalSinceReferenceDate)
-                .order(Column("timestamp").desc)
-                .fetchAll(db)
-        }
-    }
-
-    func fetchTopApps(since date: Date, limit: Int = 10) throws -> [AppUsageSummary] {
-        try fetchTopApps(since: date, until: nil, limit: limit)
-    }
-
     func fetchTopApps(since date: Date, until endDate: Date?, limit: Int = 10) throws -> [AppUsageSummary] {
         let excludedBundles = AppConfiguration.screenInactiveBundleIds
         return try dbQueue.read { db in
@@ -90,10 +68,6 @@ final class AppEventRepository {
                 )
             }
         }
-    }
-
-    func fetchTopDomains(since date: Date, limit: Int = 10) throws -> [DomainUsageSummary] {
-        try fetchTopDomains(since: date, until: nil, limit: limit)
     }
 
     func fetchTopDomains(since date: Date, until endDate: Date?, limit: Int = 10) throws -> [DomainUsageSummary] {

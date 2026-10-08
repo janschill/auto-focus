@@ -6,15 +6,29 @@ This directory contains the unit tests for the Auto-Focus macOS application.
 
 ```
 auto-focusTests/
-├── TestHelpers/           # Test utilities and helpers
-│   └── TestHelpers.swift  # Common test utilities, builders, and assertions
-├── FocusManagerTests.swift      # Tests for FocusManager core logic
-├── ConfigurationViewModelTests.swift  # Tests for ConfigurationViewModel
-├── InsightsViewModelTests.swift        # Tests for InsightsViewModel
-├── SessionListFilterTests.swift       # Tests for session list filtering and sorting
-├── MenuBarViewModelTests.swift        # Tests for MenuBarViewModel
-├── SessionEditingTests.swift         # Tests for session editing functionality
-└── TimerDisplayModeTests.swift        # Tests for timer display modes
+├── TestHelpers/
+│   └── TestHelpers.swift                  # Common test utilities, builders, and assertions
+├── ActivityInsightsServiceTests.swift     # Activity insights computation
+├── AppEventRepositoryTests.swift          # App event persistence and usage queries
+├── AutomationPermissionServiceTests.swift # Browser Automation permission handling
+├── BrowserEnablementStoreTests.swift      # Per-browser enablement persistence
+├── BrowserPollingGatingTests.swift        # When browser URL polling starts and stops
+├── CoreFocusBehaviorTests.swift           # Critical focus session behavior
+├── FocusAppPersistenceTests.swift         # Focus app persistence
+├── FocusManagerStateTests.swift           # FocusManager state management
+├── FocusManagerTests.swift                # FocusManager core logic
+├── FocusTimerTests.swift                  # Focus timer behavior
+├── FocusURLMatchingTests.swift            # Focus URL matching rules
+├── InsightsViewModelTests.swift           # Insights snapshot computation and recompute triggers
+├── LicenseValidationErrorTests.swift      # License validation error mapping
+├── MigrationManagerTests.swift            # UserDefaults to SQLite migration
+├── PauseAndBrowserHandoffTests.swift      # Pausing and focus app to browser hand-off
+├── ProductiveTimeRangeTests.swift         # Hourly bucketing for productive time range
+├── ScreenLockSessionEndTests.swift        # Session end on screen lock
+├── SessionDeletionTests.swift             # Session deletion
+├── SessionEditingTests.swift              # Session editing
+├── SessionListFilterTests.swift           # Session list filtering and sorting
+└── TimerDisplayModeTests.swift            # Timer display modes
 ```
 
 ## Running Tests

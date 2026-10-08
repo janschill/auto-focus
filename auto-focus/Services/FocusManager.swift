@@ -191,7 +191,7 @@ class FocusManager: ObservableObject {
     ) {
         self.settingsRepo = settingsRepo
         self.focusAppRepo = focusAppRepo
-        self.licenseManager = licenseManager ?? LicenseManager()
+        self.licenseManager = licenseManager ?? .shared
         self.automationPermissionService = automationPermissionService ?? AutomationPermissionService()
         self.browserEnablementStore = browserEnablementStore ?? BrowserEnablementStore(settingsRepo: settingsRepo)
 
@@ -201,6 +201,7 @@ class FocusManager: ObservableObject {
         self.bufferManager = bufferManager ?? BufferManager()
         self.focusModeController = focusModeController ?? FocusModeManager()
         self.browserManager = browserManager ?? BrowserManager(
+            licenseManager: self.licenseManager,
             enablementStore: self.browserEnablementStore,
             permissionService: self.automationPermissionService
         )
@@ -430,10 +431,6 @@ class FocusManager: ObservableObject {
         AppLogger.focus.info("Screen inactive — session ended")
     }
 
-    func checkShortcutExists() -> Bool {
-        return focusModeController.checkShortcutExists()
-    }
-
     func refreshShortcutStatus() {
         // Run AppleScript check on background thread to avoid blocking UI
         // and prevent crashes from re-entrancy during SwiftUI view updates
@@ -587,14 +584,6 @@ extension FocusManager: FocusModeManagerDelegate {
 
 // MARK: - BufferManagerDelegate
 extension FocusManager: BufferManagerDelegate {
-    func bufferManagerDidStartBuffer(_ manager: any BufferManaging) {
-        // Buffer started - no action needed currently
-    }
-
-    func bufferManagerDidEndBuffer(_ manager: any BufferManaging) {
-        // Buffer was cancelled (user returned to focus app) - no action needed
-    }
-
     func bufferManagerDidTimeout(_ manager: any BufferManaging) {
         endFocus()
     }

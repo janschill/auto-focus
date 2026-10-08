@@ -139,17 +139,6 @@ final class FocusManagerTests: XCTestCase {
         XCTAssertEqual(AppConfiguration.defaultFocusThreshold, 12, "AppConfiguration.defaultFocusThreshold should be 12 minutes")
     }
 
-//    func testCanAddMoreAppsAndPremiumRequired() {
-//        focusManager.focusApps = [
-//            AppInfo(id: "1", name: "App1", bundleIdentifier: "com.test.app1"),
-//            AppInfo(id: "2", name: "App2", bundleIdentifier: "com.test.app2")
-//        ]
-//        // Simulate not licensed
-//        focusManager.isPremiumUser = false
-//        XCTAssertFalse(focusManager.canAddMoreApps)
-//        XCTAssertTrue(focusManager.isPremiumRequired)
-//    }
-
     // --- SessionManager Tests ---
     func testSessionManagerStartEndCancel() {
         mockSessionManager.startSession()

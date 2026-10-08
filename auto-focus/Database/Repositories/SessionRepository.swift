@@ -50,42 +50,6 @@ final class SessionRepository {
         }
     }
 
-    // MARK: - Queries
-
-    func sessionsToday() throws -> [FocusSession] {
-        let startOfDay = Calendar.current.startOfDay(for: Date())
-        return try dbQueue.read { db in
-            try FocusSession
-                .filter(Column("startTime") >= startOfDay.timeIntervalSinceReferenceDate)
-                .order(Column("startTime").desc)
-                .fetchAll(db)
-        }
-    }
-
-    func sessionsInLastWeek() throws -> [FocusSession] {
-        let oneWeekAgo = Calendar.current.startOfDay(
-            for: Calendar.current.date(byAdding: .day, value: -7, to: Date())!
-        )
-        return try dbQueue.read { db in
-            try FocusSession
-                .filter(Column("startTime") >= oneWeekAgo.timeIntervalSinceReferenceDate)
-                .order(Column("startTime").desc)
-                .fetchAll(db)
-        }
-    }
-
-    func sessionsInLastMonth() throws -> [FocusSession] {
-        let oneMonthAgo = Calendar.current.startOfDay(
-            for: Calendar.current.date(byAdding: .month, value: -1, to: Date())!
-        )
-        return try dbQueue.read { db in
-            try FocusSession
-                .filter(Column("startTime") >= oneMonthAgo.timeIntervalSinceReferenceDate)
-                .order(Column("startTime").desc)
-                .fetchAll(db)
-        }
-    }
-
     // MARK: - Observation
 
     func observeAll() -> DatabasePublishers.Value<[FocusSession]> {

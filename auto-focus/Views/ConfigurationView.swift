@@ -106,10 +106,10 @@ struct GeneralSettingsView: View {
                         .frame(width: 150, alignment: .leading)
                     Spacer()
                     if licenseManager.isLicensed {
-                        Image(systemName: licenseStatusIcon)
+                        Image(systemName: "star.circle.fill")
                             .symbolRenderingMode(.multicolor)
-                        Text(licenseStatusText)
-                            .foregroundStyle(licenseStatusColor)
+                        Text("Auto-Focus+")
+                            .foregroundStyle(.green)
                     } else {
                         Text("Free")
                     }
@@ -239,7 +239,7 @@ struct GeneralSettingsView: View {
                     }
 
                     Button("Add Shortcut") {
-                        installShortcut()
+                        ResourceManager.installShortcut()
                         focusManager.refreshShortcutStatus()
                     }
                     .disabled(focusManager.isShortcutInstalled)
@@ -267,34 +267,6 @@ struct GeneralSettingsView: View {
             focusManager.refreshShortcutStatus()
             focusManager.automationPermissionService.refresh(bundleId: AppConfiguration.shortcutsEventsBundleIdentifier)
             versionCheckManager.checkForUpdates()
-        }
-    }
-
-    private var isBetaLicense: Bool {
-        return licenseManager.licenseOwner == "Beta User"
-    }
-
-    private var licenseStatusIcon: String {
-        if isBetaLicense {
-            return "hourglass"
-        } else {
-            return "star.circle.fill"
-        }
-    }
-
-    private var licenseStatusText: String {
-        if isBetaLicense {
-            return "Beta"
-        } else {
-            return "Auto-Focus+"
-        }
-    }
-
-    private var licenseStatusColor: Color {
-        if isBetaLicense {
-            return .indigo
-        } else {
-            return .green
         }
     }
 
@@ -520,13 +492,4 @@ private struct ShortcutsPermissionRow: View {
                 .font(.callout)
         }
     }
-}
-
-private func installShortcut() {
-    guard let shortcutUrl = ResourceManager.copyShortcutToTemporary() else {
-        AppLogger.ui.error("Could not prepare shortcut for installation")
-        return
-    }
-
-    NSWorkspace.shared.open(shortcutUrl)
 }

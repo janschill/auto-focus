@@ -94,94 +94,97 @@ class VersionCheckManager: ObservableObject {
 
         URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             DispatchQueue.main.async {
-                guard let self = self else { return }
-                defer {
-                    self.isChecking = false
-                }
-
-                // Handle network errors
-                if let error = error {
-                    self.logger.error("Failed to check for updates", error: error, metadata: [
-                        "current_version": self.currentVersion
-                    ])
-                    self.lastCheckDate = Date()
-                    self.persistData()
-                    return
-                }
-
-                // Handle HTTP errors
-                if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
-                    self.logger.error("Version check returned non-200 status", metadata: [
-                        "status_code": String(httpResponse.statusCode),
-                        "current_version": self.currentVersion
-                    ])
-                    self.lastCheckDate = Date()
-                    self.persistData()
-                    return
-                }
-
-                // Parse JSON
-                guard let data = data else {
-                    self.logger.error("No data received from version check", metadata: [
-                        "current_version": self.currentVersion
-                    ])
-                    self.lastCheckDate = Date()
-                    self.persistData()
-                    return
-                }
-
-                guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                    let jsonString = String(data: data, encoding: .utf8) ?? "Unable to decode"
-                    self.logger.error("Failed to parse version JSON", metadata: [
-                        "current_version": self.currentVersion,
-                        "data_length": String(data.count),
-                        "response_preview": String(jsonString.prefix(200))
-                    ])
-                    self.lastCheckDate = Date()
-                    self.persistData()
-                    return
-                }
-
-                guard let versionString = json["version"] as? String else {
-                    self.logger.error("Version key not found in JSON", metadata: [
-                        "current_version": self.currentVersion,
-                        "json_keys": Array(json.keys).joined(separator: ", ")
-                    ])
-                    self.lastCheckDate = Date()
-                    self.persistData()
-                    return
-                }
-
-                self.logger.debug("Successfully parsed version from JSON", metadata: [
-                    "version": versionString,
-                    "current_version": self.currentVersion
-                ])
-
-                // Extract version and optional download URL
-                self.latestVersion = versionString
-                if let downloadURLString = json["download_url"] as? String {
-                    self.downloadURL = downloadURLString
-                    self.logger.debug("Download URL found in version.json", metadata: [
-                        "download_url": downloadURLString
-                    ])
-                } else {
-                    // Fallback to default download URL if not specified
-                    self.downloadURL = "https://auto-focus.app/downloads/Auto-Focus.zip"
-                }
-
-                self.lastCheckDate = Date()
-                let isNewer = self.isVersionNewer(self.latestVersion, than: self.currentVersion)
-                self.isUpdateAvailable = isNewer
-
-                self.logger.info("Version check completed", metadata: [
-                    "current_version": self.currentVersion,
-                    "latest_version": self.latestVersion,
-                    "update_available": String(isNewer)
-                ])
-
-                self.persistData()
+                self?.handleVersionResponse(data: data, response: response, error: error)
             }
         }.resume()
+    }
+
+    private func handleVersionResponse(data: Data?, response: URLResponse?, error: Error?) {
+        defer {
+            isChecking = false
+        }
+
+        guard let versionInfo = parseVersionResponse(data: data, response: response, error: error) else {
+            lastCheckDate = Date()
+            persistData()
+            return
+        }
+
+        latestVersion = versionInfo.version
+        if let downloadURLString = versionInfo.downloadURL {
+            downloadURL = downloadURLString
+            logger.debug("Download URL found in version.json", metadata: [
+                "download_url": downloadURLString
+            ])
+        } else {
+            // Fallback to default download URL if not specified
+            downloadURL = "https://auto-focus.app/downloads/Auto-Focus.zip"
+        }
+
+        lastCheckDate = Date()
+        let isNewer = isVersionNewer(latestVersion, than: currentVersion)
+        isUpdateAvailable = isNewer
+        logger.info("Version check completed", metadata: [
+            "current_version": currentVersion,
+            "latest_version": latestVersion,
+            "update_available": String(isNewer)
+        ])
+
+        persistData()
+    }
+
+    /// Validates the version check response and extracts the version and optional download URL.
+    /// Logs and returns nil on any network, HTTP or parsing failure.
+    private func parseVersionResponse(
+        data: Data?,
+        response: URLResponse?,
+        error: Error?
+    ) -> (version: String, downloadURL: String?)? {
+        if let error = error {
+            logger.error("Failed to check for updates", error: error, metadata: [
+                "current_version": currentVersion
+            ])
+            return nil
+        }
+
+        if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
+            logger.error("Version check returned non-200 status", metadata: [
+                "status_code": String(httpResponse.statusCode),
+                "current_version": currentVersion
+            ])
+            return nil
+        }
+
+        guard let data = data else {
+            logger.error("No data received from version check", metadata: [
+                "current_version": currentVersion
+            ])
+            return nil
+        }
+
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            let jsonString = String(data: data, encoding: .utf8) ?? "Unable to decode"
+            logger.error("Failed to parse version JSON", metadata: [
+                "current_version": currentVersion,
+                "data_length": String(data.count),
+                "response_preview": String(jsonString.prefix(200))
+            ])
+            return nil
+        }
+
+        guard let versionString = json["version"] as? String else {
+            logger.error("Version key not found in JSON", metadata: [
+                "current_version": currentVersion,
+                "json_keys": Array(json.keys).joined(separator: ", ")
+            ])
+            return nil
+        }
+
+        logger.debug("Successfully parsed version from JSON", metadata: [
+            "version": versionString,
+            "current_version": currentVersion
+        ])
+        return (versionString, json["download_url"] as? String)
     }
 
     private func shouldCheckForUpdates() -> Bool {

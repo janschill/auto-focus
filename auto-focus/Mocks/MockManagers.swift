@@ -197,8 +197,6 @@ class MockBufferManager: ObservableObject, BufferManaging {
                 self?.simulateBufferTimeout()
             }
         }
-
-        delegate?.bufferManagerDidStartBuffer(self)
     }
 
     func cancelBuffer() {
@@ -207,7 +205,6 @@ class MockBufferManager: ObservableObject, BufferManaging {
         isInBufferPeriod = false
         bufferTimeRemaining = 0
         bufferDuration = 0
-        delegate?.bufferManagerDidEndBuffer(self)
     }
 
     // Test helper methods

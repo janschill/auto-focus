@@ -273,7 +273,7 @@ struct InstallShortcutStepView: View {
 
                 if !hasInstalled {
                     Button("Install Shortcut") {
-                        installShortcut()
+                        ResourceManager.installShortcut()
                         // Check shortcut status after a delay to allow user to complete installation
                         // The onChange handler will update hasInstalled when isShortcutInstalled changes
                         Task {
@@ -380,20 +380,6 @@ struct AddFocusAppsStepView: View {
                 hasAddedApps = actualHasApps
             }
         }
-    }
-}
-
-struct RecommendedAppTag: View {
-    let name: String
-
-    var body: some View {
-        Text(name)
-            .font(.caption)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(Color.accentColor.opacity(0.1))
-            .foregroundColor(.accentColor)
-            .cornerRadius(6)
     }
 }
 
@@ -1195,15 +1181,6 @@ struct OnboardingPresetRow: View {
             .opacity(canSelect ? 1.0 : 0.6)
         }
     }
-}
-
-private func installShortcut() {
-    guard let shortcutUrl = ResourceManager.copyShortcutToTemporary() else {
-        AppLogger.ui.error("Could not prepare shortcut for installation")
-        return
-    }
-
-    NSWorkspace.shared.open(shortcutUrl)
 }
 
 #Preview {
