@@ -100,11 +100,11 @@ class InsightsDataProvider {
         let totalTracked = allApps.reduce(0) { $0 + $1.totalDuration }
         let ratio = focusVsOtherRatio(apps: allApps, focusBundleIDs: focusBundleIDs)
 
-        let sessionEvents = sessionEvents(timeframe: timeframe, selectedDate: selectedDate, sessions: sessions)
-        let disruptions = sessionEvents.map {
+        let periodEvents = sessionEvents(timeframe: timeframe, selectedDate: selectedDate, sessions: sessions)
+        let disruptions = periodEvents.map {
             ActivityInsightsService.calculateDisruptions(events: $0, focusBundleIDs: focusBundleIDs, focusDomains: focusURLs)
         } ?? DisruptionSummary(totalSwitches: 0, distractors: [])
-        let disruptionOverTime = sessionEvents.map {
+        let disruptionTimeline = periodEvents.map {
             disruptionOverTime(events: $0, timeframe: timeframe, selectedDate: selectedDate, focusBundleIDs: focusBundleIDs, focusURLs: focusURLs)
         } ?? []
 
@@ -127,7 +127,7 @@ class InsightsDataProvider {
             previousPeriodDisruptions: previousPeriodDisruptions(
                 timeframe: timeframe, selectedDate: selectedDate, focusBundleIDs: focusBundleIDs, focusURLs: focusURLs
             ),
-            disruptionOverTime: disruptionOverTime,
+            disruptionOverTime: disruptionTimeline,
             longestSession: sessions.max(by: { $0.duration < $1.duration }),
             averageSessionLength: sessions.isEmpty ? 0 : totalFocus / Double(sessions.count),
             deepFocusSessions: (deep: sessions.filter { $0.duration >= Self.deepFocusThreshold }.count, total: sessions.count),
