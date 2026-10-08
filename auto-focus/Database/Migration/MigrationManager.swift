@@ -94,13 +94,12 @@ final class MigrationManager {
             AppLogger.focus.info("Migration verification", metadata: [
                 "sessions": "\(actualSessions)/\(expectedSessions)",
                 "apps": "\(actualApps)/\(expectedApps)",
-                "urls": "\(actualURLs)/\(expectedURLs)",
+                "urls": "\(actualURLs)/\(expectedURLs)"
             ])
 
             if actualSessions < expectedSessions
                 || actualApps < expectedApps
-                || actualURLs < expectedURLs
-            {
+                || actualURLs < expectedURLs {
                 AppLogger.focus.error("Migration verification failed — keeping UserDefaults for retry", error: nil)
                 return // Do NOT set flag, do NOT delete keys — retry next launch
             }
@@ -111,7 +110,7 @@ final class MigrationManager {
             let keysToRemove = [
                 "focusSessions", "focusApps", "focusURLs",
                 "focusThreshold", "focusLossBuffer", "isPaused",
-                "hasCompletedOnboarding", "timerDisplayMode",
+                "hasCompletedOnboarding", "timerDisplayMode"
             ]
             for key in keysToRemove {
                 defaults.removeObject(forKey: key)

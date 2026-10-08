@@ -1,6 +1,6 @@
+@testable import auto_focus
 import GRDB
 import XCTest
-@testable import auto_focus
 
 #if DEBUG
 

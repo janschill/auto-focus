@@ -1,6 +1,5 @@
 import SwiftUI
 
-
 struct DebugMenuView: View {
     @EnvironmentObject var focusManager: FocusManager
     @EnvironmentObject var licenseManager: LicenseManager

@@ -10,8 +10,6 @@ opt_in_rules:
   - private_outlet
   - redundant_nil_coalescing
   - sorted_imports
-  - switch_case_on_newline
-  - unused_declaration
 
 disabled_rules:
   - large_tuple
@@ -21,11 +19,11 @@ disabled_rules:
   - multiple_closures_with_trailing_closure
   - type_body_length
 # Exclude generated, build, and deprecated code
+included:
+  - auto-focus
+  - auto-focusTests
 excluded:
-  - builds
-  - deprecated
-  - auto-focus.xcodeproj
-  - auto-focusUITests
+  - build
 
 # Customize some rules
 # line_length:
@@ -40,17 +38,8 @@ identifier_name:
     - id
     - db
     - ui
+    - t # GRDB table definition closures
 
 # Allow TODOs but warn
 todo:
   severity: warning
-
-# Allow print in debug
-print:
-  severity: warning
-
-# Required header for all files
-required_headers:
-  - "//  Auto-Focus"
-
-# Enable all default rules

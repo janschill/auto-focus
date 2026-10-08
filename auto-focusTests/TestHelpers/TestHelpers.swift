@@ -5,10 +5,10 @@
 //  Test utilities and helpers for common test scenarios
 //
 
+@testable import auto_focus
 import Foundation
 import GRDB
 import XCTest
-@testable import auto_focus
 
 #if DEBUG
 
@@ -140,8 +140,11 @@ struct MockFactory {
 
     /// Creates an in-memory DatabaseQueue for tests (isolated per test)
     static func createTestDB() -> DatabaseQueue {
-        let dbQueue = try! DatabaseManager(dbQueue: DatabaseQueue()).dbQueue
-        return dbQueue
+        do {
+            return try DatabaseManager(dbQueue: DatabaseQueue()).dbQueue
+        } catch {
+            fatalError("Failed to create in-memory test database: \(error)")
+        }
     }
 
     /// Creates a FocusManager with mock dependencies and in-memory DB
@@ -191,4 +194,3 @@ extension Date {
 }
 
 #endif
-

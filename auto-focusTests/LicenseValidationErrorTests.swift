@@ -2,8 +2,8 @@
 // Verifies transient validation failures map to network errors (grace period) while
 // genuine rejections still de-license.
 
-import CommonCrypto
 @testable import auto_focus
+import CommonCrypto
 import XCTest
 
 #if DEBUG

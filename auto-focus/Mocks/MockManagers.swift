@@ -359,4 +359,3 @@ final class MockBrowserURLQuerier: BrowserURLQuerying {
 }
 
 #endif
-

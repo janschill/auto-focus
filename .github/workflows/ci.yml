@@ -98,8 +98,7 @@ jobs:
 
       - name: Run SwiftLint
         run: |
-          swiftlint lint --strict || true
-        continue-on-error: true
+          swiftlint lint --strict
 
   build-check:
     name: Build Check

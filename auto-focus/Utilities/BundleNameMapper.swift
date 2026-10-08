@@ -18,7 +18,7 @@ struct BundleNameMapper {
         "com.apple.ActivityMonitor": "Activity Monitor",
         "com.apple.ScreenSaver.Engine": "Screen Saver",
         "com.apple.dock": "Dock",
-        "com.apple.Spotlight": "Spotlight",
+        "com.apple.Spotlight": "Spotlight"
     ]
 
     static func displayName(bundleIdentifier: String, appName: String?) -> String {

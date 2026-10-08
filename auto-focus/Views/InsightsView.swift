@@ -676,7 +676,7 @@ struct DisruptionChartView: View {
                     }
                     .chartXAxis {
                         if isHourly {
-                            AxisMarks(values: ["00", "06", "12", "18", "23"]) { value in
+                            AxisMarks(values: ["00", "06", "12", "18", "23"]) { _ in
                                 AxisValueLabel()
                             }
                         } else {

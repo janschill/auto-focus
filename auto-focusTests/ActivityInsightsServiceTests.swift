@@ -1,6 +1,6 @@
+@testable import auto_focus
 import Foundation
 import XCTest
-@testable import auto_focus
 
 #if DEBUG
 

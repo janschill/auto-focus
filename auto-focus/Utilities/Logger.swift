@@ -1,21 +1,21 @@
-import os.log
 import Foundation
+import os.log
 
 /// Centralized logging system for Auto-Focus app
-public struct AppLogger {
+struct AppLogger {
     private let logger: Logger
     private let subsystem: String
     private let category: String
 
     // Shared loggers for different app components
-    public static let license = AppLogger(category: "license")
-    public static let focus = AppLogger(category: "focus")
-    public static let session = AppLogger(category: "session")
-    public static let browser = AppLogger(category: "browser")
-    public static let network = AppLogger(category: "network")
-    public static let ui = AppLogger(category: "ui")
-    public static let general = AppLogger(category: "general")
-    public static let version = AppLogger(category: "version")
+    static let license = AppLogger(category: "license")
+    static let focus = AppLogger(category: "focus")
+    static let session = AppLogger(category: "session")
+    static let browser = AppLogger(category: "browser")
+    static let network = AppLogger(category: "network")
+    static let ui = AppLogger(category: "ui")
+    static let general = AppLogger(category: "general")
+    static let version = AppLogger(category: "version")
 
     private init(category: String) {
         self.subsystem = "com.janschill.auto-focus"
@@ -26,13 +26,13 @@ public struct AppLogger {
     // MARK: - Logging Methods
 
     /// Log informational messages
-    public func info(_ message: String, metadata: [String: String] = [:], file: String = #file, function: String = #function, line: Int = #line) {
+    func info(_ message: String, metadata: [String: String] = [:], file: String = #file, function: String = #function, line: Int = #line) {
         let enrichedMessage = formatMessage(message, metadata: metadata, file: file, function: function, line: line)
         logger.info("\(enrichedMessage, privacy: .public)")
     }
 
     /// Log debug messages (only in debug builds)
-    public func debug(_ message: String, metadata: [String: String] = [:], file: String = #file, function: String = #function, line: Int = #line) {
+    func debug(_ message: String, metadata: [String: String] = [:], file: String = #file, function: String = #function, line: Int = #line) {
         #if DEBUG
         let enrichedMessage = formatMessage(message, metadata: metadata, file: file, function: function, line: line)
         logger.debug("\(enrichedMessage, privacy: .public)")
@@ -40,13 +40,13 @@ public struct AppLogger {
     }
 
     /// Log warning messages
-    public func warning(_ message: String, metadata: [String: String] = [:], file: String = #file, function: String = #function, line: Int = #line) {
+    func warning(_ message: String, metadata: [String: String] = [:], file: String = #file, function: String = #function, line: Int = #line) {
         let enrichedMessage = formatMessage(message, metadata: metadata, file: file, function: function, line: line)
         logger.warning("\(enrichedMessage, privacy: .public)")
     }
 
     /// Log error messages
-    public func error(_ message: String, error: Error? = nil, metadata: [String: String] = [:], file: String = #file, function: String = #function, line: Int = #line) {
+    func error(_ message: String, error: Error? = nil, metadata: [String: String] = [:], file: String = #file, function: String = #function, line: Int = #line) {
         var enrichedMetadata = metadata
 
         if let error = error {
@@ -64,7 +64,7 @@ public struct AppLogger {
     }
 
     /// Log critical system failures
-    public func critical(_ message: String, error: Error? = nil, metadata: [String: String] = [:], file: String = #file, function: String = #function, line: Int = #line) {
+    func critical(_ message: String, error: Error? = nil, metadata: [String: String] = [:], file: String = #file, function: String = #function, line: Int = #line) {
         var enrichedMetadata = metadata
         enrichedMetadata["severity"] = "CRITICAL"
 
@@ -80,7 +80,7 @@ public struct AppLogger {
     // MARK: - State Change Logging
 
     /// Log application state changes
-    public func stateChange(from oldState: String, to newState: String, metadata: [String: String] = [:]) {
+    func stateChange(from oldState: String, to newState: String, metadata: [String: String] = [:]) {
         var stateMetadata = metadata
         stateMetadata["old_state"] = oldState
         stateMetadata["new_state"] = newState

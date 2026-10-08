@@ -28,7 +28,7 @@ struct AppConfiguration {
     // MARK: - Screen-Inactive Apps (lock screen, screensaver, etc.)
     static let screenInactiveBundleIds: Set<String> = [
         "com.apple.loginwindow",
-        "com.apple.ScreenSaver.Engine",
+        "com.apple.ScreenSaver.Engine"
     ]
 
     static func isScreenInactiveApp(_ bundleId: String) -> Bool {
@@ -47,7 +47,7 @@ struct AppConfiguration {
     // MARK: - Supported Browser Bundle IDs
     static let safariBundleIds: Set<String> = [
         "com.apple.Safari",
-        "com.apple.SafariTechnologyPreview",
+        "com.apple.SafariTechnologyPreview"
     ]
 
     static let supportedBrowserBundleIds: Set<String> = safariBundleIds.union([
@@ -68,7 +68,7 @@ struct AppConfiguration {
         "com.yandex.browser",
         "com.arc.Arc",
         "com.360.Chrome",
-        "com.chromium.Chromium",
+        "com.chromium.Chromium"
     ])
 
     static func isSupportedBrowser(_ bundleId: String) -> Bool {
@@ -100,7 +100,7 @@ struct AppConfiguration {
         "com.yandex.browser": "Yandex Browser",
         "com.arc.Arc": "Arc",
         "com.360.Chrome": "360 Chrome",
-        "com.chromium.Chromium": "Chromium",
+        "com.chromium.Chromium": "Chromium"
     ]
 
     static func displayName(forBundleId bundleId: String) -> String {

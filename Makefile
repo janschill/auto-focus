@@ -1,4 +1,4 @@
-.PHONY: build test clean lint format ai-context swift-package-update codesign-check archive-mac notarize prepare-downloads prepare-app-for-notarization package-app package-extension generate-version prepare-distribution deploy-downloads create-dmg tag-release create-github-release manual-release
+.PHONY: build test test-coverage clean lint fmt codesign-check archive-mac notarize prepare-downloads prepare-app-for-notarization package-app generate-version prepare-distribution deploy-downloads create-dmg tag-release create-github-release manual-release
 
 # Project configuration
 PROJECT_NAME = auto-focus
@@ -14,11 +14,6 @@ DOWNLOADS_DIR = docs/downloads
 APP_ZIP = $(DOWNLOADS_DIR)/Auto-Focus.zip
 VERSION_FILE = $(DOWNLOADS_DIR)/version.json
 
-# Swift targets
-build-swift:
-	@echo "Building Swift project..."
-	swift build -c release
-
 test:
 	@echo "Running Swift tests..."
 	@xcodebuild test \
@@ -28,8 +23,6 @@ test:
 		CODE_SIGN_IDENTITY="-" \
 		CODE_SIGNING_ALLOWED=NO \
 		-only-testing:auto-focusTests || exit $$?
-
-test-swift: test
 
 test-coverage:
 	@echo "Running tests with code coverage..."
@@ -42,10 +35,6 @@ test-coverage:
 		-enableCodeCoverage YES \
 		-only-testing:auto-focusTests || exit $$?
 	@echo "Coverage report generated in DerivedData"
-
-swift-package-update:
-	@echo "Updating Swift packages..."
-	swift package update
 
 # Xcode build targets
 build:
@@ -119,36 +108,15 @@ notarize:
 	fi
 
 # Development utilities
+SWIFTLINT = $(shell command -v swiftlint 2>/dev/null)
+
 lint:
-	@echo "Running SwiftLint..."
-	@if command -v swiftlint >/dev/null 2>&1; then \
-		swiftlint; \
-	else \
-		echo "SwiftLint not installed. Install with: brew install swiftlint"; \
-	fi
+	@test -n "$(SWIFTLINT)" || { echo "SwiftLint not installed. Install with: brew install swiftlint"; exit 1; }
+	@swiftlint lint --strict --quiet
 
-format:
-	@echo "Formatting Swift code..."
-	@if command -v swiftformat >/dev/null 2>&1; then \
-		swiftformat auto-focus/; \
-	else \
-		echo "SwiftFormat not installed. Install with: brew install swiftformat"; \
-	fi
-
-# AI assistance targets
-ai-context:
-	@echo "Generating AI context for auto-focus..."
-	@mkdir -p Configuration/.claude
-	@find auto-focus -name "*.swift" -exec echo "=== {} ===" \; -exec cat {} \; > Configuration/.claude/swift-context.txt
-	@tree auto-focus > Configuration/.claude/structure.txt 2>/dev/null || ls -la auto-focus > Configuration/.claude/structure.txt
-	@echo "License management features:" > Configuration/.claude/features.txt
-	@grep -r "License\|Subscription" auto-focus >> Configuration/.claude/features.txt 2>/dev/null || echo "No license features found" >> Configuration/.claude/features.txt
-	@echo "Focus control features:" >> Configuration/.claude/features.txt
-	@grep -r "Focus\|Session" auto-focus >> Configuration/.claude/features.txt 2>/dev/null || echo "No focus features found" >> Configuration/.claude/features.txt
-
-ai-swift-refactor:
-	@echo "Triggering AI refactor analysis..."
-	@echo "Feature analysis complete. Use 'claude \"Review the FocusControl feature and suggest SwiftUI improvements for better performance\"'"
+fmt:
+	@test -n "$(SWIFTLINT)" || { echo "SwiftLint not installed. Install with: brew install swiftlint"; exit 1; }
+	@swiftlint --fix --quiet
 
 # Distribution targets
 prepare-downloads:
@@ -437,9 +405,8 @@ help:
 	@echo "  deploy-downloads         - Update website to use local downloads"
 	@echo ""
 	@echo "🛠️  Utilities:"
-	@echo "  lint                     - Run SwiftLint"
-	@echo "  format                   - Format Swift code"
-	@echo "  ai-context               - Generate AI context files"
+	@echo "  lint                     - Run SwiftLint (fails on any violation)"
+	@echo "  fmt                      - Auto-correct SwiftLint violations"
 	@echo "  help                     - Show this help"
 	@echo ""
 	@echo "💡 New Release Workflow (Fully Automated):"

@@ -1,10 +1,10 @@
 import Foundation
 
 enum TimerDisplayMode: String, CaseIterable, Codable {
-    case hidden = "hidden"
-    case full = "full"
-    case simplified = "simplified"
-    
+    case hidden
+    case full
+    case simplified
+
     var displayName: String {
         switch self {
         case .hidden:
@@ -15,7 +15,7 @@ enum TimerDisplayMode: String, CaseIterable, Codable {
             return "Simplified (0m)"
         }
     }
-    
+
     var description: String {
         switch self {
         case .hidden:

@@ -268,11 +268,11 @@ enum URLCategory: String, CaseIterable, Codable {
 extension FocusURL {
     /// Derives a human-readable display name from a domain string.
     static func displayName(from domain: String) -> String {
-        var d = domain
-        if d.hasPrefix("*.") { d = String(d.dropFirst(2)) }
-        if d.hasPrefix("www.") { d = String(d.dropFirst(4)) }
+        var host = domain
+        if host.hasPrefix("*.") { host = String(host.dropFirst(2)) }
+        if host.hasPrefix("www.") { host = String(host.dropFirst(4)) }
 
-        guard let basePart = d.components(separatedBy: ".").first, !basePart.isEmpty else {
+        guard let basePart = host.components(separatedBy: ".").first, !basePart.isEmpty else {
             return domain
         }
 
@@ -281,10 +281,10 @@ extension FocusURL {
 
     /// Sort key that strips www. and *. so domains group naturally.
     var sortableDomain: String {
-        var d = domain.lowercased()
-        if d.hasPrefix("*.") { d = String(d.dropFirst(2)) }
-        if d.hasPrefix("www.") { d = String(d.dropFirst(4)) }
-        return d
+        var host = domain.lowercased()
+        if host.hasPrefix("*.") { host = String(host.dropFirst(2)) }
+        if host.hasPrefix("www.") { host = String(host.dropFirst(4)) }
+        return host
     }
 }
 

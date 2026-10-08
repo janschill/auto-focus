@@ -53,4 +53,3 @@ protocol FocusModeControlling: AnyObject, ObservableObject {
     func setFocusMode(enabled: Bool)
     func checkShortcutExists() -> Bool
 }
-

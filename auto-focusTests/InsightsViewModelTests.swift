@@ -1,8 +1,8 @@
 // InsightsViewModelTests.swift
 // Unit tests for InsightsViewModel snapshot computation and recompute triggers.
 
-import Combine
 @testable import auto_focus
+import Combine
 import XCTest
 
 #if DEBUG

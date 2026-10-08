@@ -1024,9 +1024,9 @@ struct OnboardingAddURLSheet: View {
     }
 
     private var isDuplicate: Bool {
-        let d = cleanedDomain
-        guard !d.isEmpty else { return false }
-        return focusManager.focusURLs.contains { $0.domain == d }
+        let domain = cleanedDomain
+        guard !domain.isEmpty else { return false }
+        return focusManager.focusURLs.contains { $0.domain == domain }
     }
 
     var body: some View {
@@ -1085,10 +1085,10 @@ struct OnboardingAddURLSheet: View {
     }
 
     private func addURL() {
-        let d = cleanedDomain
-        guard !d.isEmpty, !isDuplicate else { return }
+        let domain = cleanedDomain
+        guard !domain.isEmpty, !isDuplicate else { return }
 
-        let urlToAdd = FocusURL(name: FocusURL.displayName(from: d), domain: d)
+        let urlToAdd = FocusURL(name: FocusURL.displayName(from: domain), domain: domain)
         focusManager.addFocusURL(urlToAdd)
         dismiss()
     }

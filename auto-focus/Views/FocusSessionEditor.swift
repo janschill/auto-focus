@@ -13,12 +13,12 @@ struct FocusSessionEditor: View {
     @State private var endTime: Date
     @State private var showingValidationAlert = false
     @State private var validationMessage = ""
-    
+
     private let session: FocusSession
     private let onSave: (FocusSession) -> Void
     private let onCancel: () -> Void
     private let onDelete: () -> Void
-    
+
     init(session: FocusSession, onSave: @escaping (FocusSession) -> Void, onCancel: @escaping () -> Void, onDelete: @escaping () -> Void) {
         self.session = session
         self.onSave = onSave
@@ -27,7 +27,7 @@ struct FocusSessionEditor: View {
         self._startTime = State(initialValue: session.startTime)
         self._endTime = State(initialValue: session.endTime)
     }
-    
+
     var body: some View {
         VStack(spacing: 20) {
             // Header
@@ -39,7 +39,7 @@ struct FocusSessionEditor: View {
                 Button("Cancel", action: onCancel)
             }
             .padding(.bottom, 10)
-            
+
             VStack(alignment: .leading, spacing: 16) {
                 // Session Info
                 GroupBox("Session Information") {
@@ -52,7 +52,7 @@ struct FocusSessionEditor: View {
                                 .font(.monospaced(.body)())
                                 .foregroundColor(.secondary)
                         }
-                        
+
                         HStack {
                             Text("Original Duration:")
                                 .fontWeight(.medium)
@@ -60,7 +60,7 @@ struct FocusSessionEditor: View {
                             Text(TimeFormatter.duration(Int(session.duration / 60)))
                                 .foregroundColor(.secondary)
                         }
-                        
+
                         HStack {
                             Text("New Duration:")
                                 .fontWeight(.medium)
@@ -70,7 +70,7 @@ struct FocusSessionEditor: View {
                         }
                     }
                 }
-                
+
                 // Time Editor
                 GroupBox("Edit Times") {
                     VStack(spacing: 16) {
@@ -85,7 +85,7 @@ struct FocusSessionEditor: View {
                             )
                             .labelsHidden()
                         }
-                        
+
                         HStack {
                             Text("End Time:")
                                 .fontWeight(.medium)
@@ -97,7 +97,7 @@ struct FocusSessionEditor: View {
                             )
                             .labelsHidden()
                         }
-                        
+
                         if !isValidSession {
                             HStack {
                                 Image(systemName: "exclamationmark.triangle.fill")
@@ -109,14 +109,14 @@ struct FocusSessionEditor: View {
                         }
                     }
                 }
-                
+
                 // Quick Duration Adjustments
                 GroupBox("Quick Adjustments") {
                     VStack(spacing: 8) {
                         Text("Adjust session duration:")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        
+
                         HStack(spacing: 12) {
                             Button("-5m") { adjustDuration(-5) }
                                 .controlSize(.small)
@@ -128,16 +128,16 @@ struct FocusSessionEditor: View {
                                 .controlSize(.small)
                         }
                         .buttonStyle(.bordered)
-                        
+
                         Text("(Adjusts end time by the specified amount)")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
                 }
             }
-            
+
             Spacer()
-            
+
             // Action Buttons
             HStack(spacing: 16) {
                 Button("Delete Session") {
@@ -145,9 +145,9 @@ struct FocusSessionEditor: View {
                 }
                 .buttonStyle(.bordered)
                 .foregroundColor(.red)
-                
+
                 Spacer()
-                
+
                 Button("Save Changes") {
                     saveSession()
                 }
@@ -163,58 +163,58 @@ struct FocusSessionEditor: View {
             Text(validationMessage)
         }
     }
-    
+
     // MARK: - Computed Properties
-    
+
     private var newDuration: TimeInterval {
         return endTime.timeIntervalSince(startTime)
     }
-    
+
     private var isValidSession: Bool {
         return startTime < endTime
     }
-    
+
     private var hasChanges: Bool {
         return startTime != session.startTime || endTime != session.endTime
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private func adjustDuration(_ minutes: Int) {
         let adjustment = TimeInterval(minutes * 60)
         let newEndTime = endTime.addingTimeInterval(adjustment)
-        
+
         // Ensure the new end time is still after start time
         if newEndTime > startTime {
             endTime = newEndTime
         }
     }
-    
+
     private func saveSession() {
         guard isValidSession else {
             validationMessage = "End time must be after start time."
             showingValidationAlert = true
             return
         }
-        
+
         // Additional validation: prevent sessions longer than 24 hours
         if newDuration > 24 * 60 * 60 {
             validationMessage = "Session duration cannot exceed 24 hours."
             showingValidationAlert = true
             return
         }
-        
+
         // Prevent sessions shorter than 1 minute
         if newDuration < 60 {
             validationMessage = "Session duration must be at least 1 minute."
             showingValidationAlert = true
             return
         }
-        
+
         var updatedSession = session
         updatedSession.startTime = startTime
         updatedSession.endTime = endTime
-        
+
         onSave(updatedSession)
     }
 }
@@ -226,7 +226,7 @@ struct FocusSessionEditor: View {
         startTime: Date().addingTimeInterval(-3600), // 1 hour ago
         endTime: Date()
     )
-    
+
     return FocusSessionEditor(
         session: sampleSession,
         onSave: { _ in print("Save") },
