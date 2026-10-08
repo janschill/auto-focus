@@ -42,17 +42,10 @@ struct DataHeaderView: View {
 
 struct DataOverviewView: View {
     @EnvironmentObject var focusManager: FocusManager
+    @State private var dataMetrics = DataMetrics.empty
 
-    private var dataMetrics: DataMetrics {
-        DataMetrics(
-            totalSessions: focusManager.focusSessions.count,
-            totalFocusTime: focusManager.focusSessions.reduce(0) { $0 + $1.duration },
-            totalFocusApps: focusManager.focusApps.count,
-            oldestSession: focusManager.focusSessions.min { $0.startTime < $1.startTime },
-            newestSession: focusManager.focusSessions.max { $0.startTime < $1.startTime },
-            thisWeekSessions: focusManager.weekSessions.count,
-            thisMonthSessions: focusManager.monthSessions.count
-        )
+    private func updateMetrics() {
+        dataMetrics = DataMetrics(focusManager: focusManager)
     }
 
     var body: some View {
@@ -143,6 +136,9 @@ struct DataOverviewView: View {
             .padding(.vertical)
         }
         .frame(maxWidth: .infinity)
+        .onAppear(perform: updateMetrics)
+        .onChange(of: focusManager.focusSessions) { updateMetrics() }
+        .onChange(of: focusManager.focusApps.count) { updateMetrics() }
     }
 }
 
@@ -151,9 +147,14 @@ struct DataSessionManagementView: View {
     @State private var showingSessionList = false
     @State private var sheetInitialFilter: SessionDurationFilter = .all
     @State private var sheetInitialSort: SessionSortOrder = .newest
+    @State private var dataMetrics = DataMetrics.empty
 
     private var veryShortSessionCount: Int {
-        focusManager.focusSessions.filter { $0.duration < 60 }.count
+        dataMetrics.veryShortSessions
+    }
+
+    private func updateMetrics() {
+        dataMetrics = DataMetrics(focusManager: focusManager)
     }
 
     var body: some View {
@@ -170,19 +171,19 @@ struct DataSessionManagementView: View {
                         Text("Total Sessions")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        Text("\(focusManager.focusSessions.count)")
+                        Text("\(dataMetrics.totalSessions)")
                             .font(.title3)
                             .fontWeight(.bold)
                     }
 
                     Spacer()
 
-                    if focusManager.focusSessions.count > 0 {
+                    if dataMetrics.totalSessions > 0 {
                         VStack(alignment: .trailing, spacing: 4) {
                             Text("Shortest Session")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            if let shortest = focusManager.focusSessions.min(by: { $0.duration < $1.duration }) {
+                            if let shortest = dataMetrics.shortestSession {
                                 Text(TimeFormatter.duration(Int(shortest.duration / 60)))
                                     .font(.title3)
                                     .fontWeight(.bold)
@@ -194,7 +195,7 @@ struct DataSessionManagementView: View {
                             Text("Longest Session")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            if let longest = focusManager.focusSessions.max(by: { $0.duration < $1.duration }) {
+                            if let longest = dataMetrics.longestSession {
                                 Text(TimeFormatter.duration(Int(longest.duration / 60)))
                                     .font(.title3)
                                     .fontWeight(.bold)
@@ -235,13 +236,15 @@ struct DataSessionManagementView: View {
                         showingSessionList = true
                     }
                     .buttonStyle(.borderedProminent)
-                    .disabled(focusManager.focusSessions.isEmpty)
+                    .disabled(dataMetrics.totalSessions == 0)
                 }
             }
             .padding(.horizontal, 5)
             .padding(.vertical)
         }
         .frame(maxWidth: .infinity)
+        .onAppear(perform: updateMetrics)
+        .onChange(of: focusManager.focusSessions) { updateMetrics() }
         .sheet(isPresented: $showingSessionList) {
             NavigationView {
                 SessionListView(initialFilter: sheetInitialFilter, initialSort: sheetInitialSort)
@@ -326,13 +329,14 @@ struct DataExportImportView: View {
     @State private var showingImportAlert = false
     @State private var importResult: ImportResult?
     @State private var showingExportPreview = false
+    @State private var exportPreview = ExportPreview.empty
 
-    private var exportPreview: ExportPreview {
+    private func updateExportPreview() {
         let options = exportOptions
         let sessions = options.includeSessions ? filterSessions(by: options.dateRange) : []
         let apps = options.includeFocusApps ? focusManager.focusApps : []
 
-        return ExportPreview(
+        exportPreview = ExportPreview(
             sessionCount: sessions.count,
             focusAppsCount: apps.count,
             includesSettings: options.includeSettings,
@@ -381,6 +385,10 @@ struct DataExportImportView: View {
             .padding(.vertical)
         }
         .frame(maxWidth: .infinity)
+        .onAppear(perform: updateExportPreview)
+        .onChange(of: focusManager.focusSessions) { updateExportPreview() }
+        .onChange(of: focusManager.focusApps.count) { updateExportPreview() }
+        .onChange(of: exportOptions) { updateExportPreview() }
         .sheet(isPresented: $showingExportOptions) {
             ExportOptionsView(
                 options: $exportOptions,
@@ -419,8 +427,8 @@ struct DataExportImportView: View {
     private func getDateRange(for sessions: [FocusSession]) -> String {
         guard !sessions.isEmpty else { return "No sessions" }
 
-        let sortedSessions = sessions.sorted { $0.startTime < $1.startTime }
-        guard let first = sortedSessions.first, let last = sortedSessions.last else {
+        guard let first = sessions.min(by: { $0.startTime < $1.startTime }),
+              let last = sessions.max(by: { $0.startTime < $1.startTime }) else {
             return "No sessions"
         }
 
@@ -598,14 +606,50 @@ struct ExportMetricItem: View {
 
 // MARK: - Supporting Models
 
+/// Session statistics for the Data tab, computed once per session change
+/// instead of on every render.
 struct DataMetrics {
     let totalSessions: Int
     let totalFocusTime: TimeInterval
     let totalFocusApps: Int
     let oldestSession: FocusSession?
     let newestSession: FocusSession?
+    let shortestSession: FocusSession?
+    let longestSession: FocusSession?
+    let veryShortSessions: Int
     let thisWeekSessions: Int
     let thisMonthSessions: Int
+
+    static let empty = DataMetrics(
+        totalSessions: 0,
+        totalFocusTime: 0,
+        totalFocusApps: 0,
+        oldestSession: nil,
+        newestSession: nil,
+        shortestSession: nil,
+        longestSession: nil,
+        veryShortSessions: 0,
+        thisWeekSessions: 0,
+        thisMonthSessions: 0
+    )
+}
+
+extension DataMetrics {
+    init(focusManager: FocusManager) {
+        let sessions = focusManager.focusSessions
+        self.init(
+            totalSessions: sessions.count,
+            totalFocusTime: sessions.reduce(0) { $0 + $1.duration },
+            totalFocusApps: focusManager.focusApps.count,
+            oldestSession: sessions.min { $0.startTime < $1.startTime },
+            newestSession: sessions.max { $0.startTime < $1.startTime },
+            shortestSession: sessions.min { $0.duration < $1.duration },
+            longestSession: sessions.max { $0.duration < $1.duration },
+            veryShortSessions: sessions.filter { $0.duration < 60 }.count,
+            thisWeekSessions: focusManager.weekSessions.count,
+            thisMonthSessions: focusManager.monthSessions.count
+        )
+    }
 }
 
 struct ExportPreview {
@@ -615,22 +659,15 @@ struct ExportPreview {
     let totalFocusTime: TimeInterval
     let dateRange: String
     let estimatedFileSize: String
-}
 
-// MARK: - Extensions
-
-extension DateFormatter {
-    static let mediumDate: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        return formatter
-    }()
-
-    static let shortDate: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .short
-        return formatter
-    }()
+    static let empty = ExportPreview(
+        sessionCount: 0,
+        focusAppsCount: 0,
+        includesSettings: false,
+        totalFocusTime: 0,
+        dateRange: "No sessions",
+        estimatedFileSize: ""
+    )
 }
 
 // MARK: - Export Options View (moved from ConfigurationView)

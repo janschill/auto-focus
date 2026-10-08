@@ -20,8 +20,36 @@ struct SessionListView: View {
         _sortOrder = State(initialValue: initialSort)
     }
 
-    private var filteredAndSortedSessions: [FocusSession] {
-        let filtered = filteredSessions
+    /// Filtered and sorted sessions, recomputed only when sessions, filter or sort change.
+    @State private var filteredAndSortedSessions: [FocusSession] = []
+
+    private func updateFilteredAndSortedSessions() {
+        filteredAndSortedSessions = Self.filterAndSort(
+            focusManager.focusSessions,
+            filter: filterDuration,
+            sortOrder: sortOrder
+        )
+    }
+
+    /// Applies the duration filter and sort order to the given sessions.
+    static func filterAndSort(
+        _ sessions: [FocusSession],
+        filter: SessionDurationFilter,
+        sortOrder: SessionSortOrder
+    ) -> [FocusSession] {
+        let filtered: [FocusSession]
+        switch filter {
+        case .all:
+            filtered = sessions
+        case .veryShort:
+            filtered = sessions.filter { $0.duration < 60 } // Less than 1 minute
+        case .short:
+            filtered = sessions.filter { $0.duration >= 60 && $0.duration < 10 * 60 } // 1-10 minutes
+        case .medium:
+            filtered = sessions.filter { $0.duration >= 10 * 60 && $0.duration < 60 * 60 } // 10-60 minutes
+        case .long:
+            filtered = sessions.filter { $0.duration >= 60 * 60 } // 1+ hours
+        }
 
         switch sortOrder {
         case .newest:
@@ -32,23 +60,6 @@ struct SessionListView: View {
             return filtered.sorted { $0.duration < $1.duration }
         case .longest:
             return filtered.sorted { $0.duration > $1.duration }
-        }
-    }
-
-    private var filteredSessions: [FocusSession] {
-        let sessions = focusManager.focusSessions
-
-        switch filterDuration {
-        case .all:
-            return sessions
-        case .veryShort:
-            return sessions.filter { $0.duration < 60 } // Less than 1 minute
-        case .short:
-            return sessions.filter { $0.duration >= 60 && $0.duration < 10 * 60 } // 1-10 minutes
-        case .medium:
-            return sessions.filter { $0.duration >= 10 * 60 && $0.duration < 60 * 60 } // 10-60 minutes
-        case .long:
-            return sessions.filter { $0.duration >= 60 * 60 } // 1+ hours
         }
     }
 
@@ -64,6 +75,10 @@ struct SessionListView: View {
             }
         }
         .padding()
+        .onAppear(perform: updateFilteredAndSortedSessions)
+        .onChange(of: focusManager.focusSessions) { updateFilteredAndSortedSessions() }
+        .onChange(of: filterDuration) { updateFilteredAndSortedSessions() }
+        .onChange(of: sortOrder) { updateFilteredAndSortedSessions() }
         .alert(isPresented: $showingDeleteConfirmation) {
             deleteConfirmationAlert
         }
@@ -196,13 +211,6 @@ struct SessionRowView: View {
     let session: FocusSession
     let onDelete: () -> Void
 
-    private var dateFormatter: DateFormatter {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        return formatter
-    }
-
     private var durationColor: Color {
         let duration = session.duration
         if duration < 60 { return .orange } // Very short
@@ -232,7 +240,7 @@ struct SessionRowView: View {
 
                     Spacer()
 
-                    Text(dateFormatter.string(from: session.startTime))
+                    Text(DateFormatter.mediumDateShortTime.string(from: session.startTime))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -272,9 +280,7 @@ struct SessionRowView: View {
     }
 
     private func formatTime(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter.string(from: date)
+        DateFormatter.shortTime.string(from: date)
     }
 
     @ViewBuilder

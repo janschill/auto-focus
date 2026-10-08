@@ -66,7 +66,7 @@ enum ImportError: LocalizedError, Equatable {
 
 // MARK: - Export Options
 
-struct ExportOptions {
+struct ExportOptions: Equatable {
     var includeSessions: Bool
     var includeSettings: Bool
     var includeFocusApps: Bool
@@ -80,7 +80,7 @@ struct ExportOptions {
     )
 }
 
-struct DateRange: Codable {
+struct DateRange: Codable, Equatable {
     let startDate: Date
     let endDate: Date
 }

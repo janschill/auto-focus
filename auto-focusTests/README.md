@@ -11,6 +11,7 @@ auto-focusTests/
 ├── FocusManagerTests.swift      # Tests for FocusManager core logic
 ├── ConfigurationViewModelTests.swift  # Tests for ConfigurationViewModel
 ├── InsightsViewModelTests.swift        # Tests for InsightsViewModel
+├── SessionListFilterTests.swift       # Tests for session list filtering and sorting
 ├── MenuBarViewModelTests.swift        # Tests for MenuBarViewModel
 ├── SessionEditingTests.swift         # Tests for session editing functionality
 └── TimerDisplayModeTests.swift        # Tests for timer display modes

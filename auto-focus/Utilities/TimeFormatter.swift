@@ -34,10 +34,66 @@ struct TimeFormatter {
     }
 }
 
+/// Shared formatters. DateFormatter is expensive to create, so views and
+/// providers reuse these instead of building one per call or render.
 extension DateFormatter {
     static let filenameSafe: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd-HHmm"
+        return formatter
+    }()
+
+    static let mediumDate: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        return formatter
+    }()
+
+    static let shortDate: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        return formatter
+    }()
+
+    static let mediumDateShortTime: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter
+    }()
+
+    static let shortTime: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return formatter
+    }()
+
+    /// "Jan 5"
+    static let monthDay: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        return formatter
+    }()
+
+    /// "Mon, Jan 5"
+    static let weekdayMonthDay: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEE, MMM d"
+        return formatter
+    }()
+
+    /// "3 PM"
+    static let hourOfDay: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h a"
+        return formatter
+    }()
+}
+
+extension RelativeDateTimeFormatter {
+    static let full: RelativeDateTimeFormatter = {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .full
         return formatter
     }()
 }

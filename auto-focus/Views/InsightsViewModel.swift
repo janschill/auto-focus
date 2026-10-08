@@ -1,99 +1,62 @@
 // InsightsViewModel.swift
+import Combine
 import SwiftUI
 
+/// Holds the insights for the selected timeframe and date as a precomputed
+/// snapshot. The snapshot is rebuilt only when one of its inputs changes, not on
+/// every FocusManager timer tick.
 class InsightsViewModel: ObservableObject {
-    @Published var selectedTimeframe: InsightsDataProvider.Timeframe = .day
-    @Published var selectedDate: Date = Date()
-
-    private var dataProvider: InsightsDataProvider?
-
-    init() {
-        // Initialize without data provider to avoid circular dependencies
-        self.dataProvider = nil
+    @Published var selectedTimeframe: InsightsDataProvider.Timeframe = .day {
+        didSet { refresh() }
     }
+    @Published var selectedDate: Date {
+        didSet { refresh() }
+    }
+    @Published private(set) var snapshot: InsightsSnapshot
+
+    private let dataProvider: InsightsDataProvider
+    private var lastInputs: InsightsInputs?
+    private var focusManagerCancellable: AnyCancellable?
 
     init(dataProvider: InsightsDataProvider) {
+        let today = Date()
         self.dataProvider = dataProvider
+        _selectedDate = Published(initialValue: today)
+        snapshot = dataProvider.makeSnapshot(timeframe: .day, selectedDate: today)
+        lastInputs = currentInputs()
     }
 
-    func configure(with dataProvider: InsightsDataProvider) {
-        self.dataProvider = dataProvider
+    /// Starts recomputing the snapshot whenever FocusManager changes one of its inputs.
+    /// Call when the insights become visible.
+    func startObserving() {
+        refresh()
+        focusManagerCancellable = dataProvider.focusManager.objectWillChange
+            // objectWillChange fires before the mutation; read the new values on the next run loop pass.
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.refresh()
+            }
     }
 
-    func updateFocusManager(_ focusManager: FocusManager) {
-        dataProvider?.focusManager = focusManager
+    /// Stops observing FocusManager. Call when the insights are no longer visible.
+    func stopObserving() {
+        focusManagerCancellable = nil
     }
 
-    var displayedDateString: String {
-        guard let dataProvider = dataProvider else { return "Loading..." }
-
-        let calendar = Calendar.current
-        let now = Date()
-
-        if selectedTimeframe == .day {
-            return dataProvider.dateString(for: selectedDate)
-        }
-
-        let startOfWeek = calendar.startOfWeek(for: selectedDate)
-        let endOfWeek = calendar.date(byAdding: .day, value: 6, to: startOfWeek)!
-
-        if calendar.isDate(startOfWeek, equalTo: now, toGranularity: .weekOfYear) {
-            return "This week"
-        } else if let lastWeek = calendar.date(byAdding: .weekOfYear, value: -1, to: now),
-                  calendar.isDate(startOfWeek, equalTo: lastWeek, toGranularity: .weekOfYear) {
-            return "Last week"
-        } else {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "MMM d"
-            return "\(formatter.string(from: startOfWeek))–\(formatter.string(from: endOfWeek))"
-        }
+    /// Rebuilds the snapshot if any input changed since the last build.
+    func refresh() {
+        let inputs = currentInputs()
+        guard inputs != lastInputs else { return }
+        lastInputs = inputs
+        snapshot = dataProvider.makeSnapshot(timeframe: selectedTimeframe, selectedDate: selectedDate)
     }
 
-    var totalFocusTime: TimeInterval {
-        dataProvider?.totalFocusTime(timeframe: selectedTimeframe, selectedDate: selectedDate) ?? 0
-    }
-
-    var totalFocusTimeThisMonth: TimeInterval {
-        dataProvider?.calculateTotalFocusTimeThisMonth() ?? 0
-    }
-
-    var relevantSessions: [FocusSession] {
-        dataProvider?.relevantSessions(timeframe: selectedTimeframe, selectedDate: selectedDate) ?? []
-    }
-
-    var weekdayData: [DayData] {
-        dataProvider?.weekdayData(selectedDate: selectedDate, selectedTimeframe: selectedTimeframe) ?? []
-    }
-
-    var hourlyData: [HourData] {
-        dataProvider?.hourlyData(selectedDate: selectedDate) ?? []
-    }
-
-    var averageDailyMinutes: Int {
-        guard let dataProvider = dataProvider else { return 0 }
-        return dataProvider.averageDailyMinutes(weekdayData: weekdayData)
-    }
-
-    var weekComparisonPercentage: Int? {
-        guard let dataProvider = dataProvider else { return nil }
-
-        let calendar = Calendar.current
-        guard selectedTimeframe == .week else { return nil }
-
-        let thisWeekStart = calendar.startOfWeek(for: selectedDate)
-        guard let lastWeekStart = calendar.date(byAdding: .day, value: -7, to: thisWeekStart) else { return nil }
-
-        let thisWeekDuration = dataProvider.totalFocusTimeInWeek(starting: thisWeekStart)
-        let lastWeekDuration = dataProvider.totalFocusTimeInWeek(starting: lastWeekStart)
-
-        guard lastWeekDuration > 0 else { return nil }
-
-        let delta = thisWeekDuration - lastWeekDuration
-        return Int((delta / lastWeekDuration) * 100)
+    /// Adds a focus URL. The snapshot picks it up on the next FocusManager change.
+    func addFocusURL(_ focusURL: FocusURL) {
+        dataProvider.focusManager.addFocusURL(focusURL)
     }
 
     func navigateDay(forward: Bool) {
-        guard let dataProvider = dataProvider else { return }
         let calendar = Calendar.current
 
         // Find the next/previous day with data
@@ -114,9 +77,7 @@ class InsightsViewModel: ObservableObject {
             // Don't go beyond today when going forward
             if forward && calendar.isDateInToday(currentDate) {
                 // If today has no data, stay on current date
-                if sessions.isEmpty {
-                    return
-                }
+                return
             }
 
             attempts += 1
@@ -136,77 +97,32 @@ class InsightsViewModel: ObservableObject {
         selectedDate = Date()
     }
 
-    func rearrangeWeekdaysStartingMonday(_ weekdayData: [(day: String, average: TimeInterval)]) -> [(day: String, average: TimeInterval)] {
-        // American calendar: Sunday is at index 0, we need to move it to the end
-        var rearranged = weekdayData
-        if weekdayData.count == 7 {
-            let sunday = rearranged.removeFirst()
-            rearranged.append(sunday)
-        }
-        return rearranged
+    private func currentInputs() -> InsightsInputs {
+        let focusManager = dataProvider.focusManager
+        return InsightsInputs(
+            timeframe: selectedTimeframe,
+            selectedDate: selectedDate,
+            today: Calendar.current.startOfDay(for: Date()),
+            sessions: focusManager.focusSessions,
+            focusBundleIDs: focusManager.focusApps.map(\.bundleIdentifier),
+            focusURLs: focusManager.focusURLs,
+            currentAppBundleID: focusManager.currentAppBundleId,
+            currentBrowserURL: focusManager.currentBrowserTab?.url
+        )
     }
+}
 
-    var topApps: [AppUsageSummary] {
-        dataProvider?.topApps(timeframe: selectedTimeframe, selectedDate: selectedDate) ?? []
-    }
-
-    var topDomains: [DomainUsageSummary] {
-        dataProvider?.topDomains(timeframe: selectedTimeframe, selectedDate: selectedDate) ?? []
-    }
-
-    var disruptionSummary: DisruptionSummary {
-        dataProvider?.disruptionSummary(timeframe: selectedTimeframe, selectedDate: selectedDate)
-            ?? DisruptionSummary(totalSwitches: 0, distractors: [])
-    }
-
-    var disruptionOverTime: [HourlyDisruptionData] {
-        dataProvider?.disruptionOverTime(timeframe: selectedTimeframe, selectedDate: selectedDate) ?? []
-    }
-
-    var previousPeriodDisruptions: DisruptionSummary {
-        dataProvider?.previousPeriodDisruptions(timeframe: selectedTimeframe, selectedDate: selectedDate)
-            ?? DisruptionSummary(totalSwitches: 0, distractors: [])
-    }
-
-    var longestSession: FocusSession? {
-        dataProvider?.longestSession(timeframe: selectedTimeframe, selectedDate: selectedDate)
-    }
-
-    var averageSessionLength: TimeInterval {
-        dataProvider?.averageSessionLength(timeframe: selectedTimeframe, selectedDate: selectedDate) ?? 0
-    }
-
-    var deepFocusSessions: (deep: Int, total: Int) {
-        dataProvider?.deepFocusSessionCount(timeframe: selectedTimeframe, selectedDate: selectedDate) ?? (0, 0)
-    }
-
-    var contextSwitchesPerSession: Double {
-        dataProvider?.contextSwitchesPerSession(timeframe: selectedTimeframe, selectedDate: selectedDate) ?? 0
-    }
-
-    var focusScore: Int {
-        dataProvider?.focusScore(timeframe: selectedTimeframe, selectedDate: selectedDate) ?? 0
-    }
-
-    var focusVsOtherRatio: (focusDuration: TimeInterval, otherDuration: TimeInterval) {
-        dataProvider?.focusVsOtherRatio(timeframe: selectedTimeframe, selectedDate: selectedDate) ?? (0, 0)
-    }
-
-    var productiveTimeRange: (startHour: Int, endHour: Int, duration: TimeInterval)? {
-        return dataProvider?.calculateProductiveTimeRange()
-    }
-
-    var productiveWeekday: (weekday: Int, duration: TimeInterval)? {
-        return dataProvider?.calculateProductiveWeekday()
-    }
-
-    var weekdayAverages: [(day: String, average: TimeInterval)] {
-        return dataProvider?.calculateWeekdayAverages() ?? []
-    }
-
-    func formatHourRange(_ startHour: Int, _ endHour: Int) -> String {
-        return dataProvider?.formatHourRange(startHour, endHour) ?? "\(startHour):00 - \(endHour):00"
-    }
+/// Everything an `InsightsSnapshot` depends on. The current app and browser URL
+/// stand in for the app event log, which only grows when the user switches context.
+private struct InsightsInputs: Equatable {
+    let timeframe: InsightsDataProvider.Timeframe
+    let selectedDate: Date
+    let today: Date
+    let sessions: [FocusSession]
+    let focusBundleIDs: [String]
+    let focusURLs: [FocusURL]
+    let currentAppBundleID: String?
+    let currentBrowserURL: String?
 }
 
 extension Calendar {

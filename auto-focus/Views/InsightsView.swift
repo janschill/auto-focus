@@ -19,7 +19,7 @@ struct WeeklyBarChartView: View {
     var body: some View {
         VStack(alignment: .leading) {
             Chart {
-                ForEach(dataProvider.weekdayData, id: \.weekdaySymbol) { dayData in
+                ForEach(dataProvider.snapshot.weekdayData, id: \.weekdaySymbol) { dayData in
                     BarMark(
                         x: .value("Day", dayData.weekdaySymbol),
                         y: .value("Minutes", dayData.totalMinutes)
@@ -27,7 +27,7 @@ struct WeeklyBarChartView: View {
                     .foregroundStyle(dayData.isSelected ? Color.blue : Color.blue.opacity(0.3))
                 }
 
-                RuleMark(y: .value("Average", dataProvider.averageDailyMinutes))
+                RuleMark(y: .value("Average", dataProvider.snapshot.averageDailyMinutes))
                     .foregroundStyle(Color.green)
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
                     .annotation(position: .trailing) {
@@ -37,7 +37,7 @@ struct WeeklyBarChartView: View {
                     }
             }
             .frame(height: 120)
-            .chartYScale(domain: 0...(dataProvider.weekdayData.map { Double($0.totalMinutes) }.max() ?? 0) * 1.2)
+            .chartYScale(domain: 0...(dataProvider.snapshot.weekdayData.map { Double($0.totalMinutes) }.max() ?? 0) * 1.2)
         }
     }
 }
@@ -48,7 +48,7 @@ struct HourlyBarChartView: View {
     var body: some View {
         VStack(alignment: .leading) {
             Chart {
-                ForEach(dataProvider.hourlyData) { hourData in
+                ForEach(dataProvider.snapshot.hourlyData) { hourData in
                     if hourData.totalMinutes > 0 {
                         BarMark(
                             x: .value("Hour", hourData.hour),
@@ -109,7 +109,7 @@ struct InsightsHeaderView: View {
                 })
             }, label: {
                 HStack(spacing: 4) {
-                    Text(dataProvider.displayedDateString)
+                    Text(dataProvider.snapshot.displayedDateString)
                         .lineLimit(1)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -162,7 +162,8 @@ struct FocusTimeOverviewView: View {
 
     var body: some View {
         HStack {
-            let time = dataProvider.selectedTimeframe == .day ? Int(dataProvider.totalFocusTime / 60) : dataProvider.averageDailyMinutes
+            let snapshot = dataProvider.snapshot
+            let time = dataProvider.selectedTimeframe == .day ? Int(snapshot.totalFocusTime / 60) : snapshot.averageDailyMinutes
 
             Text(TimeFormatter.duration(time))
                 .font(.system(size: 32, weight: .medium))
@@ -170,7 +171,7 @@ struct FocusTimeOverviewView: View {
             if dataProvider.selectedTimeframe == .week {
                 Spacer()
 
-                if let change = dataProvider.weekComparisonPercentage {
+                if let change = snapshot.weekComparisonPercentage {
                     let trendImage = change >= 0 ? "arrow.up" : "arrow.down"
                     let trendText = change >= 0 ? "\(change) %" : "\(-change) %"
                     Image(systemName: trendImage + ".circle.fill")
@@ -211,38 +212,21 @@ struct ProductivityMetricsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 16) {
-                if let timeRange = dataProvider.productiveTimeRange {
-                    MetricCard(
-                        title: "Most Productive Time",
-                        value: dataProvider.formatHourRange(timeRange.startHour, timeRange.endHour)
-                    )
-                } else {
-                    MetricCard(
-                        title: "Most Productive Time",
-                        value: "Not enough data"
-                    )
-                }
+                MetricCard(
+                    title: "Most Productive Time",
+                    value: dataProvider.snapshot.productiveTimeRange ?? "Not enough data"
+                )
 
-                if let weekday = dataProvider.productiveWeekday {
-                    let calendar = Calendar.current
-                    let weekdaySymbol = calendar.weekdaySymbols[weekday.weekday - 1]
-                    MetricCard(
-                        title: "Most Productive Day",
-                        value: weekdaySymbol
-                    )
-                } else {
-                    MetricCard(
-                        title: "Most Productive Day",
-                        value: "Not enough data"
-                    )
-                }
+                MetricCard(
+                    title: "Most Productive Day",
+                    value: dataProvider.snapshot.productiveWeekday ?? "Not enough data"
+                )
             }
 
             GroupBox("Weekly Consistency") {
                 VStack(alignment: .leading, spacing: 12) {
-                    let maxValue = dataProvider.weekdayAverages.map { $0.average / 60 }.max() ?? 60
-
-                    let rearrangedData = dataProvider.rearrangeWeekdaysStartingMonday(dataProvider.weekdayAverages)
+                    let rearrangedData = dataProvider.snapshot.weekdayAverages
+                    let maxValue = rearrangedData.map { $0.average / 60 }.max() ?? 60
 
                     let normalizedData = rearrangedData.map { day -> (day: String, value: Double, empty: Double) in
                         let value = day.average / 60
@@ -359,7 +343,7 @@ struct InsightsSummaryPane: View {
                     Text("You've focussed for").font(.title2)
                         .fontDesign(.default)
                         .foregroundStyle(.secondary)
-                    let totalSeconds = Int(dataProvider.totalFocusTimeThisMonth)
+                    let totalSeconds = Int(dataProvider.snapshot.totalFocusTimeThisMonth)
                     let totalMinutes = Int(totalSeconds / 60)
 
                     Text("\(TimeFormatter.duration(totalMinutes)) this month")
@@ -377,7 +361,7 @@ struct InsightsSummaryPane: View {
                 .frame(maxWidth: .infinity)
             }
 
-            FocusScoreView(score: dataProvider.focusScore)
+            FocusScoreView(score: dataProvider.snapshot.focusScore)
 
             GroupBox {
                 VStack(alignment: .leading, spacing: 8) {
@@ -405,7 +389,7 @@ struct InsightsSummaryPane: View {
                         Text("Number of sessions")
                             .font(.body)
                         Spacer()
-                        Text("\(dataProvider.relevantSessions.count)")
+                        Text("\(dataProvider.snapshot.sessionCount)")
                             .font(.body)
                     }
                     .padding(.top, 8)
@@ -469,31 +453,20 @@ struct FocusRatioBarView: View {
 
 struct ActivityBreakdownView: View {
     @ObservedObject var dataProvider: InsightsViewModel
-    @EnvironmentObject var focusManager: FocusManager
     @State private var recentlyAddedDomain: String?
 
     var body: some View {
-        let apps = dataProvider.topApps
-        let domains = dataProvider.topDomains
-        let focusBundleIDs = Set(focusManager.focusApps.map(\.bundleIdentifier))
-        let focusDomains = focusManager.focusURLs
+        let activity = dataProvider.snapshot.activity
+        let focusApps = activity.focusApps
+        let otherApps = activity.otherApps
+        let focusDomainsList = activity.focusDomains
+        let otherDomainsList = activity.otherDomains
+        let totalAppDuration = activity.totalAppDuration
+        let totalDomainDuration = activity.totalDomainDuration
 
-        let focusApps = apps.filter { focusBundleIDs.contains($0.bundleIdentifier) }
-        let otherApps = apps.filter { !focusBundleIDs.contains($0.bundleIdentifier) }
-
-        let focusDomainsList = domains.filter { domain in
-            focusDomains.contains { $0.matches(domain.domain) || $0.matches("https://\(domain.domain)") }
-        }
-        let otherDomainsList = domains.filter { domain in
-            !focusDomains.contains { $0.matches(domain.domain) || $0.matches("https://\(domain.domain)") }
-        }
-
-        if apps.isEmpty && domains.isEmpty {
+        if activity.isEmpty {
             EmptyView()
         } else {
-            let totalAppDuration = apps.reduce(0) { $0 + $1.totalDuration }
-            let totalDomainDuration = domains.reduce(0) { $0 + $1.totalDuration }
-
             VStack(spacing: 10) {
                 if !focusApps.isEmpty || !focusDomainsList.isEmpty {
                     GroupBox("Focus Activity") {
@@ -649,7 +622,7 @@ struct ActivityBreakdownView: View {
     private func addDomainAsFocusURL(_ domain: String) {
         let name = FocusURL.displayName(from: domain)
         let focusURL = FocusURL(name: name, domain: domain)
-        focusManager.addFocusURL(focusURL)
+        dataProvider.addFocusURL(focusURL)
         recentlyAddedDomain = domain
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
             recentlyAddedDomain = nil
@@ -665,8 +638,10 @@ struct InsightsActivityPane: View {
             InsightsHeaderView(dataProvider: dataProvider)
                 .padding(.horizontal, 4)
 
-            let ratio = dataProvider.focusVsOtherRatio
-            FocusRatioBarView(focusDuration: ratio.focusDuration, otherDuration: ratio.otherDuration)
+            FocusRatioBarView(
+                focusDuration: dataProvider.snapshot.focusDuration,
+                otherDuration: dataProvider.snapshot.otherDuration
+            )
 
             ActivityBreakdownView(dataProvider: dataProvider)
         }
@@ -722,7 +697,7 @@ struct ContextSwitchesView: View {
     @ObservedObject var dataProvider: InsightsViewModel
 
     var body: some View {
-        let summary = dataProvider.disruptionSummary
+        let summary = dataProvider.snapshot.disruptionSummary
 
         GroupBox("Context Switches") {
             VStack(alignment: .leading, spacing: 12) {
@@ -739,7 +714,7 @@ struct ContextSwitchesView: View {
 
                     Spacer()
 
-                    let prev = dataProvider.previousPeriodDisruptions
+                    let prev = dataProvider.snapshot.previousPeriodDisruptions
                     if prev.totalSwitches > 0 {
                         let delta = summary.totalSwitches - prev.totalSwitches
                         let pct = Int((Double(delta) / Double(prev.totalSwitches)) * 100)
@@ -755,8 +730,7 @@ struct ContextSwitchesView: View {
                     }
                 }
 
-                let chartData = dataProvider.disruptionOverTime
-                DisruptionChartView(data: chartData, isHourly: dataProvider.selectedTimeframe == .day)
+                DisruptionChartView(data: dataProvider.snapshot.disruptionOverTime, isHourly: dataProvider.selectedTimeframe == .day)
 
                 if !summary.distractors.isEmpty {
                     VStack(alignment: .leading, spacing: 4) {
@@ -787,9 +761,11 @@ struct FocusQualityMetricsView: View {
     @ObservedObject var dataProvider: InsightsViewModel
 
     var body: some View {
+        let snapshot = dataProvider.snapshot
+
         VStack(spacing: 10) {
             HStack(spacing: 10) {
-                if let longest = dataProvider.longestSession {
+                if let longest = snapshot.longestSession {
                     MetricCard(
                         title: "Longest Focus Stretch",
                         value: TimeFormatter.humanReadable(longest.duration)
@@ -803,14 +779,14 @@ struct FocusQualityMetricsView: View {
 
                 MetricCard(
                     title: "Avg Session Length",
-                    value: dataProvider.averageSessionLength > 0
-                        ? TimeFormatter.humanReadable(dataProvider.averageSessionLength)
+                    value: snapshot.averageSessionLength > 0
+                        ? TimeFormatter.humanReadable(snapshot.averageSessionLength)
                         : "—"
                 )
             }
 
             HStack(spacing: 10) {
-                let deep = dataProvider.deepFocusSessions
+                let deep = snapshot.deepFocusSessions
                 MetricCard(
                     title: "Deep Focus (25m+)",
                     value: deep.total > 0 ? "\(deep.deep) of \(deep.total)" : "—"
@@ -818,9 +794,9 @@ struct FocusQualityMetricsView: View {
 
                 MetricCard(
                     title: "Switches / Session",
-                    value: dataProvider.relevantSessions.isEmpty
+                    value: snapshot.sessionCount == 0
                         ? "—"
-                        : String(format: "%.1f", dataProvider.contextSwitchesPerSession)
+                        : String(format: "%.1f", snapshot.contextSwitchesPerSession)
                 )
             }
         }
@@ -844,7 +820,6 @@ struct InsightsFocusQualityPane: View {
 // MARK: - Main InsightsView
 
 struct InsightsView: View {
-    @EnvironmentObject var focusManager: FocusManager
     @EnvironmentObject var licenseManager: LicenseManager
     @StateObject private var dataProvider: InsightsViewModel
     @Binding var selectedTab: Int
@@ -887,7 +862,7 @@ struct InsightsView: View {
                                 Text("You've focussed for").font(.title2)
                                     .fontDesign(.default)
                                     .foregroundStyle(.secondary)
-                                let totalSeconds = Int(dataProvider.totalFocusTimeThisMonth)
+                                let totalSeconds = Int(dataProvider.snapshot.totalFocusTimeThisMonth)
                                 let totalMinutes = Int(totalSeconds / 60)
 
                                 Text("\(TimeFormatter.duration(totalMinutes)) this month")
@@ -902,7 +877,7 @@ struct InsightsView: View {
                         // Blurred preview of premium insights
                         ZStack {
                             VStack(spacing: 10) {
-                                FocusScoreView(score: dataProvider.focusScore)
+                                FocusScoreView(score: dataProvider.snapshot.focusScore)
                                 ProductivityMetricsView(dataProvider: dataProvider)
                             }
                             .blur(radius: 4)
@@ -929,7 +904,10 @@ struct InsightsView: View {
             }
         }
         .onAppear {
-            dataProvider.updateFocusManager(focusManager)
+            dataProvider.startObserving()
+        }
+        .onDisappear {
+            dataProvider.stopObserving()
         }
     }
 }

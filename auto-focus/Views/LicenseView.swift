@@ -119,10 +119,7 @@ struct LicensedView: View {
     }
 
     private func expiryDateFormatted(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
-        return formatter.string(from: date)
+        DateFormatter.mediumDate.string(from: date)
     }
 
     private func maskedLicenseKey(_ key: String) -> String {
@@ -171,9 +168,7 @@ struct LicensedView: View {
     }
 
     private func lastValidationFormatted(_ date: Date) -> String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .full
-        return formatter.localizedString(for: date, relativeTo: Date())
+        RelativeDateTimeFormatter.full.localizedString(for: date, relativeTo: Date())
     }
 
     private func copyLicenseKey() {

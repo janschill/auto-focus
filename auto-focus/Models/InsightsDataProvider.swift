@@ -16,9 +16,57 @@ struct HourData: Identifiable {
     let totalMinutes: Int
 }
 
+/// Top apps and domains of a period, split into focus and other activity.
+struct ActivityBreakdown {
+    let focusApps: [AppUsageSummary]
+    let otherApps: [AppUsageSummary]
+    let focusDomains: [DomainUsageSummary]
+    let otherDomains: [DomainUsageSummary]
+    let totalAppDuration: TimeInterval
+    let totalDomainDuration: TimeInterval
+
+    var isEmpty: Bool {
+        focusApps.isEmpty && otherApps.isEmpty && focusDomains.isEmpty && otherDomains.isEmpty
+    }
+}
+
+/// All insights for one timeframe and date, computed in a single pass so views
+/// never touch the database or scan sessions while rendering.
+struct InsightsSnapshot {
+    let displayedDateString: String
+    let totalFocusTime: TimeInterval
+    let totalFocusTimeThisMonth: TimeInterval
+    let sessionCount: Int
+    let weekdayData: [DayData]
+    let hourlyData: [HourData]
+    let averageDailyMinutes: Int
+    let weekComparisonPercentage: Int?
+    let activity: ActivityBreakdown
+    let focusDuration: TimeInterval
+    let otherDuration: TimeInterval
+    let disruptionSummary: DisruptionSummary
+    let previousPeriodDisruptions: DisruptionSummary
+    let disruptionOverTime: [HourlyDisruptionData]
+    let longestSession: FocusSession?
+    let averageSessionLength: TimeInterval
+    let deepFocusSessions: (deep: Int, total: Int)
+    let contextSwitchesPerSession: Double
+    let focusScore: Int
+    /// Formatted most productive two-hour range, nil without data.
+    let productiveTimeRange: String?
+    /// Full weekday name of the most productive weekday, nil without data.
+    let productiveWeekday: String?
+    /// Average daily focus time per weekday, starting on Monday.
+    let weekdayAverages: [(day: String, average: TimeInterval)]
+}
+
 class InsightsDataProvider {
-    var focusManager: FocusManager
+    let focusManager: FocusManager
     private let appEventRepo: AppEventRepository
+
+    private static let topListLimit = 5
+    private static let allAppsLimit = 100
+    private static let deepFocusThreshold: TimeInterval = 25 * 60
 
     init(focusManager: FocusManager = FocusManager.shared, appEventRepo: AppEventRepository = AppEventRepository()) {
         self.focusManager = focusManager
@@ -32,22 +80,72 @@ class InsightsDataProvider {
         var id: String { self.rawValue }
     }
 
+    // MARK: - Snapshot
+
+    /// Computes every insight for the given timeframe and date. Runs the database
+    /// queries once each, so call it only when inputs change.
+    func makeSnapshot(timeframe: Timeframe, selectedDate: Date) -> InsightsSnapshot {
+        let calendar = Calendar.current
+        let sessions = relevantSessions(timeframe: timeframe, selectedDate: selectedDate)
+        let totalFocus = sessions.reduce(0) { $0 + $1.duration }
+        let focusBundleIDs = Set(focusManager.focusApps.map(\.bundleIdentifier))
+        let focusURLs = focusManager.focusURLs
+
+        let weekdayData = weekdayData(selectedDate: selectedDate, selectedTimeframe: timeframe)
+
+        let bounds = dateBounds(timeframe: timeframe, selectedDate: selectedDate)
+        let allApps = (try? appEventRepo.fetchTopApps(since: bounds.start, until: bounds.end, limit: Self.allAppsLimit)) ?? []
+        let topApps = Array(allApps.prefix(Self.topListLimit))
+        let topDomains = (try? appEventRepo.fetchTopDomains(since: bounds.start, until: bounds.end, limit: Self.topListLimit)) ?? []
+        let totalTracked = allApps.reduce(0) { $0 + $1.totalDuration }
+        let ratio = focusVsOtherRatio(apps: allApps, focusBundleIDs: focusBundleIDs)
+
+        let sessionEvents = sessionEvents(timeframe: timeframe, selectedDate: selectedDate, sessions: sessions)
+        let disruptions = sessionEvents.map {
+            ActivityInsightsService.calculateDisruptions(events: $0, focusBundleIDs: focusBundleIDs, focusDomains: focusURLs)
+        } ?? DisruptionSummary(totalSwitches: 0, distractors: [])
+        let disruptionOverTime = sessionEvents.map {
+            disruptionOverTime(events: $0, timeframe: timeframe, selectedDate: selectedDate, focusBundleIDs: focusBundleIDs, focusURLs: focusURLs)
+        } ?? []
+
+        let productiveTimeRange = calculateProductiveTimeRange().map { formatHourRange($0.startHour, $0.endHour) }
+        let productiveWeekday = calculateProductiveWeekday().map { calendar.weekdaySymbols[$0.weekday - 1] }
+
+        return InsightsSnapshot(
+            displayedDateString: displayedDateString(timeframe: timeframe, selectedDate: selectedDate),
+            totalFocusTime: totalFocus,
+            totalFocusTimeThisMonth: calculateTotalFocusTimeThisMonth(),
+            sessionCount: sessions.count,
+            weekdayData: weekdayData,
+            hourlyData: hourlyData(selectedDate: selectedDate),
+            averageDailyMinutes: averageDailyMinutes(weekdayData: weekdayData),
+            weekComparisonPercentage: weekComparisonPercentage(timeframe: timeframe, selectedDate: selectedDate),
+            activity: activityBreakdown(apps: topApps, domains: topDomains, focusBundleIDs: focusBundleIDs, focusURLs: focusURLs),
+            focusDuration: ratio.focusDuration,
+            otherDuration: ratio.otherDuration,
+            disruptionSummary: disruptions,
+            previousPeriodDisruptions: previousPeriodDisruptions(
+                timeframe: timeframe, selectedDate: selectedDate, focusBundleIDs: focusBundleIDs, focusURLs: focusURLs
+            ),
+            disruptionOverTime: disruptionOverTime,
+            longestSession: sessions.max(by: { $0.duration < $1.duration }),
+            averageSessionLength: sessions.isEmpty ? 0 : totalFocus / Double(sessions.count),
+            deepFocusSessions: (deep: sessions.filter { $0.duration >= Self.deepFocusThreshold }.count, total: sessions.count),
+            contextSwitchesPerSession: sessions.isEmpty ? 0 : Double(disruptions.totalSwitches) / Double(sessions.count),
+            focusScore: focusScore(
+                sessions: sessions, totalTracked: totalTracked, totalSwitches: disruptions.totalSwitches, timeframe: timeframe
+            ),
+            productiveTimeRange: productiveTimeRange,
+            productiveWeekday: productiveWeekday,
+            weekdayAverages: rearrangeWeekdaysStartingMonday(calculateWeekdayAverages())
+        )
+    }
+
+    // MARK: - Sessions
+
     func sessionsForDate(_ date: Date) -> [FocusSession] {
         let calendar = Calendar.current
         return focusManager.focusSessions.filter { calendar.isDate($0.startTime, inSameDayAs: date) }
-    }
-
-    func totalFocusTime(for date: Date) -> TimeInterval {
-        return sessionsForDate(date).reduce(0) { $0 + $1.duration }
-    }
-
-    func totalFocusTime(timeframe: Timeframe, selectedDate: Date) -> TimeInterval {
-        switch timeframe {
-        case .day:
-            return totalFocusTime(for: selectedDate)
-        case .week:
-            return totalFocusTimeInWeek(starting: Calendar.current.startOfWeek(for: selectedDate))
-        }
     }
 
     func totalFocusTimeInWeek(starting weekStart: Date) -> TimeInterval {
@@ -86,6 +184,24 @@ class InsightsDataProvider {
             return focusManager.focusSessions.filter { $0.startTime >= start && $0.startTime < end }
         }
     }
+
+    private func weekComparisonPercentage(timeframe: Timeframe, selectedDate: Date) -> Int? {
+        guard timeframe == .week else { return nil }
+
+        let calendar = Calendar.current
+        let thisWeekStart = calendar.startOfWeek(for: selectedDate)
+        guard let lastWeekStart = calendar.date(byAdding: .day, value: -7, to: thisWeekStart) else { return nil }
+
+        let thisWeekDuration = totalFocusTimeInWeek(starting: thisWeekStart)
+        let lastWeekDuration = totalFocusTimeInWeek(starting: lastWeekStart)
+
+        guard lastWeekDuration > 0 else { return nil }
+
+        let delta = thisWeekDuration - lastWeekDuration
+        return Int((delta / lastWeekDuration) * 100)
+    }
+
+    // MARK: - Charts
 
     func weekdayData(selectedDate: Date, selectedTimeframe: Timeframe) -> [DayData] {
         let calendar = Calendar.current
@@ -142,6 +258,8 @@ class InsightsDataProvider {
         let totalMinutes = daysWithSessions.reduce(0) { $0 + $1.totalMinutes }
         return totalMinutes / daysWithSessions.count
     }
+
+    // MARK: - Productivity Patterns
 
     func calculateProductiveTimeRange() -> (startHour: Int, endHour: Int, duration: TimeInterval)? {
         let allSessions = focusManager.focusSessions
@@ -235,9 +353,20 @@ class InsightsDataProvider {
         }
     }
 
+    private func rearrangeWeekdaysStartingMonday(_ weekdayData: [(day: String, average: TimeInterval)]) -> [(day: String, average: TimeInterval)] {
+        // American calendar: Sunday is at index 0, we need to move it to the end
+        var rearranged = weekdayData
+        if weekdayData.count == 7 {
+            let sunday = rearranged.removeFirst()
+            rearranged.append(sunday)
+        }
+        return rearranged
+    }
+
+    // MARK: - Formatting
+
     func formatHourRange(_ startHour: Int, _ endHour: Int) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "h a"
+        let formatter = DateFormatter.hourOfDay
 
         var startComponents = DateComponents()
         startComponents.hour = startHour
@@ -266,9 +395,6 @@ class InsightsDataProvider {
     func dateString(for date: Date) -> String {
         let calendar = Calendar.current
 
-        // Use shorter format for long dates to prevent truncation
-        let formatter = DateFormatter()
-
         // If it's today, just say "Today"
         if calendar.isDateInToday(date) {
             return "Today"
@@ -279,10 +405,28 @@ class InsightsDataProvider {
             return "Yesterday"
         }
 
-        // For other dates, use a more compact format
-        // Use abbreviated weekday and month to save space
-        formatter.dateFormat = "EEE, MMM d"
-        return formatter.string(from: date)
+        // For other dates, use a compact format with abbreviated weekday and month
+        return DateFormatter.weekdayMonthDay.string(from: date)
+    }
+
+    private func displayedDateString(timeframe: Timeframe, selectedDate: Date) -> String {
+        if timeframe == .day {
+            return dateString(for: selectedDate)
+        }
+
+        let calendar = Calendar.current
+        let now = Date()
+        let startOfWeek = calendar.startOfWeek(for: selectedDate)
+        let endOfWeek = calendar.date(byAdding: .day, value: 6, to: startOfWeek)!
+
+        if calendar.isDate(startOfWeek, equalTo: now, toGranularity: .weekOfYear) {
+            return "This week"
+        } else if let lastWeek = calendar.date(byAdding: .weekOfYear, value: -1, to: now),
+                  calendar.isDate(startOfWeek, equalTo: lastWeek, toGranularity: .weekOfYear) {
+            return "Last week"
+        }
+        let formatter = DateFormatter.monthDay
+        return "\(formatter.string(from: startOfWeek))–\(formatter.string(from: endOfWeek))"
     }
 
     // MARK: - Activity Insights
@@ -301,54 +445,76 @@ class InsightsDataProvider {
         }
     }
 
-    func topApps(timeframe: Timeframe, selectedDate: Date, limit: Int = 5) -> [AppUsageSummary] {
-        let bounds = dateBounds(timeframe: timeframe, selectedDate: selectedDate)
-        return (try? appEventRepo.fetchTopApps(since: bounds.start, until: bounds.end, limit: limit)) ?? []
-    }
-
-    func topDomains(timeframe: Timeframe, selectedDate: Date, limit: Int = 5) -> [DomainUsageSummary] {
-        let bounds = dateBounds(timeframe: timeframe, selectedDate: selectedDate)
-        return (try? appEventRepo.fetchTopDomains(since: bounds.start, until: bounds.end, limit: limit)) ?? []
-    }
-
-    /// Only count context switches that happened during an active focus session.
-    func disruptionSummary(timeframe: Timeframe, selectedDate: Date) -> DisruptionSummary {
-        let bounds = dateBounds(timeframe: timeframe, selectedDate: selectedDate)
-        guard let events = try? appEventRepo.fetchEvents(since: bounds.start, until: bounds.end) else {
-            return DisruptionSummary(totalSwitches: 0, distractors: [])
+    private func activityBreakdown(
+        apps: [AppUsageSummary],
+        domains: [DomainUsageSummary],
+        focusBundleIDs: Set<String>,
+        focusURLs: [FocusURL]
+    ) -> ActivityBreakdown {
+        let isFocusDomain: (DomainUsageSummary) -> Bool = { domain in
+            focusURLs.contains { $0.matches(domain.domain) || $0.matches("https://\(domain.domain)") }
         }
-        let sessions = relevantSessions(timeframe: timeframe, selectedDate: selectedDate)
-        let sessionEvents = filterEventsToSessions(events, sessions: sessions)
-        let focusBundleIDs = Set(focusManager.focusApps.map(\.bundleIdentifier))
-        let focusDomains = focusManager.focusURLs
-        return ActivityInsightsService.calculateDisruptions(
-            events: sessionEvents,
-            focusBundleIDs: focusBundleIDs,
-            focusDomains: focusDomains
+        return ActivityBreakdown(
+            focusApps: apps.filter { focusBundleIDs.contains($0.bundleIdentifier) },
+            otherApps: apps.filter { !focusBundleIDs.contains($0.bundleIdentifier) },
+            focusDomains: domains.filter(isFocusDomain),
+            otherDomains: domains.filter { !isFocusDomain($0) },
+            totalAppDuration: apps.reduce(0) { $0 + $1.totalDuration },
+            totalDomainDuration: domains.reduce(0) { $0 + $1.totalDuration }
         )
     }
 
-    func disruptionOverTime(timeframe: Timeframe, selectedDate: Date) -> [HourlyDisruptionData] {
+    /// Events of the period that happened during one of the given sessions, or nil if the fetch failed.
+    /// Only context switches during an active focus session count as disruptions.
+    private func sessionEvents(timeframe: Timeframe, selectedDate: Date, sessions: [FocusSession]) -> [AppEvent]? {
         let bounds = dateBounds(timeframe: timeframe, selectedDate: selectedDate)
         guard let events = try? appEventRepo.fetchEvents(since: bounds.start, until: bounds.end) else {
-            return []
+            return nil
         }
-        let sessions = relevantSessions(timeframe: timeframe, selectedDate: selectedDate)
-        let sessionEvents = filterEventsToSessions(events, sessions: sessions)
-        let focusBundleIDs = Set(focusManager.focusApps.map(\.bundleIdentifier))
-        let focusDomains = focusManager.focusURLs
+        return filterEventsToSessions(events, sessions: sessions)
+    }
 
+    private func disruptionOverTime(
+        events: [AppEvent],
+        timeframe: Timeframe,
+        selectedDate: Date,
+        focusBundleIDs: Set<String>,
+        focusURLs: [FocusURL]
+    ) -> [HourlyDisruptionData] {
         switch timeframe {
         case .day:
             return ActivityInsightsService.calculateHourlyDisruptions(
-                events: sessionEvents, focusBundleIDs: focusBundleIDs, focusDomains: focusDomains
+                events: events, focusBundleIDs: focusBundleIDs, focusDomains: focusURLs
             )
         case .week:
             let weekStart = Calendar.current.startOfWeek(for: selectedDate)
             return ActivityInsightsService.calculateDailyDisruptions(
-                events: sessionEvents, focusBundleIDs: focusBundleIDs, focusDomains: focusDomains, weekStart: weekStart
+                events: events, focusBundleIDs: focusBundleIDs, focusDomains: focusURLs, weekStart: weekStart
             )
         }
+    }
+
+    private func previousPeriodDisruptions(
+        timeframe: Timeframe,
+        selectedDate: Date,
+        focusBundleIDs: Set<String>,
+        focusURLs: [FocusURL]
+    ) -> DisruptionSummary {
+        let calendar = Calendar.current
+        let previousDate: Date
+        switch timeframe {
+        case .day:
+            previousDate = calendar.date(byAdding: .day, value: -1, to: selectedDate) ?? selectedDate
+        case .week:
+            previousDate = calendar.date(byAdding: .day, value: -7, to: selectedDate) ?? selectedDate
+        }
+        let sessions = relevantSessions(timeframe: timeframe, selectedDate: previousDate)
+        guard let events = sessionEvents(timeframe: timeframe, selectedDate: previousDate, sessions: sessions) else {
+            return DisruptionSummary(totalSwitches: 0, distractors: [])
+        }
+        return ActivityInsightsService.calculateDisruptions(
+            events: events, focusBundleIDs: focusBundleIDs, focusDomains: focusURLs
+        )
     }
 
     private func filterEventsToSessions(_ events: [AppEvent], sessions: [FocusSession]) -> [AppEvent] {
@@ -358,81 +524,33 @@ class InsightsDataProvider {
         }
     }
 
-    // MARK: - Focus Quality Metrics
-
-    func longestSession(timeframe: Timeframe, selectedDate: Date) -> FocusSession? {
-        relevantSessions(timeframe: timeframe, selectedDate: selectedDate)
-            .max(by: { $0.duration < $1.duration })
-    }
-
-    func averageSessionLength(timeframe: Timeframe, selectedDate: Date) -> TimeInterval {
-        let sessions = relevantSessions(timeframe: timeframe, selectedDate: selectedDate)
-        guard !sessions.isEmpty else { return 0 }
-        return sessions.reduce(0) { $0 + $1.duration } / Double(sessions.count)
-    }
-
-    func deepFocusSessionCount(timeframe: Timeframe, selectedDate: Date, thresholdMinutes: Int = 25) -> (deep: Int, total: Int) {
-        let sessions = relevantSessions(timeframe: timeframe, selectedDate: selectedDate)
-        let threshold = TimeInterval(thresholdMinutes * 60)
-        let deep = sessions.filter { $0.duration >= threshold }.count
-        return (deep: deep, total: sessions.count)
-    }
-
-    func contextSwitchesPerSession(timeframe: Timeframe, selectedDate: Date) -> Double {
-        let sessions = relevantSessions(timeframe: timeframe, selectedDate: selectedDate)
-        guard !sessions.isEmpty else { return 0 }
-        let disruptions = disruptionSummary(timeframe: timeframe, selectedDate: selectedDate)
-        return Double(disruptions.totalSwitches) / Double(sessions.count)
-    }
-
-    func previousPeriodDisruptions(timeframe: Timeframe, selectedDate: Date) -> DisruptionSummary {
-        let calendar = Calendar.current
-        let previousDate: Date
-        switch timeframe {
-        case .day:
-            previousDate = calendar.date(byAdding: .day, value: -1, to: selectedDate) ?? selectedDate
-        case .week:
-            previousDate = calendar.date(byAdding: .day, value: -7, to: selectedDate) ?? selectedDate
-        }
-        return disruptionSummary(timeframe: timeframe, selectedDate: previousDate)
-    }
-
     // MARK: - Focus Score
 
-    func focusScore(timeframe: Timeframe, selectedDate: Date) -> Int {
-        let sessions = relevantSessions(timeframe: timeframe, selectedDate: selectedDate)
+    private func focusScore(
+        sessions: [FocusSession],
+        totalTracked: TimeInterval,
+        totalSwitches: Int,
+        timeframe: Timeframe
+    ) -> Int {
         guard !sessions.isEmpty else { return 0 }
 
         let totalFocus = sessions.reduce(0) { $0 + $1.duration }
-        let allApps = topApps(timeframe: timeframe, selectedDate: selectedDate, limit: 100)
-        let totalTracked = allApps.reduce(0) { $0 + $1.totalDuration }
-
-        let focusRatio: Double
-        if totalTracked > 0 {
-            focusRatio = min(1.0, totalFocus / totalTracked)
-        } else {
-            focusRatio = 0
-        }
+        let focusRatio = totalTracked > 0 ? min(1.0, totalFocus / totalTracked) : 0
 
         let avgSession = totalFocus / Double(sessions.count)
         let sessionDepth = min(1.0, avgSession / 3600.0)
 
-        let calendar = Calendar.current
         let consistencyDays: Double
         switch timeframe {
         case .day:
-            consistencyDays = sessions.isEmpty ? 0 : 1.0
+            consistencyDays = 1.0
         case .week:
-            let weekStart = calendar.startOfWeek(for: selectedDate)
-            let daysWithSessions = Set((0..<7).compactMap { offset -> Int? in
-                let date = calendar.date(byAdding: .day, value: offset, to: weekStart)!
-                return sessionsForDate(date).isEmpty ? nil : offset
-            })
+            let calendar = Calendar.current
+            let daysWithSessions = Set(sessions.map { calendar.startOfDay(for: $0.startTime) })
             consistencyDays = Double(daysWithSessions.count) / 7.0
         }
 
-        let disruptions = disruptionSummary(timeframe: timeframe, selectedDate: selectedDate)
-        let switchRate = sessions.isEmpty ? 1.0 : Double(disruptions.totalSwitches) / Double(sessions.count)
+        let switchRate = Double(totalSwitches) / Double(sessions.count)
         let lowDistraction = max(0, 1.0 - min(1.0, switchRate / 10.0))
 
         let score = focusRatio * 0.4 + sessionDepth * 0.3 + consistencyDays * 0.15 + lowDistraction * 0.15
@@ -441,14 +559,14 @@ class InsightsDataProvider {
 
     // MARK: - Focus vs Other Split
 
-    func focusVsOtherRatio(timeframe: Timeframe, selectedDate: Date) -> (focusDuration: TimeInterval, otherDuration: TimeInterval) {
-        let allApps = topApps(timeframe: timeframe, selectedDate: selectedDate, limit: 100)
-        let focusBundleIDs = Set(focusManager.focusApps.map(\.bundleIdentifier))
-
+    private func focusVsOtherRatio(
+        apps: [AppUsageSummary],
+        focusBundleIDs: Set<String>
+    ) -> (focusDuration: TimeInterval, otherDuration: TimeInterval) {
         var focusDuration: TimeInterval = 0
         var otherDuration: TimeInterval = 0
 
-        for app in allApps {
+        for app in apps {
             if focusBundleIDs.contains(app.bundleIdentifier) {
                 focusDuration += app.totalDuration
             } else {
