@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import Foundation
 
 import GRDB
@@ -92,8 +93,7 @@ class FocusManager: ObservableObject {
 
     private let focusTimer: FocusTimer
     private let checkInterval: TimeInterval = AppConfiguration.checkInterval
-
-    // Batch update system to prevent publishing during view updates
+    private var bufferChangeCancellable: AnyCancellable?
 
     // MARK: - Buffer Access
     var bufferTimeRemaining: TimeInterval {
@@ -116,8 +116,6 @@ class FocusManager: ObservableObject {
     var weekSessions: [FocusSession] {
         return sessionManager.weekSessions
     }
-
-    // MARK: - Shortcut Status (cached - use refreshShortcutStatus() to update)
 
     var monthSessions: [FocusSession] {
         return sessionManager.monthSessions
@@ -226,6 +224,8 @@ class FocusManager: ObservableObject {
         self.bufferManager.delegate = self
         self.focusModeController.delegate = self
         self.browserManager.delegate = self
+        // Buffer state is exposed through computed properties, so relay its changes to observing views
+        self.bufferChangeCancellable = Self.relayChanges(of: self.bufferManager, to: self)
         self.appMonitor.updateFocusApps(focusApps)
         self.appMonitor.startMonitoring()
 
@@ -252,19 +252,21 @@ class FocusManager: ObservableObject {
         setUpScreenInactivityObservers()
     }
 
+    private static func relayChanges<Source: ObservableObject>(
+        of source: Source,
+        to target: FocusManager
+    ) -> AnyCancellable {
+        source.objectWillChange.sink { [weak target] _ in
+            target?.objectWillChange.send()
+        }
+    }
+
     func togglePause() {
-        isPaused = !isPaused
+        isPaused.toggle()
         if isPaused {
-            if isFocusAppActive {
-                if didReachFocusThreshold {
-                    sessionManager.endSession()
-                } else {
-                    sessionManager.cancelCurrentSession()
-                }
-                resetFocusState()
-                if !isNotificationsEnabled {
-                    focusModeController.setFocusMode(enabled: false)
-                }
+            browserManager.stopPolling()
+            if hasFocusInProgress {
+                endFocus()
             }
         } else {
             appMonitor.resetState()
@@ -380,15 +382,26 @@ class FocusManager: ObservableObject {
             bufferManager.startBuffer(duration: preSessionBuffer)
         } else {
             // No accumulated time - reset immediately
-            if didReachFocusThreshold {
-                sessionManager.endSession()
-            } else {
-                sessionManager.cancelCurrentSession()
-            }
-            resetFocusState()
-            if !isNotificationsEnabled {
-                focusModeController.setFocusMode(enabled: false)
-            }
+            endFocus()
+        }
+    }
+
+    private var hasFocusInProgress: Bool {
+        return isFocusAppActive || isBrowserInFocus || timeSpent > 0 || bufferManager.isInBufferPeriod
+    }
+
+    /// Ends any focus in progress: cancels the buffer, keeps the session only if the threshold was reached,
+    /// resets the timer and turns Do Not Disturb back off.
+    private func endFocus() {
+        bufferManager.cancelBuffer()
+        if didReachFocusThreshold {
+            sessionManager.endSession()
+        } else {
+            sessionManager.cancelCurrentSession()
+        }
+        resetFocusState()
+        if !isNotificationsEnabled {
+            focusModeController.setFocusMode(enabled: false)
         }
     }
 
@@ -402,29 +415,14 @@ class FocusManager: ObservableObject {
     }
 
     func handleScreenInactive() {
-        guard !isPaused else { return }
-        guard isFocusAppActive || isBrowserInFocus || timeSpent > 0 || bufferManager.isInBufferPeriod else {
-            return
-        }
+        guard !isPaused, hasFocusInProgress else { return }
 
-        bufferManager.cancelBuffer()
-
-        if didReachFocusThreshold {
-            sessionManager.endSession()
-        } else {
-            sessionManager.cancelCurrentSession()
-        }
-
-        resetFocusState()
+        endFocus()
 
         // AppMonitor skips ticks while the lock screen / screensaver is frontmost,
         // so its lastFocusAppActive flag stays true. Resetting it ensures the next
         // tick after unlock fires didDetectFocusApp and restarts the timer.
         appMonitor.resetState()
-
-        if !isNotificationsEnabled {
-            focusModeController.setFocusMode(enabled: false)
-        }
 
         AppLogger.focus.info("Screen inactive — session ended")
     }
@@ -595,16 +593,7 @@ extension FocusManager: BufferManagerDelegate {
     }
 
     func bufferManagerDidTimeout(_ manager: any BufferManaging) {
-        // Buffer timed out - only persist session if focus threshold was reached
-        if didReachFocusThreshold {
-            sessionManager.endSession()
-        } else {
-            sessionManager.cancelCurrentSession()
-        }
-        resetFocusState()
-        if !isNotificationsEnabled {
-            focusModeController.setFocusMode(enabled: false)
-        }
+        endFocus()
     }
 }
 
@@ -616,16 +605,10 @@ extension FocusManager: AppMonitorDelegate {
         if isActive {
             handleFocusAppInFront()
         } else if isFocusAppActive {
-            // Check if a browser is currently active before ending focus session
-            if let currentApp = (monitor as? AppMonitor)?.currentApp,
-               AppConfiguration.isSupportedBrowser(currentApp) {
-                // Browser became active - start polling and give browser manager a moment to update
-                browserManager.startPolling()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    if !self.isBrowserInFocus {
-                        self.handleNonFocusAppInFront()
-                    }
-                }
+            if let currentApp = monitor.currentApp, AppConfiguration.isSupportedBrowser(currentApp) {
+                // Focus app → browser: the timer keeps running until the browser's first
+                // poll result decides between browser focus and the buffer
+                isFocusAppActive = false
             } else {
                 handleNonFocusAppInFront()
             }
@@ -635,33 +618,24 @@ extension FocusManager: AppMonitorDelegate {
     func appMonitor(_ monitor: any AppMonitoring, didChangeToApp bundleIdentifier: String?) {
         guard !isPaused else { return }
 
-        let isBrowserApp = bundleIdentifier != nil && AppConfiguration.isSupportedBrowser(bundleIdentifier!)
-
-        if isBrowserApp {
+        if let bundleIdentifier, AppConfiguration.isSupportedBrowser(bundleIdentifier) {
             browserManager.startPolling()
-        } else {
-            browserManager.stopPolling()
+            return
         }
 
-        // If we're in an overall focus state and switched to a non-browser, non-focus app
-        if isInOverallFocus {
-            if !isBrowserApp {
-                // Check if the new app is a focus app
-                let isNewAppFocus = focusApps.contains { $0.bundleIdentifier == bundleIdentifier }
+        browserManager.stopPolling()
 
-                if !isNewAppFocus {
-                    AppLogger.focus.info("Switched from focus state to non-focus app", metadata: [
-                        "app": bundleIdentifier ?? "unknown",
-                        "was_browser_focus": String(isBrowserInFocus),
-                        "was_app_focus": String(isFocusAppActive)
-                    ])
-                    if isBrowserInFocus {
-                        handleBrowserFocusDeactivated()
-                    } else if isFocusAppActive {
-                        handleNonFocusAppInFront()
-                    }
-                }
-            }
+        // Leaving the browser ends browser focus; focus-app transitions arrive via didDetectFocusApp
+        guard isBrowserInFocus else { return }
+        isBrowserInFocus = false
+        currentBrowserTab = nil
+
+        let isNewAppFocus = focusApps.contains { $0.bundleIdentifier == bundleIdentifier }
+        if !isNewAppFocus {
+            AppLogger.focus.info("Switched from browser focus to non-focus app", metadata: [
+                "app": bundleIdentifier ?? "unknown"
+            ])
+            handleBrowserFocusDeactivated()
         }
     }
 }
@@ -693,6 +667,12 @@ extension FocusManager {
 // MARK: - BrowserManagerDelegate
 extension FocusManager: BrowserManagerDelegate {
     func browserManager(_ manager: any BrowserManaging, didChangeFocusState isFocus: Bool) {
+        guard !isPaused else { return }
+        // A non-focus result only matters if there is focus to preserve or end
+        guard isFocus || hasFocusInProgress else {
+            self.currentBrowserTab = manager.currentBrowserTab
+            return
+        }
         self.isBrowserInFocus = isFocus
         self.currentBrowserTab = manager.currentBrowserTab
 
@@ -735,10 +715,10 @@ extension FocusManager: BrowserManagerDelegate {
     }
 
     private func handleBrowserFocusDeactivated() {
-        let isChromeStillFrontmost = isSupportedBrowserFrontmost()
+        let currentApp = appMonitor.currentApp
+        let isBrowserStillFrontmost = currentApp.map(AppConfiguration.isSupportedBrowser) ?? false
 
-        if !isChromeStillFrontmost {
-            let currentApp = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+        if !isBrowserStillFrontmost {
             let isSwitchingToFocusApp = currentApp != nil && focusApps.contains { $0.bundleIdentifier == currentApp }
 
             if isSwitchingToFocusApp {
@@ -754,23 +734,8 @@ extension FocusManager: BrowserManagerDelegate {
             focusTimer.pause()
             bufferManager.startBuffer(duration: preSessionBuffer)
         } else {
-            if didReachFocusThreshold {
-                sessionManager.endSession()
-            } else {
-                sessionManager.cancelCurrentSession()
-            }
-            resetFocusState()
-            if !isNotificationsEnabled {
-                focusModeController.setFocusMode(enabled: false)
-            }
+            endFocus()
         }
-    }
-
-    private func isSupportedBrowserFrontmost() -> Bool {
-        guard let bundleId = NSWorkspace.shared.frontmostApplication?.bundleIdentifier else {
-            return false
-        }
-        return AppConfiguration.isSupportedBrowser(bundleId)
     }
 
     func browserManager(_ manager: any BrowserManaging, didUpdateFocusURLs urls: [FocusURL]) {

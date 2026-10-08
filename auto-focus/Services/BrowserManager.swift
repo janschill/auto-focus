@@ -46,6 +46,12 @@ class BrowserManager: ObservableObject, BrowserManaging {
     private var lastRecordedURL: String?
 
     private var pollingTimer: Timer?
+    private let urlQueryQueue = DispatchQueue(label: "auto-focus.browser-url-query", qos: .userInitiated)
+    private var isURLQueryInFlight = false
+    /// Incremented on every `startPolling()` so results from an earlier polling run are discarded.
+    private var pollingGeneration = 0
+    /// The first result after `startPolling()` is always reported so the delegate can resolve an app → browser hand-off.
+    private var hasReportedInitialResult = false
 
     init(
         focusURLRepo: FocusURLRepository = FocusURLRepository(),
@@ -77,6 +83,8 @@ class BrowserManager: ObservableObject, BrowserManaging {
 
     func startPolling() {
         guard pollingTimer == nil else { return }
+        pollingGeneration += 1
+        hasReportedInitialResult = false
         AppLogger.browser.info("Started URL polling for browser")
         pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             self?.pollCurrentURL()
@@ -88,6 +96,8 @@ class BrowserManager: ObservableObject, BrowserManaging {
         guard pollingTimer != nil else { return }
         pollingTimer?.invalidate()
         pollingTimer = nil
+        isBrowserInFocus = false
+        currentBrowserTab = nil
         AppLogger.browser.info("Stopped URL polling")
     }
 
@@ -105,7 +115,7 @@ class BrowserManager: ObservableObject, BrowserManaging {
     }
 
     private func pollCurrentURL() {
-        guard pollingTimer != nil else { return }
+        guard pollingTimer != nil, !isURLQueryInFlight else { return }
         guard let frontApp = NSWorkspace.shared.frontmostApplication,
               let bundleId = frontApp.bundleIdentifier,
               AppConfiguration.isSupportedBrowser(bundleId) else {
@@ -120,13 +130,17 @@ class BrowserManager: ObservableObject, BrowserManaging {
             return
         }
 
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            guard let self = self else { return }
-
-            let (url, errorNumber) = self.urlQuerier.fetchURL(appName: appName, isSafari: isSafari)
+        // One query at a time: a busy browser can block an Apple event for minutes
+        isURLQueryInFlight = true
+        let generation = pollingGeneration
+        let urlQuerier = self.urlQuerier
+        urlQueryQueue.async { [weak self] in
+            let (url, errorNumber) = urlQuerier.fetchURL(appName: appName, isSafari: isSafari)
 
             DispatchQueue.main.async {
-                guard self.pollingTimer != nil else { return }
+                guard let self = self else { return }
+                self.isURLQueryInFlight = false
+                guard self.pollingTimer != nil, generation == self.pollingGeneration else { return }
                 self.handleURLQueryResult(
                     url: url,
                     errorNumber: errorNumber,
@@ -184,16 +198,17 @@ class BrowserManager: ObservableObject, BrowserManaging {
         currentBrowserTab = tabInfo
         recordBrowserEvent(tabInfo: tabInfo, bundleId: bundleId)
 
-        if isBrowserInFocus != isFocus {
-            AppLogger.browser.stateChange(
-                from: String(isBrowserInFocus),
-                to: String(isFocus),
-                metadata: ["url": url]
-            )
+        if isBrowserInFocus != isFocus || !hasReportedInitialResult {
+            if isBrowserInFocus != isFocus {
+                AppLogger.browser.stateChange(
+                    from: String(isBrowserInFocus),
+                    to: String(isFocus),
+                    metadata: ["url": url]
+                )
+            }
             isBrowserInFocus = isFocus
+            hasReportedInitialResult = true
             delegate?.browserManager(self, didChangeFocusState: isFocus)
-        } else if isFocus && isBrowserInFocus {
-            delegate?.browserManager(self, didChangeFocusState: true)
         }
 
         delegate?.browserManager(self, didReceiveTabUpdate: tabInfo)
@@ -202,19 +217,22 @@ class BrowserManager: ObservableObject, BrowserManaging {
     private func handleURLUnavailable(appName: String, bundleId: String, errorNumber: Int?) {
         currentBrowserTab = nil
 
-        guard isBrowserInFocus else { return }
+        guard isBrowserInFocus || !hasReportedInitialResult else { return }
 
-        let metadata: [String: String] = [
-            "browser": appName,
-            "bundleId": bundleId,
-            "error_number": errorNumber.map(String.init) ?? "none"
-        ]
-        AppLogger.browser.stateChange(
-            from: String(isBrowserInFocus),
-            to: String(false),
-            metadata: metadata
-        )
+        if isBrowserInFocus {
+            let metadata: [String: String] = [
+                "browser": appName,
+                "bundleId": bundleId,
+                "error_number": errorNumber.map(String.init) ?? "none"
+            ]
+            AppLogger.browser.stateChange(
+                from: String(isBrowserInFocus),
+                to: String(false),
+                metadata: metadata
+            )
+        }
         isBrowserInFocus = false
+        hasReportedInitialResult = true
         delegate?.browserManager(self, didChangeFocusState: false)
     }
 

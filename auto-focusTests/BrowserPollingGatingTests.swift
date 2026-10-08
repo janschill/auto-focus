@@ -180,6 +180,63 @@ final class BrowserPollingGatingTests: XCTestCase {
         XCTAssertEqual(enablementStore.enablements["com.google.Chrome"]?.lastPermissionStatus, .denied)
         XCTAssertEqual(delegate.focusStates, [true, false])
     }
+
+    func testFirstNonFocusResultIsReportedOnce() {
+        let delegate = CapturingBrowserDelegate()
+        browserManager.delegate = delegate
+
+        for _ in 0..<2 {
+            browserManager.handleURLQueryResult(
+                url: "https://www.youtube.com/watch?v=abc123",
+                errorNumber: nil,
+                appName: "Google Chrome",
+                bundleId: "com.google.Chrome"
+            )
+        }
+
+        XCTAssertEqual(delegate.focusStates, [false])
+    }
+
+    func testFirstBlockedResultIsReported() {
+        let delegate = CapturingBrowserDelegate()
+        browserManager.delegate = delegate
+
+        browserManager.handlePollingBlocked(appName: "Google Chrome", bundleId: "com.google.Chrome")
+
+        XCTAssertEqual(delegate.focusStates, [false])
+    }
+
+    func testRepeatedFocusResultIsReportedOnce() {
+        let delegate = CapturingBrowserDelegate()
+        browserManager.delegate = delegate
+
+        for _ in 0..<3 {
+            browserManager.handleURLQueryResult(
+                url: "https://github.com/janschill/auto-focus",
+                errorNumber: nil,
+                appName: "Google Chrome",
+                bundleId: "com.google.Chrome"
+            )
+        }
+
+        XCTAssertEqual(delegate.focusStates, [true])
+    }
+
+    func testStopPollingClearsBrowserFocus() {
+        browserManager.startPolling()
+        browserManager.handleURLQueryResult(
+            url: "https://github.com/janschill/auto-focus",
+            errorNumber: nil,
+            appName: "Google Chrome",
+            bundleId: "com.google.Chrome"
+        )
+        XCTAssertTrue(browserManager.isBrowserInFocus)
+
+        browserManager.stopPolling()
+
+        XCTAssertFalse(browserManager.isBrowserInFocus)
+        XCTAssertNil(browserManager.currentBrowserTab)
+    }
 }
 
 private final class CapturingBrowserDelegate: BrowserManagerDelegate {
