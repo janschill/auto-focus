@@ -2,7 +2,15 @@ import Foundation
 
 struct DisruptionSummary {
     let totalSwitches: Int
-    let distractors: [(name: String, count: Int)]
+    let distractors: [Distractor]
+}
+
+/// An app or website the user switched to when leaving a focus context.
+struct Distractor {
+    let name: String
+    /// Bundle identifier for app distractors; nil for websites.
+    let bundleIdentifier: String?
+    let count: Int
 }
 
 struct HourlyDisruptionData: Identifiable {
@@ -23,6 +31,7 @@ struct ActivityInsightsService {
         }
 
         var distractorCounts: [String: Int] = [:]
+        var distractorBundleIDs: [String: String] = [:]
         var totalSwitches = 0
 
         for i in 0..<(events.count - 1) {
@@ -36,11 +45,14 @@ struct ActivityInsightsService {
                 totalSwitches += 1
                 let name = distractorName(for: next)
                 distractorCounts[name, default: 0] += 1
+                if next.domain == nil {
+                    distractorBundleIDs[name] = next.bundleIdentifier
+                }
             }
         }
 
         let sorted = distractorCounts
-            .map { (name: $0.key, count: $0.value) }
+            .map { Distractor(name: $0.key, bundleIdentifier: distractorBundleIDs[$0.key], count: $0.value) }
             .sorted { $0.count > $1.count }
 
         return DisruptionSummary(totalSwitches: totalSwitches, distractors: sorted)

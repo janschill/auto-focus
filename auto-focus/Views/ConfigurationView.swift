@@ -14,12 +14,9 @@ struct AppRowView: View {
                 // Fallback to SF Symbol if app icon can't be loaded safely
                 Image(systemName: "app.fill")
                     .frame(width: 24, height: 24)
-                    .foregroundColor(.blue)
+                    .foregroundStyle(.blue)
             }
-            VStack(alignment: .leading) {
-                Text(app.name)
-                    .font(.headline)
-            }
+            Text(app.name)
         }
         .tag(app.id)
     }
@@ -35,7 +32,7 @@ struct AppsListView: View {
             List(selection: $focusManager.selectedAppId) {
                 if focusManager.focusApps.isEmpty {
                     Text("No focus apps added yet")
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding()
                 } else {
@@ -71,202 +68,130 @@ struct AppsListView: View {
     }
 }
 
-private struct HeaderView: View {
-    var body: some View {
-        GroupBox {
-            VStack {
-                Text("General").font(.title)
-                    .fontDesign(.default)
-                    .fontWeight(.bold)
-                    .bold()
-                Text("Manage your overall setup and preferences for Auto-Focus, such as launch at login, buffer times, focus apps, and more.")
-                    .font(.callout)
-                    .fontDesign(.default)
-                    .fontWeight(.regular)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            .padding(.horizontal, 40)
-            .padding(.vertical)
-        }
-        .frame(maxWidth: .infinity)
-    }
-}
-
 struct GeneralSettingsView: View {
     @EnvironmentObject var licenseManager: LicenseManager
     @EnvironmentObject var focusManager: FocusManager
     @ObservedObject private var versionCheckManager = VersionCheckManager.shared
 
     var body: some View {
-        GroupBox {
-            VStack {
-                HStack {
-                    Text("License type")
-                        .frame(width: 150, alignment: .leading)
-                    Spacer()
+        Group {
+            Section {
+                LabeledContent("License type") {
                     if licenseManager.isLicensed {
-                        Image(systemName: "star.circle.fill")
-                            .symbolRenderingMode(.multicolor)
-                        Text("Auto-Focus+")
-                            .foregroundStyle(.green)
+                        Label("Auto-Focus+", systemImage: "star.circle.fill")
+                            .labelStyle(TintedIconLabelStyle(tint: .yellow))
+                            .foregroundStyle(.secondary)
                     } else {
                         Text("Free")
-                    }
-
-                }
-
-                Divider().padding(.vertical, 5).contrast(0.5)
-
-                HStack {
-                    Text("Version")
-                        .frame(width: 150, alignment: .leading)
-                    Spacer()
-
-                    VStack(alignment: .trailing, spacing: 2) {
-                        HStack(spacing: 8) {
-                            Text(appVersion)
-                                .foregroundColor(.secondary)
-
-                            if isBetaBuild {
-                                Text("BETA")
-                                    .font(.system(size: 9, weight: .bold))
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(Color.orange, in: Capsule())
-                            }
-
-                            if versionCheckManager.isUpdateAvailable {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "arrow.up.circle.fill")
-                                        .foregroundColor(.blue)
-                                        .font(.system(size: 12))
-                                    Text("Update available")
-                                        .font(.caption)
-                                        .foregroundColor(.blue)
-                                }
-                            }
-
-                            if versionCheckManager.isChecking {
-                                ProgressView()
-                                    .scaleEffect(0.5)
-                                    .frame(width: 12, height: 12)
-                            }
-                        }
-
-                        if versionCheckManager.isUpdateAvailable {
-                            Button("Download v\(versionCheckManager.latestVersion)") {
-                                versionCheckManager.openDownloadPage()
-                            }
-                            .controlSize(.mini)
-                            .buttonStyle(.borderedProminent)
-                        } else if !versionCheckManager.isChecking {
-                            Button("Check for Updates") {
-                                versionCheckManager.checkForUpdates()
-                            }
-                            .controlSize(.mini)
-                        }
+                            .foregroundStyle(.secondary)
                     }
                 }
 
-                Divider().padding(.vertical, 5).contrast(0.5)
-
-                HStack {
-                    Text("Launch at Login")
-                        .frame(width: 150, alignment: .leading)
-                    Spacer()
-                    // Convert to Switch
-                    Toggle("", isOn: Binding(
-                        get: { LaunchAtLogin.isEnabled },
-                        set: { LaunchAtLogin.isEnabled = $0 }
-                    ))
-                    .toggleStyle(SwitchToggleStyle())
-                    .labelsHidden()
-                    .scaleEffect(0.8)
-                    .padding(.trailing, 5)
+                LabeledContent("Version") {
+                    versionContent
                 }
 
-                Divider().padding(.vertical, 5).contrast(0.5)
+                Toggle("Launch at Login", isOn: Binding(
+                    get: { LaunchAtLogin.isEnabled },
+                    set: { LaunchAtLogin.isEnabled = $0 }
+                ))
+                .toggleStyle(.switch)
+            } header: {
+                Text("General")
+            }
 
-                HStack {
-                    Text("Timer Display")
-                        .frame(width: 150, alignment: .leading)
-                    Spacer(minLength: 10)
-                    Picker("", selection: $focusManager.timerDisplayMode) {
+            Section {
+                LabeledContent("Timer Display") {
+                    Picker("Timer Display", selection: $focusManager.timerDisplayMode) {
                         ForEach(TimerDisplayMode.allCases, id: \.self) { mode in
                             Text(mode.displayName).tag(mode)
                         }
                     }
                     .pickerStyle(.segmented)
+                    .labelsHidden()
                     .fixedSize()
-                    .padding(.trailing, 5)
                 }
+            } header: {
+                Text("Menu Bar")
+            } footer: {
+                Text("How the session timer appears in the menu bar. Choose Hidden to reduce distractions.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
 
-                HStack {
-                    Text("Controls how the current session timer appears in the menu bar. Choose 'Hidden' to reduce distractions.")
-                        .font(.callout)
-                        .fontDesign(.default)
-                        .fontWeight(.regular)
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Divider().padding(.vertical, 5).contrast(0.5)
-
-                HStack {
-                    Text("Shortcut Installation")
-                        .frame(width: 150, alignment: .leading)
-
-                    Spacer()
-
-                    if focusManager.isShortcutInstalled {
-                        if #available(macOS 14.0, *) {
+            Section {
+                LabeledContent("Shortcut Installation") {
+                    HStack(spacing: 8) {
+                        if focusManager.isShortcutInstalled {
                             Label("Installed", systemImage: "checkmark.circle.fill")
-                                .foregroundStyle(.green.gradient)
-                        } else {
-                            Label("Installed", systemImage: "checkmark.circle.fill")
-                                .foregroundColor(.green)
-                        }
-                    } else {
-                        if #available(macOS 14.0, *) {
-                            Label("Not installed", systemImage: "exclamationmark.triangle.fill")
-                                .foregroundStyle(.orange.gradient)
+                                .labelStyle(TintedIconLabelStyle(tint: .green))
+                                .foregroundStyle(.secondary)
                         } else {
                             Label("Not installed", systemImage: "exclamationmark.triangle.fill")
-                                .foregroundColor(.orange)
+                                .labelStyle(TintedIconLabelStyle(tint: .orange))
+                                .foregroundStyle(.secondary)
                         }
+
+                        Button("Add Shortcut") {
+                            ResourceManager.installShortcut()
+                            focusManager.refreshShortcutStatus()
+                        }
+                        .controlSize(.small)
+                        .disabled(focusManager.isShortcutInstalled)
                     }
-
-                    Button("Add Shortcut") {
-                        ResourceManager.installShortcut()
-                        focusManager.refreshShortcutStatus()
-                    }
-                    .disabled(focusManager.isShortcutInstalled)
                 }
-
-                HStack {
-                    Text("Auto-Focus will install a custom Shortcut that will be used to toggle the Do Not Disturb focus mode. This Shortcut is necessary to block notifications.")
-                        .font(.callout)
-                        .fontDesign(.default)
-                        .fontWeight(.regular)
-                        .foregroundColor(.secondary)
-
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Divider().padding(.vertical, 5).contrast(0.5)
 
                 ShortcutsPermissionRow(permissionService: focusManager.automationPermissionService)
+            } header: {
+                Text("Do Not Disturb")
+            } footer: {
+                Text("Auto-Focus installs a custom Shortcut to toggle the Do Not Disturb focus mode, which is necessary to block notifications. It also needs Automation permission for Shortcuts Events — macOS will prompt you once. If you denied it previously, open System Settings to re-enable it.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
             }
-            .padding(.horizontal, 5)
-            .padding(.vertical)
         }
-        .frame(maxWidth: .infinity)
-        .onAppear {
-            focusManager.refreshShortcutStatus()
-            focusManager.automationPermissionService.refresh(bundleId: AppConfiguration.shortcutsEventsBundleIdentifier)
-            versionCheckManager.checkForUpdates()
+    }
+
+    @ViewBuilder
+    private var versionContent: some View {
+        HStack(spacing: 8) {
+            Text(appVersion)
+                .foregroundStyle(.secondary)
+
+            if isBetaBuild {
+                Text("BETA")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.orange, in: Capsule())
+            }
+
+            if versionCheckManager.isUpdateAvailable {
+                Label("Update available", systemImage: "arrow.up.circle.fill")
+                    .labelStyle(TintedIconLabelStyle(tint: .blue))
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+
+            if versionCheckManager.isChecking {
+                ProgressView()
+                    .controlSize(.small)
+            }
+
+            if versionCheckManager.isUpdateAvailable {
+                Button("Download v\(versionCheckManager.latestVersion)") {
+                    versionCheckManager.openDownloadPage()
+                }
+                .controlSize(.small)
+                .buttonStyle(.borderedProminent)
+            } else if !versionCheckManager.isChecking {
+                Button("Check for Updates…") {
+                    versionCheckManager.checkForUpdates()
+                }
+                .controlSize(.small)
+                .buttonStyle(.bordered)
+            }
         }
     }
 
@@ -283,66 +208,45 @@ struct ThresholdsView: View {
     @EnvironmentObject var focusManager: FocusManager
 
     var body: some View {
-        GroupBox(label: Text("Thresholds").font(.headline)) {
-            VStack {
-                HStack {
-                    Text("Focus Activation")
-                        .frame(width: 250, alignment: .leading)
-
-                    Spacer()
-
+        Section {
+            LabeledContent {
+                HStack(spacing: 8) {
                     Slider(
                         value: $focusManager.focusThreshold,
                         in: 1...12,
                         step: 1
                     )
+                    .frame(width: 180)
                     Text("\(Int(focusManager.focusThreshold)) m")
-                        .frame(width: 40)
-
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                        .frame(width: 40, alignment: .trailing)
                 }
+            } label: {
+                Text("Focus Activation")
+                Text("Time it takes to start a focus session. When the time is reached, notifications are disabled.")
+            }
 
-                HStack {
-                    Text("This is the time it takes to start a focus session. When the time is reached notifications are disabled.")
-                        .font(.callout)
-                        .fontDesign(.default)
-                        .fontWeight(.regular)
-                        .foregroundColor(.secondary)
-
-                }.frame(maxWidth: .infinity, alignment: .leading)
-
-                Divider().padding(.vertical, 5).contrast(0.5)
-
-                HStack {
-                    Text("Focus Loss Buffer")
-                        .frame(width: 250, alignment: .leading)
-
-                    Spacer()
-
+            LabeledContent {
+                HStack(spacing: 8) {
                     Slider(
                         value: $focusManager.focusLossBuffer,
                         in: 0...30,
                         step: 2
                     )
+                    .frame(width: 180)
                     Text("\(Int(focusManager.focusLossBuffer)) s")
-                        .frame(width: 40)
-
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                        .frame(width: 40, alignment: .trailing)
                 }
-
-                HStack {
-                    Text("Give yourself a buffer time to not lose your focussed session immediately after you leave your focus apps.")
-                        .font(.callout)
-                        .fontDesign(.default)
-                        .fontWeight(.regular)
-                        .foregroundColor(.secondary)
-
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+            } label: {
+                Text("Focus Loss Buffer")
+                Text("Buffer time so you don't lose your focus session immediately after leaving your focus apps.")
             }
-            .padding(.horizontal, 5)
-            .padding(.vertical)
+        } header: {
+            Text("Thresholds")
         }
-        .frame(maxWidth: .infinity)
-
     }
 }
 
@@ -352,53 +256,75 @@ struct FocusApplicationsView: View {
     @Binding var selectedTab: Int
 
     var body: some View {
-        GroupBox(label: Text("Focus Applications").font(.headline)) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Being in any of these apps will automatically activate focus mode.")
-                    .font(.callout)
-                    .fontDesign(.default)
-                    .fontWeight(.regular)
-                    .foregroundColor(.secondary)
-
-                AppsListView(selectedTab: Binding(
-                    get: { selectedTab },
-                    set: { if let newValue = $0 { selectedTab = newValue } }
-                ))
-
-                HStack {
-                    Button {
-                        DispatchQueue.main.async {
-                            focusManager.selectFocusApplication()
+        Section {
+            if focusManager.focusApps.isEmpty {
+                Text("No focus apps added yet")
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            } else {
+                ForEach(focusManager.focusApps) { app in
+                    AppRowView(app: app)
+                        .selectableFormRow(isSelected: focusManager.selectedAppId == app.id) {
+                            focusManager.selectedAppId = focusManager.selectedAppId == app.id ? nil : app.id
                         }
-                    } label: {
-                        Image(systemName: "plus")
-                            .frame(width: 16, height: 16)
-                    }
-                    .disabled(!focusManager.canAddMoreApps)
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .frame(width: 28, height: 28)
-
-                    Button {
-                        DispatchQueue.main.async {
-                            focusManager.removeSelectedApp()
+                        .contextMenu {
+                            Button("Remove", role: .destructive) {
+                                focusManager.selectedAppId = app.id
+                                focusManager.removeSelectedApp()
+                            }
                         }
-                    } label: {
-                        Image(systemName: "minus")
-                            .frame(width: 16, height: 16)
-                    }
-                    .disabled(focusManager.selectedAppId == nil)
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .frame(width: 28, height: 28)
-
-                    Spacer()
                 }
             }
-            .padding(.horizontal, 5)
-            .padding(.vertical)
+
+            HStack(spacing: 4) {
+                Button {
+                    DispatchQueue.main.async {
+                        focusManager.selectFocusApplication()
+                    }
+                } label: {
+                    Image(systemName: "plus")
+                        .frame(width: 12, height: 12)
+                }
+                .help("Add focus app")
+                .disabled(!focusManager.canAddMoreApps)
+
+                Button {
+                    DispatchQueue.main.async {
+                        focusManager.removeSelectedApp()
+                    }
+                } label: {
+                    Image(systemName: "minus")
+                        .frame(width: 12, height: 12)
+                }
+                .help("Remove selected app")
+                .disabled(focusManager.selectedAppId == nil)
+
+                Spacer()
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+
+            if !licenseManager.isLicensed {
+                HStack {
+                    Label("Upgrade to Auto-Focus+ for unlimited apps", systemImage: "lock.fill")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+
+                    Spacer()
+
+                    Button("Upgrade") {
+                        selectedTab = 4 // Navigate to Auto-Focus+ tab
+                    }
+                    .controlSize(.small)
+                }
+            }
+        } header: {
+            Text("Focus Applications")
+        } footer: {
+            Text("Being in any of these apps will automatically activate focus mode.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
         }
-        .frame(maxWidth: .infinity)
     }
 }
 
@@ -408,16 +334,18 @@ struct ConfigurationView: View {
     @Binding var selectedTab: Int
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 10) {
-                HeaderView()
-                GeneralSettingsView()
-                ThresholdsView()
-                FocusApplicationsView(selectedTab: $selectedTab)
-            }
-            .padding()
+        Form {
+            GeneralSettingsView()
+            ThresholdsView()
+            FocusApplicationsView(selectedTab: $selectedTab)
         }
+        .formStyle(.grouped)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onAppear {
+            focusManager.refreshShortcutStatus()
+            focusManager.automationPermissionService.refresh(bundleId: AppConfiguration.shortcutsEventsBundleIdentifier)
+            VersionCheckManager.shared.checkForUpdates()
+        }
     }
 }
 
@@ -436,13 +364,8 @@ private struct ShortcutsPermissionRow: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Shortcuts Permission")
-                    .frame(width: 150, alignment: .leading)
-
-                Spacer()
-
+        LabeledContent("Shortcuts Permission") {
+            HStack(spacing: 8) {
                 statusBadge
 
                 if status == .denied {
@@ -457,13 +380,6 @@ private struct ShortcutsPermissionRow: View {
                     .controlSize(.small)
                 }
             }
-
-            Text("Auto-Focus needs Automation permission for Shortcuts Events to toggle Do Not Disturb. macOS will prompt you once — if you denied it previously, open System Settings to re-enable it.")
-                .font(.callout)
-                .fontDesign(.default)
-                .fontWeight(.regular)
-                .foregroundColor(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -471,25 +387,50 @@ private struct ShortcutsPermissionRow: View {
     private var statusBadge: some View {
         switch status {
         case .granted:
-            Label("Granted", systemImage: "checkmark.circle.fill")
-                .foregroundColor(.green)
-                .font(.callout)
+            badge("Granted", systemImage: "checkmark.circle.fill", tint: .green)
         case .denied:
-            Label("Denied", systemImage: "xmark.octagon.fill")
-                .foregroundColor(.red)
-                .font(.callout)
+            badge("Denied", systemImage: "xmark.octagon.fill", tint: .red)
         case .notDetermined:
-            Label("Not determined", systemImage: "questionmark.circle.fill")
-                .foregroundColor(.orange)
-                .font(.callout)
+            badge("Not determined", systemImage: "questionmark.circle.fill", tint: .orange)
         case .unknown:
-            Label("Not checked", systemImage: "circle")
-                .foregroundColor(.secondary)
-                .font(.callout)
+            badge("Not checked", systemImage: "circle", tint: .secondary)
         case .notInstalled:
-            Label("Not installed", systemImage: "slash.circle")
-                .foregroundColor(.secondary)
-                .font(.callout)
+            badge("Not installed", systemImage: "slash.circle", tint: .secondary)
         }
+    }
+
+    private func badge(_ title: String, systemImage: String, tint: Color) -> some View {
+        Label(title, systemImage: systemImage)
+            .labelStyle(TintedIconLabelStyle(tint: tint))
+            .font(.callout)
+            .foregroundStyle(.secondary)
+    }
+}
+
+/// Highlights a row inside a grouped `Form`, where `listRowBackground` and `List` selection have no effect.
+private struct SelectableFormRowModifier: ViewModifier {
+    let isSelected: Bool
+    let onSelect: () -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .foregroundStyle(isSelected ? Color.white : Color.primary)
+            .background(
+                RoundedRectangle(cornerRadius: 5)
+                    .fill(isSelected ? Color.accentColor : Color.clear)
+            )
+            .padding(.horizontal, -6)
+            .contentShape(Rectangle())
+            .onTapGesture(perform: onSelect)
+    }
+}
+
+extension View {
+    /// Makes a grouped-form row tappable with a native-looking selection highlight.
+    func selectableFormRow(isSelected: Bool, onSelect: @escaping () -> Void) -> some View {
+        modifier(SelectableFormRowModifier(isSelected: isSelected, onSelect: onSelect))
     }
 }

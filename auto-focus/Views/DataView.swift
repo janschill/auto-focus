@@ -5,389 +5,35 @@ struct DataView: View {
     @EnvironmentObject var licenseManager: LicenseManager
     @Binding var selectedTab: Int
 
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 10) {
-                DataHeaderView()
-                DataOverviewView()
-                DataSessionManagementView()
-                DataExportImportView(selectedTab: $selectedTab)
-            }
-            .padding()
-        }
-    }
-}
-
-struct DataHeaderView: View {
-    var body: some View {
-        GroupBox {
-            VStack {
-                Text("Data Management").font(.title)
-                    .fontDesign(.default)
-                    .fontWeight(.bold)
-                    .bold()
-                Text("View your data statistics, export your focus sessions and settings, or import data from another device.")
-                    .font(.callout)
-                    .fontDesign(.default)
-                    .fontWeight(.regular)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            .padding(.horizontal, 50)
-            .padding(.vertical)
-        }
-        .frame(maxWidth: .infinity)
-    }
-}
-
-struct DataOverviewView: View {
-    @EnvironmentObject var focusManager: FocusManager
     @State private var dataMetrics = DataMetrics.empty
-
-    private func updateMetrics() {
-        dataMetrics = DataMetrics(focusManager: focusManager)
-    }
-
-    var body: some View {
-        GroupBox(label: Text("Data Overview").font(.headline)) {
-            VStack(spacing: 16) {
-                // Quick stats grid
-                LazyVGrid(columns: [
-                    GridItem(.flexible()),
-                    GridItem(.flexible()),
-                    GridItem(.flexible())
-                ], spacing: 12) {
-                    DataStatCard(
-                        title: "Total Sessions",
-                        value: "\(dataMetrics.totalSessions)",
-                        icon: "clock.fill",
-                        color: .blue
-                    )
-
-                    DataStatCard(
-                        title: "Total Focus Time",
-                        value: TimeFormatter.duration(Int(dataMetrics.totalFocusTime / 60)),
-                        icon: "brain.head.profile.fill",
-                        color: .purple
-                    )
-
-                    DataStatCard(
-                        title: "Focus Apps",
-                        value: "\(dataMetrics.totalFocusApps)",
-                        icon: "app.fill",
-                        color: .green
-                    )
-                }
-
-                Divider()
-
-                // Date range and recent activity
-                VStack(spacing: 8) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Data Range")
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.secondary)
-
-                            if let oldest = dataMetrics.oldestSession,
-                               let newest = dataMetrics.newestSession {
-                                Text("\(oldest.startTime, formatter: DateFormatter.mediumDate) - \(newest.startTime, formatter: DateFormatter.mediumDate)")
-                                    .font(.body)
-                            } else {
-                                Text("No sessions recorded")
-                                    .font(.body)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-
-                        Spacer()
-
-                        VStack(alignment: .trailing, spacing: 4) {
-                            Text("Recent Activity")
-                                .font(.caption)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.secondary)
-
-                            HStack(spacing: 12) {
-                                VStack {
-                                    Text("\(dataMetrics.thisWeekSessions)")
-                                        .font(.body)
-                                        .fontWeight(.medium)
-                                    Text("This Week")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-
-                                VStack {
-                                    Text("\(dataMetrics.thisMonthSessions)")
-                                        .font(.body)
-                                        .fontWeight(.medium)
-                                    Text("This Month")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            .padding(.horizontal, 5)
-            .padding(.vertical)
-        }
-        .frame(maxWidth: .infinity)
-        .onAppear(perform: updateMetrics)
-        .onChange(of: focusManager.focusSessions) { updateMetrics() }
-        .onChange(of: focusManager.focusApps.count) { updateMetrics() }
-    }
-}
-
-struct DataSessionManagementView: View {
-    @EnvironmentObject var focusManager: FocusManager
     @State private var showingSessionList = false
     @State private var sheetInitialFilter: SessionDurationFilter = .all
     @State private var sheetInitialSort: SessionSortOrder = .newest
-    @State private var dataMetrics = DataMetrics.empty
-
-    private var veryShortSessionCount: Int {
-        dataMetrics.veryShortSessions
-    }
-
-    private func updateMetrics() {
-        dataMetrics = DataMetrics(focusManager: focusManager)
-    }
-
-    var body: some View {
-        GroupBox(label: Text("Session Management").font(.headline)) {
-            VStack(spacing: 16) {
-                Text("View and manage your focus sessions. Remove unwanted sessions if needed.")
-                    .font(.callout)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Total Sessions")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text("\(dataMetrics.totalSessions)")
-                            .font(.title3)
-                            .fontWeight(.bold)
-                    }
-
-                    Spacer()
-
-                    if dataMetrics.totalSessions > 0 {
-                        VStack(alignment: .trailing, spacing: 4) {
-                            Text("Shortest Session")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            if let shortest = dataMetrics.shortestSession {
-                                Text(TimeFormatter.duration(Int(shortest.duration / 60)))
-                                    .font(.title3)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(shortest.duration < 60 ? .orange : .primary)
-                            }
-                        }
-
-                        VStack(alignment: .trailing, spacing: 4) {
-                            Text("Longest Session")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            if let longest = dataMetrics.longestSession {
-                                Text(TimeFormatter.duration(Int(longest.duration / 60)))
-                                    .font(.title3)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.blue)
-                            }
-                        }
-                    }
-                }
-
-                if veryShortSessionCount > 0 {
-                    HStack(spacing: 8) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.orange)
-                        Text("\(veryShortSessionCount) session\(veryShortSessionCount == 1 ? "" : "s") under 1 minute")
-                            .font(.callout)
-                        Spacer()
-                        Button("Review & clean up") {
-                            sheetInitialFilter = .veryShort
-                            sheetInitialSort = .oldest
-                            showingSessionList = true
-                        }
-                        .buttonStyle(.bordered)
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.orange.opacity(0.1))
-                    )
-                }
-
-                HStack {
-                    Spacer()
-
-                    Button("Manage Sessions") {
-                        sheetInitialFilter = .all
-                        sheetInitialSort = .newest
-                        showingSessionList = true
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(dataMetrics.totalSessions == 0)
-                }
-            }
-            .padding(.horizontal, 5)
-            .padding(.vertical)
-        }
-        .frame(maxWidth: .infinity)
-        .onAppear(perform: updateMetrics)
-        .onChange(of: focusManager.focusSessions) { updateMetrics() }
-        .sheet(isPresented: $showingSessionList) {
-            NavigationView {
-                SessionListView(initialFilter: sheetInitialFilter, initialSort: sheetInitialSort)
-                    .navigationTitle("Focus Sessions")
-                    .toolbar {
-                        ToolbarItem(placement: .automatic) {
-                            Button("Done") {
-                                showingSessionList = false
-                            }
-                        }
-                    }
-            }
-            .frame(minWidth: 700, minHeight: 600)
-        }
-    }
-}
-
-struct DataStatCard: View {
-    let title: String
-    let value: String
-    let icon: String
-    let color: Color
-
-    var body: some View {
-        VStack(spacing: 8) {
-            if #available(macOS 14.0, *) {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundStyle(color.gradient)
-                    .symbolEffect(.pulse, options: .repeating)
-            } else {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundColor(color)
-            }
-
-            Text(value)
-                .font(.title3)
-                .fontWeight(.bold)
-
-            if #available(macOS 14.0, *) {
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            } else {
-                Text(title)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-        }
-        .padding(.vertical, 16)
-        .padding(.horizontal, 12)
-        .frame(maxWidth: .infinity)
-        .background(backgroundMaterial)
-    }
-
-    @ViewBuilder
-    private var backgroundMaterial: some View {
-        if #available(macOS 11.0, *) {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(.regularMaterial)
-        } else {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.controlBackgroundColor))
-        }
-    }
-}
-
-struct DataExportImportView: View {
-    @EnvironmentObject var focusManager: FocusManager
-    @Binding var selectedTab: Int
+    @State private var showingExportOptions = false
+    @State private var exportOptions = ExportOptions.default
+    @State private var estimatedExportSize = ""
+    @State private var showingImportAlert = false
+    @State private var importResult: ImportResult?
 
     private var dataExportService: DataExportService {
         DataExportService(focusManager: focusManager)
     }
 
-    @State private var showingExportOptions = false
-    @State private var exportOptions = ExportOptions.default
-    @State private var showingImportAlert = false
-    @State private var importResult: ImportResult?
-    @State private var showingExportPreview = false
-    @State private var exportPreview = ExportPreview.empty
-
-    private func updateExportPreview() {
-        let options = exportOptions
-        let sessions = options.includeSessions ? filterSessions(by: options.dateRange) : []
-        let apps = options.includeFocusApps ? focusManager.focusApps : []
-
-        exportPreview = ExportPreview(
-            sessionCount: sessions.count,
-            focusAppsCount: apps.count,
-            includesSettings: options.includeSettings,
-            totalFocusTime: sessions.reduce(0) { $0 + $1.duration },
-            dateRange: getDateRange(for: sessions),
-            estimatedFileSize: estimateFileSize(sessions: sessions, apps: apps, includeSettings: options.includeSettings)
-        )
-    }
-
     var body: some View {
-        GroupBox(label: Text("Export & Import").font(.headline)) {
-            VStack(spacing: 16) {
-                Text("Export your data to JSON format for backup or transfer to another device.")
-                    .font(.callout)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                VStack(spacing: 16) {
-                        ExportPreviewCard(preview: exportPreview, options: $exportOptions)
-
-                        HStack(spacing: 16) {
-                            Button("Customize Export") {
-                                showingExportOptions = true
-                            }
-                            .buttonStyle(.bordered)
-
-                            Button("Export Data") {
-                                dataExportService.exportDataToFile(options: exportOptions)
-                            }
-                            .buttonStyle(.borderedProminent)
-
-                            Spacer()
-
-                            Button("Import Data") {
-                                dataExportService.importDataFromFile { result in
-                                    importResult = result
-                                    showingImportAlert = true
-                                }
-                            }
-                            .buttonStyle(.bordered)
-                        }
-                    }
-            }
-            .padding(.horizontal, 5)
-            .padding(.vertical)
+        Form {
+            overviewSection
+            sessionsSection
+            exportImportSection
         }
-        .frame(maxWidth: .infinity)
-        .onAppear(perform: updateExportPreview)
-        .onChange(of: focusManager.focusSessions) { updateExportPreview() }
-        .onChange(of: focusManager.focusApps.count) { updateExportPreview() }
-        .onChange(of: exportOptions) { updateExportPreview() }
+        .formStyle(.grouped)
+        .onAppear(perform: refresh)
+        .onChange(of: focusManager.focusSessions) { refresh() }
+        .onChange(of: focusManager.focusApps.count) { refresh() }
+        .onChange(of: exportOptions) { updateEstimatedExportSize() }
+        .sheet(isPresented: $showingSessionList) {
+            SessionListView(initialFilter: sheetInitialFilter, initialSort: sheetInitialSort)
+                .frame(minWidth: 600, minHeight: 560)
+        }
         .sheet(isPresented: $showingExportOptions) {
             ExportOptionsView(
                 options: $exportOptions,
@@ -406,7 +52,7 @@ struct DataExportImportView: View {
             if let result = importResult {
                 switch result {
                 case .success(let summary):
-                    Text("Successfully imported \(summary.sessionsImported) sessions, \(summary.focusAppsImported) apps. \(summary.duplicatesSkipped) duplicates skipped.")
+                    Text("Successfully imported \(summary.sessionsImported.formatted()) sessions, \(summary.focusAppsImported.formatted()) apps. \(summary.duplicatesSkipped.formatted()) duplicates skipped.")
                 case .failure(let error):
                     Text(error.localizedDescription)
                 }
@@ -414,27 +60,153 @@ struct DataExportImportView: View {
         }
     }
 
-    // Helper methods
+    // MARK: - Sections
+
+    private var overviewSection: some View {
+        Section("Overview") {
+            Grid(horizontalSpacing: 12, verticalSpacing: 12) {
+                GridRow {
+                    StatTile(
+                        title: "Sessions",
+                        systemImage: "clock.fill",
+                        tint: .blue,
+                        value: dataMetrics.totalSessions.formatted()
+                    )
+                    StatTile(
+                        title: "Focus Time",
+                        systemImage: "brain.head.profile.fill",
+                        tint: .purple,
+                        value: TimeFormatter.duration(Int(dataMetrics.totalFocusTime / 60))
+                    )
+                }
+                GridRow {
+                    StatTile(
+                        title: "This Week",
+                        systemImage: "calendar",
+                        tint: .green,
+                        value: dataMetrics.thisWeekSessions.formatted(),
+                        detail: "sessions"
+                    )
+                    StatTile(
+                        title: "This Month",
+                        systemImage: "calendar.badge.clock",
+                        tint: .orange,
+                        value: dataMetrics.thisMonthSessions.formatted(),
+                        detail: "sessions"
+                    )
+                }
+            }
+            .padding(.vertical, 4)
+
+            LabeledContent("Focus Apps", value: dataMetrics.totalFocusApps.formatted())
+
+            LabeledContent("Data Range") {
+                if let oldest = dataMetrics.oldestSession, let newest = dataMetrics.newestSession {
+                    Text("\(oldest.startTime.formatted(date: .abbreviated, time: .omitted)) – \(newest.startTime.formatted(date: .abbreviated, time: .omitted))")
+                } else {
+                    Text("No sessions recorded")
+                }
+            }
+        }
+    }
+
+    private var sessionsSection: some View {
+        Section {
+            if let shortest = dataMetrics.shortestSession {
+                LabeledContent("Shortest Session") {
+                    Text(TimeFormatter.duration(Int(shortest.duration / 60)))
+                        .foregroundStyle(shortest.duration < 60 ? Color.orange : Color.secondary)
+                        .monospacedDigit()
+                }
+            }
+
+            if let longest = dataMetrics.longestSession {
+                LabeledContent("Longest Session") {
+                    Text(TimeFormatter.duration(Int(longest.duration / 60)))
+                        .monospacedDigit()
+                }
+            }
+
+            if dataMetrics.veryShortSessions > 0 {
+                LabeledContent {
+                    Button("Review & Clean Up…") {
+                        sheetInitialFilter = .veryShort
+                        sheetInitialSort = .oldest
+                        showingSessionList = true
+                    }
+                } label: {
+                    Label(
+                        "\(dataMetrics.veryShortSessions.formatted()) session\(dataMetrics.veryShortSessions == 1 ? "" : "s") under 1 minute",
+                        systemImage: "exclamationmark.triangle.fill"
+                    )
+                    .labelStyle(TintedIconLabelStyle(tint: .orange))
+                }
+            }
+
+            HStack {
+                Spacer()
+                Button("Manage Sessions…") {
+                    sheetInitialFilter = .all
+                    sheetInitialSort = .newest
+                    showingSessionList = true
+                }
+                .disabled(dataMetrics.totalSessions == 0)
+            }
+        } header: {
+            Text("Sessions")
+        } footer: {
+            Text("View and manage your focus sessions. Remove unwanted sessions if needed.")
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var exportImportSection: some View {
+        Section {
+            LabeledContent("Estimated Export Size", value: estimatedExportSize)
+
+            HStack {
+                Spacer()
+                Button("Customize Export…") {
+                    showingExportOptions = true
+                }
+                Button("Import…") {
+                    dataExportService.importDataFromFile { result in
+                        importResult = result
+                        showingImportAlert = true
+                    }
+                }
+                Button("Export…") {
+                    dataExportService.exportDataToFile(options: exportOptions)
+                }
+                .buttonStyle(.borderedProminent)
+            }
+        } header: {
+            Text("Export & Import")
+        } footer: {
+            Text("Export your sessions, focus apps and settings to JSON for backup or transfer to another device, or import data exported from another device.")
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    // MARK: - Helpers
+
+    private func refresh() {
+        dataMetrics = DataMetrics(focusManager: focusManager)
+        updateEstimatedExportSize()
+    }
+
+    private func updateEstimatedExportSize() {
+        let options = exportOptions
+        let sessions = options.includeSessions ? filterSessions(by: options.dateRange) : []
+        let apps = options.includeFocusApps ? focusManager.focusApps : []
+        estimatedExportSize = estimateFileSize(sessions: sessions, apps: apps, includeSettings: options.includeSettings)
+    }
+
     private func filterSessions(by dateRange: DateRange?) -> [FocusSession] {
         guard let range = dateRange else { return focusManager.focusSessions }
 
         return focusManager.focusSessions.filter { session in
             session.startTime >= range.startDate && session.endTime <= range.endDate
-        }
-    }
-
-    private func getDateRange(for sessions: [FocusSession]) -> String {
-        guard !sessions.isEmpty else { return "No sessions" }
-
-        guard let first = sessions.min(by: { $0.startTime < $1.startTime }),
-              let last = sessions.max(by: { $0.startTime < $1.startTime }) else {
-            return "No sessions"
-        }
-
-        if Calendar.current.isDate(first.startTime, inSameDayAs: last.startTime) {
-            return DateFormatter.mediumDate.string(from: first.startTime)
-        } else {
-            return "\(DateFormatter.shortDate.string(from: first.startTime)) - \(DateFormatter.shortDate.string(from: last.startTime))"
         }
     }
 
@@ -446,125 +218,7 @@ struct DataExportImportView: View {
         let metadataSize = 200
 
         let totalBytes = sessionSize + appSize + settingsSize + metadataSize
-
-        if totalBytes < 1024 {
-            return "\(totalBytes) bytes"
-        } else if totalBytes < 1024 * 1024 {
-            return String(format: "%.1f KB", Double(totalBytes) / 1024)
-        } else {
-            return String(format: "%.1f MB", Double(totalBytes) / (1024 * 1024))
-        }
-    }
-}
-
-struct ExportPreviewCard: View {
-    let preview: ExportPreview
-    @Binding var options: ExportOptions
-
-    var body: some View {
-        VStack(spacing: 12) {
-            HStack {
-                Text("Export Preview")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                Spacer()
-                Text("~\(preview.estimatedFileSize)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: 8) {
-                ExportMetricItem(
-                    title: "Sessions",
-                    value: "\(preview.sessionCount)",
-                    enabled: options.includeSessions,
-                    icon: "clock"
-                )
-
-                ExportMetricItem(
-                    title: "Focus Apps",
-                    value: "\(preview.focusAppsCount)",
-                    enabled: options.includeFocusApps,
-                    icon: "app"
-                )
-
-                ExportMetricItem(
-                    title: "Settings",
-                    value: preview.includesSettings ? "✓" : "✗",
-                    enabled: preview.includesSettings,
-                    icon: "gear"
-                )
-            }
-
-            if preview.sessionCount > 0 {
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Focus Time")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text(TimeFormatter.duration(Int(preview.totalFocusTime / 60)))
-                            .font(.body)
-                            .fontWeight(.medium)
-                    }
-
-                    Spacer()
-
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text("Date Range")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text(preview.dateRange)
-                            .font(.body)
-                            .fontWeight(.medium)
-                    }
-                }
-            }
-        }
-        .padding()
-        .background(backgroundMaterial)
-    }
-
-    @ViewBuilder
-    private var backgroundMaterial: some View {
-        if #available(macOS 11.0, *) {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(.regularMaterial)
-        } else {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.controlBackgroundColor))
-        }
-    }
-}
-
-struct ExportMetricItem: View {
-    let title: String
-    let value: String
-    let enabled: Bool
-    let icon: String
-
-    var body: some View {
-        VStack(spacing: 4) {
-            Image(systemName: icon)
-                .foregroundColor(enabled ? .accentColor : .secondary)
-                .font(.caption)
-
-            Text(value)
-                .font(.body)
-                .fontWeight(.medium)
-                .foregroundColor(enabled ? .primary : .secondary)
-
-            Text(title)
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-        .padding(.vertical, 8)
-        .frame(maxWidth: .infinity)
-        .background(enabled ? Color.accentColor.opacity(0.1) : Color.clear)
-        .cornerRadius(6)
+        return "~" + Int64(totalBytes).formatted(.byteCount(style: .file))
     }
 }
 
@@ -616,25 +270,7 @@ extension DataMetrics {
     }
 }
 
-struct ExportPreview {
-    let sessionCount: Int
-    let focusAppsCount: Int
-    let includesSettings: Bool
-    let totalFocusTime: TimeInterval
-    let dateRange: String
-    let estimatedFileSize: String
-
-    static let empty = ExportPreview(
-        sessionCount: 0,
-        focusAppsCount: 0,
-        includesSettings: false,
-        totalFocusTime: 0,
-        dateRange: "No sessions",
-        estimatedFileSize: ""
-    )
-}
-
-// MARK: - Export Options View (moved from ConfigurationView)
+// MARK: - Export Options View
 
 struct ExportOptionsView: View {
     @Binding var options: ExportOptions
@@ -644,57 +280,45 @@ struct ExportOptionsView: View {
     @State private var endDate = Date()
     @State private var useDateRange = false
 
+    private var hasNothingSelected: Bool {
+        !options.includeSessions && !options.includeSettings && !options.includeFocusApps
+    }
+
     var body: some View {
-        VStack(spacing: 20) {
-            HStack {
-                Text("Export Options")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                Spacer()
-                Button("Cancel", action: onCancel)
-            }
-            .padding(.bottom, 10)
+        VStack(spacing: 0) {
+            Text("Export Options")
+                .font(.headline)
+                .padding(.top)
 
-            VStack(alignment: .leading, spacing: 16) {
-                Text("What to export:")
-                    .font(.headline)
-
-                VStack(alignment: .leading, spacing: 8) {
+            Form {
+                Section {
                     Toggle("Focus sessions", isOn: $options.includeSessions)
                     Toggle("Focus apps configuration", isOn: $options.includeFocusApps)
                     Toggle("Settings and preferences", isOn: $options.includeSettings)
+                } header: {
+                    Text("Include")
                 }
 
-                Divider()
-
-                VStack(alignment: .leading, spacing: 12) {
-                    Toggle("Export specific date range", isOn: $useDateRange)
-
+                Section {
+                    Toggle("Limit to date range", isOn: $useDateRange)
                     if useDateRange {
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text("From:")
-                                    .font(.caption)
-                                DatePicker("", selection: $startDate, displayedComponents: .date)
-                                    .labelsHidden()
-                            }
-
-                            VStack(alignment: .leading) {
-                                Text("To:")
-                                    .font(.caption)
-                                DatePicker("", selection: $endDate, displayedComponents: .date)
-                                    .labelsHidden()
-                            }
-                        }
-                        .padding(.leading, 20)
+                        DatePicker("From", selection: $startDate, displayedComponents: .date)
+                        DatePicker("To", selection: $endDate, displayedComponents: .date)
                     }
+                } header: {
+                    Text("Date Range")
                 }
             }
+            .formStyle(.grouped)
+            .scrollDisabled(true)
+            .fixedSize(horizontal: false, vertical: true)
 
-            Spacer()
+            Divider()
 
             HStack {
                 Spacer()
+                Button("Cancel", role: .cancel, action: onCancel)
+                    .keyboardShortcut(.cancelAction)
                 Button("Export") {
                     if useDateRange {
                         options = ExportOptions(
@@ -706,12 +330,13 @@ struct ExportOptionsView: View {
                     }
                     onExport()
                 }
+                .keyboardShortcut(.defaultAction)
                 .buttonStyle(.borderedProminent)
-                .disabled(!options.includeSessions && !options.includeSettings && !options.includeFocusApps)
+                .disabled(hasNothingSelected)
             }
+            .padding()
         }
-        .padding()
-        .frame(width: 400, height: 350)
+        .frame(width: 420)
     }
 }
 

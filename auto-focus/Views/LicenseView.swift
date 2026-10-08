@@ -180,72 +180,75 @@ struct LicenseInputView: View {
     @State private var licenseInput: String = ""
     @ObservedObject var licenseManager: LicenseManager
 
+    private var canActivate: Bool {
+        licenseInput.count >= 8 && !licenseManager.isActivating
+    }
+
     var body: some View {
-        VStack(spacing: 10) {
-            TextField("Enter License Key", text: $licenseInput)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                TextField("License key", text: $licenseInput)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit(activate)
+
+                Button(action: activate) {
+                    if licenseManager.isActivating {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Text("Activate")
+                    }
+                }
+                .disabled(!canActivate)
+            }
 
             if let error = licenseManager.validationError {
-                Text(error)
-                    .foregroundColor(.red)
+                Label(error, systemImage: "exclamationmark.triangle.fill")
                     .font(.caption)
-                    .padding(.top, -4)
+                    .foregroundStyle(.red)
             }
-
-            Button(action: {
-                licenseManager.licenseKey = licenseInput
-                licenseManager.activateLicense()
-            }) {
-                if licenseManager.isActivating {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle())
-                        .scaleEffect(0.8)
-                        .frame(height: 20)
-                } else {
-                    Text("Activate")
-                }
-            }
-            .disabled(licenseInput.count < 8 || licenseManager.isActivating)
-            .buttonStyle(.borderedProminent)
-
-            Link("Don't have a license key? Get Auto-Focus+",
-                 destination: URL(string: "https://auto-focus.app/#pricing")!)
         }
-        .frame(maxWidth: 300)
+    }
+
+    private func activate() {
+        guard canActivate else { return }
+        licenseManager.licenseKey = licenseInput
+        licenseManager.activateLicense()
     }
 }
 
 struct LicenseBenefitsView: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 18) {
             PremiumFeatureRow(
-                icon: "list.bullet",
+                icon: "square.stack.3d.up.fill",
+                tint: .blue,
                 title: "Unlimited Focus Apps",
-                description: "Add as many focus-triggering apps as you need"
+                description: "Add as many focus-triggering apps as you need."
             )
-
             PremiumFeatureRow(
                 icon: "globe",
+                tint: .teal,
                 title: "Unlimited Focus Websites",
-                description: "Track unlimited websites with browser integration"
+                description: "Track any website with browser integration."
             )
-
             PremiumFeatureRow(
-                icon: "chart.bar.fill",
+                icon: "chart.bar.xaxis",
+                tint: .orange,
                 title: "Advanced Insights",
-                description: "Get detailed statistics about your focus habits"
+                description: "See focus quality, context switches, and your most productive times."
             )
-
             PremiumFeatureRow(
-                icon: "arrow.clockwise",
+                icon: "arrow.triangle.2.circlepath",
+                tint: .green,
                 title: "Free Updates",
-                description: "Access to all future premium features"
+                description: "Get every future premium feature included."
             )
-
             PremiumFeatureRow(
-                icon: "cup.and.heat.waves",
-                title: "Support Indie Developer",
-                description: "Buy us a cup of coffee"
+                icon: "heart.fill",
+                tint: .pink,
+                title: "Support an Indie Developer",
+                description: "Help keep Auto-Focus independent and ad-free."
             )
         }
     }
@@ -255,42 +258,47 @@ struct UnlicensedView: View {
     @ObservedObject var licenseManager: LicenseManager
 
     var body: some View {
-        GroupBox {
-            VStack(spacing: 16) {
-                Text("Get Auto-Focus+").font(.title)
-                    .fontDesign(.default)
-                    .fontWeight(.bold)
-                Text("Unlimited focus apps, unlimited focus websites, advanced insights and more.")
-                    .font(.callout)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-
-                Link(destination: URL(string: "https://auto-focus.app/#pricing")!) {
-                    HStack {
-                        Text("Get Auto-Focus+")
-                            .fontWeight(.semibold)
-                        Image(systemName: "arrow.up.forward.app")
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Color.accentColor)
-                    .cornerRadius(8)
-                }
-                .buttonStyle(.plain)
-
-                Divider()
-
-                LicenseInputView(licenseManager: licenseManager)
-
-                Divider()
-
-                LicenseBenefitsView()
+        VStack(spacing: 28) {
+            VStack(spacing: 10) {
+                Image(systemName: "star.circle.fill")
+                    .font(.system(size: 64))
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(.white, Color.accentColor.gradient)
+                Text("Auto-Focus+")
+                    .font(.largeTitle.weight(.bold))
+                Text("Unlock everything Auto-Focus can do.")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
             }
-            .padding(.horizontal, 40)
-            .padding(.vertical)
-            .frame(maxWidth: .infinity)
+            .padding(.top, 12)
+
+            LicenseBenefitsView()
+                .frame(maxWidth: 380, alignment: .leading)
+
+            Link(destination: URL(string: "https://auto-focus.app/#pricing")!) {
+                Label("Get Auto-Focus+", systemImage: "arrow.up.forward")
+                    .labelStyle(.titleAndIcon)
+                    .frame(maxWidth: 260)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+
+            GroupBox {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Already purchased?")
+                        .font(.headline)
+                    Text("Enter the license key from your purchase email.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                    LicenseInputView(licenseManager: licenseManager)
+                }
+                .padding(6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(maxWidth: 420)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.bottom, 12)
     }
 }
 
@@ -328,25 +336,26 @@ struct LicenseInfoRow: View {
 
 struct PremiumFeatureRow: View {
     let icon: String
+    let tint: Color
     let title: String
     let description: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .center, spacing: 14) {
             Image(systemName: icon)
-                .foregroundColor(.blue)
-                .frame(width: 24, height: 24)
+                .font(.title3)
+                .foregroundStyle(tint)
+                .frame(width: 32)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .fontWeight(.medium)
+                    .font(.headline)
                 Text(description)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(.vertical, 6)
     }
 }
 

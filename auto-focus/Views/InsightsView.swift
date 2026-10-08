@@ -13,32 +13,46 @@ enum InsightsSubTab: String, CaseIterable, Identifiable {
 
 // MARK: - Shared Chart Components
 
+/// Dashed, light gridline shared by all Insights charts.
+private let insightsGridLineStyle = StrokeStyle(lineWidth: 0.5, dash: [2, 3])
+
 struct WeeklyBarChartView: View {
     @ObservedObject var dataProvider: InsightsViewModel
 
     var body: some View {
-        VStack(alignment: .leading) {
-            Chart {
-                ForEach(dataProvider.snapshot.weekdayData, id: \.weekdaySymbol) { dayData in
-                    BarMark(
-                        x: .value("Day", dayData.weekdaySymbol),
-                        y: .value("Minutes", dayData.totalMinutes)
-                    )
-                    .foregroundStyle(dayData.isSelected ? Color.blue : Color.blue.opacity(0.3))
-                }
+        let weekdayData = dataProvider.snapshot.weekdayData
+        let averageMinutes = dataProvider.snapshot.averageDailyMinutes
+        let maxMinutes = Double(weekdayData.map(\.totalMinutes).max() ?? 0)
 
-                RuleMark(y: .value("Average", dataProvider.snapshot.averageDailyMinutes))
+        Chart {
+            ForEach(weekdayData, id: \.weekdaySymbol) { dayData in
+                BarMark(
+                    x: .value("Day", dayData.weekdaySymbol.capitalized),
+                    y: .value("Minutes", dayData.totalMinutes)
+                )
+                .foregroundStyle(Color.blue.opacity(dayData.isSelected ? 1 : 0.35).gradient)
+                .cornerRadius(3)
+            }
+
+            if averageMinutes > 0 {
+                RuleMark(y: .value("Average", averageMinutes))
                     .foregroundStyle(Color.green)
-                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
-                    .annotation(position: .trailing) {
-                        Text("avg")
-                            .font(.caption)
-                            .foregroundColor(.green)
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                    .annotation(position: .top, alignment: .trailing) {
+                        Text("avg \(TimeFormatter.duration(averageMinutes))")
+                            .font(.caption2)
+                            .foregroundStyle(.green)
                     }
             }
-            .frame(height: 120)
-            .chartYScale(domain: 0...(dataProvider.snapshot.weekdayData.map { Double($0.totalMinutes) }.max() ?? 0) * 1.2)
         }
+        .chartYAxis {
+            AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) { _ in
+                AxisGridLine(stroke: insightsGridLineStyle)
+                AxisValueLabel()
+            }
+        }
+        .chartYScale(domain: 0...max(maxMinutes * 1.2, 1))
+        .frame(height: 120)
     }
 }
 
@@ -46,113 +60,105 @@ struct HourlyBarChartView: View {
     @ObservedObject var dataProvider: InsightsViewModel
 
     var body: some View {
-        VStack(alignment: .leading) {
-            Chart {
-                ForEach(dataProvider.snapshot.hourlyData) { hourData in
-                    if hourData.totalMinutes > 0 {
-                        BarMark(
-                            x: .value("Hour", hourData.hour),
-                            y: .value("Minutes", hourData.totalMinutes)
-                        )
-                        .foregroundStyle(Color.blue)
-                    }
-                }
-            }
-            .chartXAxis {
-                AxisMarks(values: [0, 6, 12, 18, 23]) { value in
-                    AxisValueLabel {
-                        if let hour = value.as(Int.self) {
-                            Text(String(format: "%02d", hour))
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                }
-            }
-            .frame(height: 60)
+        Chart(dataProvider.snapshot.hourlyData) { hourData in
+            BarMark(
+                x: .value("Hour", hourData.hour),
+                y: .value("Minutes", hourData.totalMinutes)
+            )
+            .foregroundStyle(Color.blue.gradient)
+            .cornerRadius(2)
         }
+        .chartXScale(domain: -0.5...23.5)
+        .chartXAxis {
+            AxisMarks(values: [0, 6, 12, 18, 23]) { value in
+                AxisValueLabel {
+                    if let hour = value.as(Int.self) {
+                        Text(String(format: "%02d", hour))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+        .chartYAxis {
+            AxisMarks(position: .leading, values: .automatic(desiredCount: 2)) { _ in
+                AxisGridLine(stroke: insightsGridLineStyle)
+            }
+        }
+        .frame(height: 60)
     }
 }
 
+/// Day/Week picker plus previous/next/today navigation for the selected period.
 struct InsightsHeaderView: View {
     @ObservedObject var dataProvider: InsightsViewModel
 
+    /// Selecting the day timeframe jumps back to today, matching the previous menu behavior.
+    private var timeframeSelection: Binding<InsightsDataProvider.Timeframe> {
+        Binding(
+            get: { dataProvider.selectedTimeframe },
+            set: { timeframe in
+                dataProvider.selectedTimeframe = timeframe
+                if timeframe == .day {
+                    dataProvider.selectedDate = Date()
+                }
+            }
+        )
+    }
+
+    private var isAtCurrentPeriod: Bool {
+        let calendar = Calendar.current
+        if dataProvider.selectedTimeframe == .day {
+            return calendar.isDateInToday(dataProvider.selectedDate)
+        }
+        return calendar.startOfWeek(for: dataProvider.selectedDate) == calendar.startOfWeek(for: Date())
+    }
+
     var body: some View {
-        HStack {
-            let title = dataProvider.selectedTimeframe == .day ? "Usage" : "Daily Average"
-            Text(title)
-                .font(.title3)
+        let isDay = dataProvider.selectedTimeframe == .day
+
+        HStack(spacing: 12) {
+            Picker("Timeframe", selection: timeframeSelection) {
+                Text("Day").tag(InsightsDataProvider.Timeframe.day)
+                Text("Week").tag(InsightsDataProvider.Timeframe.week)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(width: 140)
+
             Spacer()
 
-            Menu(content: {
-                Text("Show Usage")
-                Button(action: {
-                    dataProvider.selectedTimeframe = .day
-                    dataProvider.selectedDate = Date()
-                }, label: {
-                    HStack {
-                        Text("Today")
-                        if dataProvider.selectedTimeframe == .day {
-                            Image(systemName: "checkmark")
-                        }
-                    }
-                })
-                Button(action: {
-                    dataProvider.selectedTimeframe = .week
-                }, label: {
-                    HStack {
-                        Text("This Week")
-                        if dataProvider.selectedTimeframe == .week {
-                            Image(systemName: "checkmark")
-                        }
-                    }
-                })
-            }, label: {
-                HStack(spacing: 4) {
-                    Text(dataProvider.snapshot.displayedDateString)
-                        .lineLimit(1)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(.horizontal, 8)
-            })
-            .foregroundColor(.primary)
+            Text(dataProvider.snapshot.displayedDateString)
+                .font(.headline)
+                .lineLimit(1)
 
-            DateNavigationView(dataProvider: dataProvider)
+            Button {
+                navigate(forward: false)
+            } label: {
+                Image(systemName: "chevron.left")
+            }
+            .help(isDay ? "Previous day" : "Previous week")
+
+            Button("Today") {
+                dataProvider.goToToday()
+            }
+            .disabled(isAtCurrentPeriod)
+
+            Button {
+                navigate(forward: true)
+            } label: {
+                Image(systemName: "chevron.right")
+            }
+            .disabled(isAtCurrentPeriod)
+            .help(isDay ? "Next day" : "Next week")
         }
     }
-}
 
-struct DateNavigationView: View {
-    @ObservedObject var dataProvider: InsightsViewModel
-
-    var body: some View {
-        HStack(spacing: 4) {
-            Button(action: {
-                if dataProvider.selectedTimeframe == .day {
-                    dataProvider.navigateDay(forward: false)
-                } else {
-                    dataProvider.navigateWeek(forward: false)
-                }
-            }, label: {
-                Image(systemName: "chevron.left")
-            })
-
-            Button(action: {
-                dataProvider.goToToday()
-            }, label: {
-                Text("Today")
-            })
-
-            Button(action: {
-                if dataProvider.selectedTimeframe == .day {
-                    dataProvider.navigateDay(forward: true)
-                } else {
-                    dataProvider.navigateWeek(forward: true)
-                }
-            }, label: {
-                Image(systemName: "chevron.right")
-            })
-            .disabled(Calendar.current.isDateInToday(dataProvider.selectedDate))
+    private func navigate(forward: Bool) {
+        if dataProvider.selectedTimeframe == .day {
+            dataProvider.navigateDay(forward: forward)
+        } else {
+            dataProvider.navigateWeek(forward: forward)
         }
     }
 }
@@ -161,47 +167,33 @@ struct FocusTimeOverviewView: View {
     @ObservedObject var dataProvider: InsightsViewModel
 
     var body: some View {
-        HStack {
-            let snapshot = dataProvider.snapshot
-            let time = dataProvider.selectedTimeframe == .day ? Int(snapshot.totalFocusTime / 60) : snapshot.averageDailyMinutes
+        let snapshot = dataProvider.snapshot
+        let isDay = dataProvider.selectedTimeframe == .day
+        let minutes = isDay ? Int(snapshot.totalFocusTime / 60) : snapshot.averageDailyMinutes
 
-            Text(TimeFormatter.duration(time))
-                .font(.system(size: 32, weight: .medium))
-
-            if dataProvider.selectedTimeframe == .week {
-                Spacer()
-
-                if let change = snapshot.weekComparisonPercentage {
-                    let trendImage = change >= 0 ? "arrow.up" : "arrow.down"
-                    let trendText = change >= 0 ? "\(change) %" : "\(-change) %"
-                    Image(systemName: trendImage + ".circle.fill")
-                        .foregroundColor(.secondary)
-                        .fontWeight(.heavy)
-                    Text(trendText + " last week")
-                        .foregroundColor(.secondary)
-                }
+        HStack(alignment: .center) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(isDay ? "Focus Time" : "Daily Average")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Text(TimeFormatter.duration(minutes))
+                    .font(.system(.largeTitle, design: .rounded, weight: .semibold))
+                    .monospacedDigit()
             }
-        }
-    }
-}
 
-struct MetricCard: View {
-    let title: String
-    let value: String
+            Spacer()
 
-    var body: some View {
-        GroupBox {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(title)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                Text(value)
-                    .font(.title2)
-                    .fontWeight(.semibold)
+            if !isDay, let change = snapshot.weekComparisonPercentage {
+                let tint: Color = change > 0 ? .green : (change < 0 ? .red : .secondary)
+                let symbol = change > 0 ? "arrow.up.right" : (change < 0 ? "arrow.down.right" : "equal")
+
+                Label("\(abs(change))% vs last week", systemImage: symbol)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(tint)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(tint.opacity(0.15), in: Capsule())
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.vertical, 8)
-            .padding(.horizontal, 8)
         }
     }
 }
@@ -210,75 +202,51 @@ struct ProductivityMetricsView: View {
     @ObservedObject var dataProvider: InsightsViewModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(spacing: 16) {
-                MetricCard(
-                    title: "Most Productive Time",
-                    value: dataProvider.snapshot.productiveTimeRange ?? "Not enough data"
-                )
+        let maxAverageMinutes = dataProvider.snapshot.weekdayAverages.map { $0.average / 60 }.max() ?? 0
 
-                MetricCard(
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                StatTile(
+                    title: "Most Productive Time",
+                    systemImage: "sun.max.fill",
+                    tint: .yellow,
+                    value: dataProvider.snapshot.productiveTimeRange ?? "—"
+                )
+                StatTile(
                     title: "Most Productive Day",
-                    value: dataProvider.snapshot.productiveWeekday ?? "Not enough data"
+                    systemImage: "calendar",
+                    tint: .blue,
+                    value: dataProvider.snapshot.productiveWeekday ?? "—"
                 )
             }
 
-            GroupBox("Weekly Consistency") {
+            GroupBox {
                 VStack(alignment: .leading, spacing: 12) {
-                    let rearrangedData = dataProvider.snapshot.weekdayAverages
-                    let maxValue = rearrangedData.map { $0.average / 60 }.max() ?? 60
+                    Label("Weekly Consistency", systemImage: "chart.bar.fill")
+                        .font(.headline)
+                        .labelStyle(TintedIconLabelStyle(tint: .blue))
 
-                    let normalizedData = rearrangedData.map { day -> (day: String, value: Double, empty: Double) in
-                        let value = day.average / 60
-                        return (day: day.day, value: value / maxValue, empty: (maxValue - value) / maxValue)
-                    }
-                    ZStack(alignment: .top) {
-                        Chart {
-                            ForEach(normalizedData, id: \.day) { item in
-                                BarMark(
-                                    x: .value("Day", item.day),
-                                    y: .value("Value", item.value),
-                                    stacking: .normalized
-                                )
-                                .foregroundStyle(Color.blue.opacity(0.7))
-
-                                BarMark(
-                                    x: .value("Day", item.day),
-                                    y: .value("Empty", item.empty),
-                                    stacking: .normalized
-                                )
-                                .foregroundStyle(Color.gray.opacity(0.1))
+                    Chart {
+                        ForEach(dataProvider.snapshot.weekdayAverages, id: \.day) { item in
+                            BarMark(
+                                x: .value("Day", item.day),
+                                y: .value("Minutes", Int(item.average / 60))
+                            )
+                            .foregroundStyle(Color.blue.gradient)
+                            .cornerRadius(3)
+                            .annotation(position: .top) {
+                                Text(TimeFormatter.duration(Int(item.average / 60)))
+                                    .font(.caption2)
+                                    .monospacedDigit()
+                                    .foregroundStyle(.secondary)
                             }
-                        }
-                        .chartYAxis {
-                            AxisMarks(values: [0, 0.25, 0.5, 0.75, 1.0]) { _ in
-                                AxisGridLine()
-                                AxisTick()
-                            }
-                        }
-
-                        VStack {
-                            Spacer().frame(height: 8)
-                            HStack(alignment: .top, spacing: 0) {
-                                ForEach(rearrangedData.indices, id: \.self) { index in
-                                    let day = rearrangedData[index]
-                                    let minutes = Int(day.average / 60)
-
-                                    VStack {
-                                        Text("\(TimeFormatter.duration(minutes))")
-                                            .font(.caption2)
-                                            .foregroundColor(.primary)
-                                        Spacer()
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                }
-                            }
-                            Spacer()
                         }
                     }
+                    .chartYAxis(.hidden)
+                    .chartYScale(domain: 0...max(maxAverageMinutes * 1.25, 1))
                     .frame(height: 120)
                 }
-                .padding(4)
+                .padding(6)
             }
         }
     }
@@ -289,7 +257,10 @@ struct ProductivityMetricsView: View {
 struct FocusScoreView: View {
     let score: Int
 
-    private var scoreColor: Color {
+    private var scoreColor: Color { Self.color(for: score) }
+
+    /// Traffic-light tint for a focus score: red below 30, then orange, yellow, and green from 80.
+    static func color(for score: Int) -> Color {
         switch score {
         case 0..<30: return .red
         case 30..<60: return .orange
@@ -313,15 +284,17 @@ struct FocusScoreView: View {
                         .rotationEffect(.degrees(-90))
 
                     Text("\(score)")
-                        .font(.system(size: 24, weight: .bold))
+                        .font(.system(.title, design: .rounded, weight: .semibold))
+                        .monospacedDigit()
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Focus Score")
+                    Label("Focus Score", systemImage: "gauge")
                         .font(.headline)
+                        .labelStyle(TintedIconLabelStyle(tint: scoreColor))
                     Text("Based on focus ratio, session depth, consistency, and low distraction.")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -333,68 +306,102 @@ struct FocusScoreView: View {
 
 // MARK: - Summary Pane
 
+/// Hero card showing the total focus time of the current month, optionally next to the focus score ring.
+struct MonthlyFocusHeroView: View {
+    let totalFocusTimeThisMonth: TimeInterval
+    var focusScore: Int?
+
+    var body: some View {
+        GroupBox {
+            HStack(alignment: .center, spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label(Date().formatted(.dateTime.month(.wide)), systemImage: "calendar")
+                        .font(.headline)
+                        .labelStyle(TintedIconLabelStyle(tint: .blue))
+                    Text(TimeFormatter.duration(Int(totalFocusTimeThisMonth / 60)))
+                        .font(.system(size: 40, weight: .semibold, design: .rounded))
+                        .monospacedDigit()
+                    Text("of focused work this month")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                if let focusScore {
+                    FocusScoreRing(score: focusScore)
+                }
+            }
+            .padding(8)
+        }
+    }
+}
+
+/// Circular gauge for the 0–100 focus score with a caption.
+struct FocusScoreRing: View {
+    let score: Int
+
+    var body: some View {
+        let tint = FocusScoreView.color(for: score)
+
+        VStack(spacing: 6) {
+            ZStack {
+                Circle()
+                    .stroke(Color.gray.opacity(0.15), lineWidth: 7)
+                Circle()
+                    .trim(from: 0, to: CGFloat(score) / 100.0)
+                    .stroke(tint.gradient, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                Text("\(score)")
+                    .font(.system(.title2, design: .rounded, weight: .semibold))
+                    .monospacedDigit()
+            }
+            .frame(width: 68, height: 68)
+
+            Text("Focus Score")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .help("Based on focus ratio, session depth, consistency, and low distraction.")
+    }
+}
+
 struct InsightsSummaryPane: View {
     @ObservedObject var dataProvider: InsightsViewModel
 
     var body: some View {
         VStack(spacing: 10) {
-            GroupBox {
-                VStack {
-                    Text("You've focussed for").font(.title2)
-                        .fontDesign(.default)
-                        .foregroundStyle(.secondary)
-                    let totalSeconds = Int(dataProvider.snapshot.totalFocusTimeThisMonth)
-                    let totalMinutes = Int(totalSeconds / 60)
+            MonthlyFocusHeroView(
+                totalFocusTimeThisMonth: dataProvider.snapshot.totalFocusTimeThisMonth,
+                focusScore: dataProvider.snapshot.focusScore
+            )
 
-                    Text("\(TimeFormatter.duration(totalMinutes)) this month")
-                        .font(.title)
-                        .fontWeight(.bold)
-                    Text("Here you can find your curated focus insights. From daily to weekly detailed views, your most productive times and more.")
-                        .font(.callout)
-                        .fontDesign(.default)
-                        .fontWeight(.regular)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                .padding(.horizontal, 40)
-                .padding(.vertical)
-                .frame(maxWidth: .infinity)
-            }
-
-            FocusScoreView(score: dataProvider.snapshot.focusScore)
+            ProductivityMetricsView(dataProvider: dataProvider)
 
             GroupBox {
-                VStack(alignment: .leading, spacing: 8) {
-                    ProductivityMetricsView(dataProvider: dataProvider)
-                }
-                .padding(8)
-            }
-
-            GroupBox {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 14) {
                     InsightsHeaderView(dataProvider: dataProvider)
                     FocusTimeOverviewView(dataProvider: dataProvider)
 
-                    GroupBox {
-                        VStack(alignment: .leading, spacing: 12) {
-                            WeeklyBarChartView(dataProvider: dataProvider)
+                    WeeklyBarChartView(dataProvider: dataProvider)
 
-                            if dataProvider.selectedTimeframe == .day {
-                                HourlyBarChartView(dataProvider: dataProvider)
-                            }
-                        }
+                    if dataProvider.selectedTimeframe == .day {
+                        HourlyBarChartView(dataProvider: dataProvider)
                     }
+
+                    Divider()
 
                     HStack {
-                        Text("Number of sessions")
-                            .font(.body)
+                        Label("Sessions", systemImage: "number")
+                            .labelStyle(TintedIconLabelStyle(tint: .blue))
                         Spacer()
                         Text("\(dataProvider.snapshot.sessionCount)")
-                            .font(.body)
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
                     }
-                    .padding(.top, 8)
+                    .font(.callout)
                 }
-                .padding(8)
+                .padding(6)
             }
         }
     }
@@ -415,38 +422,93 @@ struct FocusRatioBarView: View {
     var body: some View {
         if total > 0 {
             GroupBox {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Focus vs. Other")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                VStack(alignment: .leading, spacing: 10) {
+                    Label("Focus vs. Other", systemImage: "circle.lefthalf.filled")
+                        .font(.headline)
+                        .labelStyle(TintedIconLabelStyle(tint: .blue))
 
                     GeometryReader { geo in
                         HStack(spacing: 2) {
                             if focusDuration > 0 {
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(Color.blue)
+                                Capsule()
+                                    .fill(Color.blue.gradient)
                                     .frame(width: geo.size.width * CGFloat(focusDuration / total))
                             }
                             if otherDuration > 0 {
-                                RoundedRectangle(cornerRadius: 4)
+                                Capsule()
                                     .fill(Color.gray.opacity(0.3))
                                     .frame(width: geo.size.width * CGFloat(otherDuration / total))
                             }
                         }
                     }
-                    .frame(height: 20)
+                    .frame(height: 10)
 
                     HStack(spacing: 16) {
-                        Label("\(focusPercent)% Focus", systemImage: "circle.fill")
-                            .font(.caption)
-                            .foregroundColor(.blue)
-                        Label("\(otherPercent)% Other", systemImage: "circle.fill")
-                            .font(.caption)
-                            .foregroundColor(.gray)
+                        legendItem(title: "Focus", percent: focusPercent, duration: focusDuration, color: .blue)
+                        legendItem(title: "Other", percent: otherPercent, duration: otherDuration, color: .gray)
                     }
                 }
-                .padding(4)
+                .padding(6)
             }
+        }
+    }
+
+    private func legendItem(title: String, percent: Int, duration: TimeInterval, color: Color) -> some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(color)
+                .frame(width: 8, height: 8)
+            Text(title)
+                .foregroundStyle(.secondary)
+            Text("\(percent)%")
+                .fontWeight(.semibold)
+                .monospacedDigit()
+            Text(TimeFormatter.humanReadable(duration))
+                .foregroundStyle(.tertiary)
+                .monospacedDigit()
+        }
+        .font(.caption)
+    }
+}
+
+/// One row of the activity breakdown: icon, name, relative bar, duration and share.
+private struct UsageBarRow<Icon: View>: View {
+    let name: String
+    let fraction: Double
+    let duration: TimeInterval
+    let percent: Int
+    let accentColor: Color
+    @ViewBuilder let icon: () -> Icon
+
+    var body: some View {
+        HStack(spacing: 8) {
+            icon()
+                .frame(width: 18, height: 18)
+
+            Text(name)
+                .font(.callout)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .frame(width: 150, alignment: .leading)
+
+            GeometryReader { geo in
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(accentColor.opacity(0.5))
+                    .frame(width: max(4, geo.size.width * CGFloat(fraction)))
+            }
+            .frame(height: 10)
+
+            Text(TimeFormatter.humanReadable(duration))
+                .font(.caption)
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+                .frame(width: 55, alignment: .trailing)
+
+            Text("\(percent)%")
+                .font(.caption2)
+                .monospacedDigit()
+                .foregroundStyle(.tertiary)
+                .frame(width: 30, alignment: .trailing)
         }
     }
 }
@@ -469,8 +531,11 @@ struct ActivityBreakdownView: View {
         } else {
             VStack(spacing: 10) {
                 if !focusApps.isEmpty || !focusDomainsList.isEmpty {
-                    GroupBox("Focus Activity") {
+                    GroupBox {
                         VStack(alignment: .leading, spacing: 16) {
+                            Label("Focus Activity", systemImage: "scope")
+                                .font(.headline)
+                                .labelStyle(TintedIconLabelStyle(tint: .blue))
                             if !focusApps.isEmpty {
                                 appSection(apps: focusApps, totalDuration: totalAppDuration, accentColor: .blue)
                             }
@@ -478,21 +543,24 @@ struct ActivityBreakdownView: View {
                                 domainSection(domains: focusDomainsList, totalDuration: totalDomainDuration, accentColor: .blue)
                             }
                         }
-                        .padding(4)
+                        .padding(6)
                     }
                 }
 
                 if !otherApps.isEmpty || !otherDomainsList.isEmpty {
-                    GroupBox("Other Activity") {
+                    GroupBox {
                         VStack(alignment: .leading, spacing: 16) {
+                            Label("Other Activity", systemImage: "square.stack.3d.up")
+                                .font(.headline)
+                                .labelStyle(TintedIconLabelStyle(tint: .gray))
                             if !otherApps.isEmpty {
                                 appSection(apps: otherApps, totalDuration: totalAppDuration, accentColor: .gray)
                             }
                             if !otherDomainsList.isEmpty {
-                                domainSection(domains: otherDomainsList, totalDuration: totalDomainDuration, accentColor: .purple, showAddButton: true)
+                                domainSection(domains: otherDomainsList, totalDuration: totalDomainDuration, accentColor: .gray, showAddButton: true)
                             }
                         }
-                        .padding(4)
+                        .padding(6)
                     }
                 }
             }
@@ -505,45 +573,17 @@ struct ActivityBreakdownView: View {
         return VStack(alignment: .leading, spacing: 6) {
             Text("Apps")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
 
             ForEach(apps, id: \.bundleIdentifier) { app in
-                let displayName = BundleNameMapper.displayName(bundleIdentifier: app.bundleIdentifier, appName: app.appName)
-                let percent = totalDuration > 0 ? Int((app.totalDuration / totalDuration) * 100) : 0
-
-                HStack(spacing: 8) {
-                    if let icon = BundleNameMapper.appIcon(for: app.bundleIdentifier) {
-                        Image(nsImage: icon)
-                            .resizable()
-                            .frame(width: 18, height: 18)
-                    } else {
-                        Image(systemName: "app.fill")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .frame(width: 18, height: 18)
-                    }
-
-                    Text(displayName)
-                        .font(.callout)
-                        .frame(width: 120, alignment: .leading)
-                        .lineLimit(1)
-
-                    GeometryReader { geo in
-                        RoundedRectangle(cornerRadius: 3)
-                            .fill(accentColor.opacity(0.5))
-                            .frame(width: max(4, geo.size.width * CGFloat(app.totalDuration / maxDuration)))
-                    }
-                    .frame(height: 14)
-
-                    Text(TimeFormatter.humanReadable(app.totalDuration))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .frame(width: 50, alignment: .trailing)
-
-                    Text("\(percent)%")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                        .frame(width: 30, alignment: .trailing)
+                UsageBarRow(
+                    name: BundleNameMapper.displayName(bundleIdentifier: app.bundleIdentifier, appName: app.appName),
+                    fraction: app.totalDuration / maxDuration,
+                    duration: app.totalDuration,
+                    percent: totalDuration > 0 ? Int((app.totalDuration / totalDuration) * 100) : 0,
+                    accentColor: accentColor
+                ) {
+                    appIcon(for: app.bundleIdentifier)
                 }
             }
         }
@@ -555,34 +595,32 @@ struct ActivityBreakdownView: View {
         return VStack(alignment: .leading, spacing: 6) {
             Text("Websites")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
 
             ForEach(domains, id: \.domain) { domain in
-                let percent = totalDuration > 0 ? Int((domain.totalDuration / totalDuration) * 100) : 0
-
-                HStack(spacing: 8) {
+                UsageBarRow(
+                    name: domain.domain,
+                    fraction: domain.totalDuration / maxDuration,
+                    duration: domain.totalDuration,
+                    percent: totalDuration > 0 ? Int((domain.totalDuration / totalDuration) * 100) : 0,
+                    accentColor: accentColor
+                ) {
                     domainLeadingIcon(for: domain.domain, showAddButton: showAddButton)
-
-                    Text(domain.domain)
-                        .font(.callout)
-                        .frame(width: 120, alignment: .leading)
-                        .lineLimit(1)
-
-                    GeometryReader { geo in
-                        RoundedRectangle(cornerRadius: 3)
-                            .fill(accentColor.opacity(0.5))
-                            .frame(width: max(4, geo.size.width * CGFloat(domain.totalDuration / maxDuration)))
-                    }
-                    .frame(height: 14)
-
-                    domainDurationLabel(for: domain)
-
-                    Text("\(percent)%")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                        .frame(width: 30, alignment: .trailing)
                 }
+                .help(domain.visitCount > 0 ? "\(domain.domain) · \(domain.visitCount) visits" : domain.domain)
             }
+        }
+    }
+
+    @ViewBuilder
+    private func appIcon(for bundleIdentifier: String) -> some View {
+        if let icon = BundleNameMapper.appIcon(for: bundleIdentifier) {
+            Image(nsImage: icon)
+                .resizable()
+        } else {
+            Image(systemName: "app.fill")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -591,39 +629,22 @@ struct ActivityBreakdownView: View {
         if !showAddButton {
             Image(systemName: "globe")
                 .font(.caption)
-                .foregroundColor(.secondary)
-                .frame(width: 18)
+                .foregroundStyle(.secondary)
         } else if recentlyAddedDomain == domain {
             Image(systemName: "checkmark.circle.fill")
                 .font(.caption)
-                .foregroundColor(.green)
-                .frame(width: 18)
+                .foregroundStyle(.green)
         } else {
             Button {
                 addDomainAsFocusURL(domain)
             } label: {
                 Image(systemName: "plus.circle")
                     .font(.caption)
-                    .foregroundColor(.blue)
+                    .foregroundStyle(.blue)
             }
             .buttonStyle(.plain)
-            .frame(width: 18)
             .help("Add as focus URL")
         }
-    }
-
-    private func domainDurationLabel(for domain: DomainUsageSummary) -> some View {
-        VStack(alignment: .trailing, spacing: 0) {
-            Text(TimeFormatter.humanReadable(domain.totalDuration))
-                .font(.caption)
-                .foregroundColor(.secondary)
-            if domain.visitCount > 0 {
-                Text("\(domain.visitCount) visits")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
-        }
-        .frame(width: 55, alignment: .trailing)
     }
 
     private func addDomainAsFocusURL(_ domain: String) {
@@ -657,45 +678,155 @@ struct InsightsActivityPane: View {
 
 // MARK: - Focus Quality Pane
 
+/// Compact metric tile: tinted SF Symbol + title above a large rounded value.
+struct StatTile: View {
+    let title: String
+    let systemImage: String
+    let tint: Color
+    let value: String
+    var detail: String?
+
+    var body: some View {
+        GroupBox {
+            VStack(alignment: .leading, spacing: 6) {
+                Label(title, systemImage: systemImage)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .labelStyle(TintedIconLabelStyle(tint: tint))
+
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text(value)
+                        .font(.system(.title, design: .rounded, weight: .semibold))
+                        .monospacedDigit()
+                    if let detail {
+                        Text(detail)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(6)
+        }
+    }
+}
+
+/// Label style that tints only the icon, leaving the title in the inherited style.
+struct TintedIconLabelStyle: LabelStyle {
+    let tint: Color
+
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 6) {
+            configuration.icon
+                .foregroundStyle(tint)
+            configuration.title
+        }
+    }
+}
+
 struct DisruptionChartView: View {
     let data: [HourlyDisruptionData]
     let isHourly: Bool
 
     var body: some View {
-        let hasData = data.contains { $0.switches > 0 }
-        if hasData {
-            GroupBox {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(isHourly ? "Switches by Hour" : "Switches by Day")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-
-                    Chart {
-                        ForEach(data) { item in
-                            if item.switches > 0 {
-                                BarMark(
-                                    x: .value("Time", item.label),
-                                    y: .value("Switches", item.switches)
-                                )
-                                .foregroundStyle(Color.orange.opacity(0.7))
-                            }
-                        }
-                    }
-                    .chartXAxis {
-                        if isHourly {
-                            AxisMarks(values: ["00", "06", "12", "18", "23"]) { _ in
-                                AxisValueLabel()
-                            }
-                        } else {
-                            AxisMarks { _ in
-                                AxisValueLabel()
-                            }
-                        }
-                    }
-                    .frame(height: 80)
+        Chart(data) { item in
+            BarMark(
+                x: .value("Time", item.label),
+                y: .value("Switches", item.switches)
+            )
+            .foregroundStyle(Color.orange.gradient)
+            .cornerRadius(3)
+        }
+        .chartXAxis {
+            if isHourly {
+                AxisMarks(values: ["00", "06", "12", "18"]) { _ in
+                    AxisValueLabel()
                 }
-                .padding(4)
+            } else {
+                AxisMarks { _ in
+                    AxisValueLabel()
+                }
             }
+        }
+        .chartYAxis {
+            AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) { _ in
+                AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [2, 3]))
+                AxisValueLabel()
+            }
+        }
+        .frame(height: 110)
+    }
+}
+
+struct SwitchTrendBadge: View {
+    let current: Int
+    let previous: Int
+    let comparisonLabel: String
+
+    var body: some View {
+        let delta = current - previous
+        let tint: Color = delta < 0 ? .green : (delta > 0 ? .red : .secondary)
+        let symbol = delta < 0 ? "arrow.down.right" : (delta > 0 ? "arrow.up.right" : "equal")
+        let text = delta == 0 ? "Same as \(comparisonLabel)" : "\(delta > 0 ? "+" : "−")\(abs(delta)) vs \(comparisonLabel)"
+
+        Label(text, systemImage: symbol)
+            .font(.caption.weight(.medium))
+            .foregroundStyle(tint)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(tint.opacity(0.15), in: Capsule())
+    }
+}
+
+struct DistractorListView: View {
+    let distractors: [Distractor]
+
+    var body: some View {
+        let maxCount = distractors.first?.count ?? 1
+
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Top Distractors")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            ForEach(distractors, id: \.name) { item in
+                HStack(spacing: 8) {
+                    icon(for: item)
+
+                    Text(item.name)
+                        .font(.callout)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .frame(width: 160, alignment: .leading)
+
+                    GeometryReader { geo in
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(Color.orange.opacity(0.5))
+                            .frame(width: max(4, geo.size.width * CGFloat(item.count) / CGFloat(maxCount)))
+                    }
+                    .frame(height: 10)
+
+                    Text("\(item.count)×")
+                        .font(.callout)
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                        .frame(width: 40, alignment: .trailing)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func icon(for item: Distractor) -> some View {
+        if let bundleID = item.bundleIdentifier, let appIcon = BundleNameMapper.appIcon(for: bundleID) {
+            Image(nsImage: appIcon)
+                .resizable()
+                .frame(width: 18, height: 18)
+        } else {
+            Image(systemName: item.bundleIdentifier == nil ? "globe" : "app.fill")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .frame(width: 18, height: 18)
         }
     }
 }
@@ -705,61 +836,48 @@ struct ContextSwitchesView: View {
 
     var body: some View {
         let summary = dataProvider.snapshot.disruptionSummary
+        let previous = dataProvider.snapshot.previousPeriodDisruptions
+        let isDay = dataProvider.selectedTimeframe == .day
+        let hasChartData = dataProvider.snapshot.disruptionOverTime.contains { $0.switches > 0 }
 
-        GroupBox("Context Switches") {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("A context switch happens when you leave a focus app or website and switch to something else. Fewer switches means deeper focus.")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text("\(summary.totalSwitches)")
-                        .font(.system(size: 28, weight: .semibold))
-                    Text("context \(summary.totalSwitches == 1 ? "switch" : "switches")")
-                        .font(.body)
-                        .foregroundColor(.secondary)
-
+        GroupBox {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .firstTextBaseline) {
+                    Label("Context Switches", systemImage: "arrow.triangle.swap")
+                        .font(.headline)
+                        .labelStyle(TintedIconLabelStyle(tint: .orange))
+                    Image(systemName: "info.circle")
+                        .foregroundStyle(.tertiary)
+                        .help("A context switch happens when you leave a focus app or website and switch to something else. Fewer switches means deeper focus.")
                     Spacer()
-
-                    let prev = dataProvider.snapshot.previousPeriodDisruptions
-                    if prev.totalSwitches > 0 {
-                        let delta = summary.totalSwitches - prev.totalSwitches
-                        let pct = Int((Double(delta) / Double(prev.totalSwitches)) * 100)
-                        let label = dataProvider.selectedTimeframe == .day ? "vs yesterday" : "vs last week"
-                        HStack(spacing: 2) {
-                            Image(systemName: delta <= 0 ? "arrow.down.right" : "arrow.up.right")
-                                .font(.caption)
-                                .foregroundColor(delta <= 0 ? .green : .red)
-                            Text("\(abs(pct))% \(label)")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
+                    if summary.totalSwitches > 0 || previous.totalSwitches > 0 {
+                        SwitchTrendBadge(
+                            current: summary.totalSwitches,
+                            previous: previous.totalSwitches,
+                            comparisonLabel: isDay ? "yesterday" : "last week"
+                        )
                     }
                 }
 
-                DisruptionChartView(data: dataProvider.snapshot.disruptionOverTime, isHourly: dataProvider.selectedTimeframe == .day)
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text("\(summary.totalSwitches)")
+                        .font(.system(size: 40, weight: .semibold, design: .rounded))
+                        .monospacedDigit()
+                    Text(summary.totalSwitches == 1 ? "switch" : "switches")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                }
+
+                if hasChartData {
+                    DisruptionChartView(data: dataProvider.snapshot.disruptionOverTime, isHourly: isDay)
+                }
 
                 if !summary.distractors.isEmpty {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Top distractors")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-
-                        ForEach(Array(summary.distractors.prefix(5).enumerated()), id: \.offset) { _, item in
-                            HStack {
-                                Text(item.name)
-                                    .font(.callout)
-                                    .lineLimit(1)
-                                Spacer()
-                                Text("\(item.count)x")
-                                    .font(.callout)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                    }
+                    Divider()
+                    DistractorListView(distractors: Array(summary.distractors.prefix(5)))
                 }
             }
-            .padding(4)
+            .padding(6)
         }
     }
 }
@@ -769,38 +887,37 @@ struct FocusQualityMetricsView: View {
 
     var body: some View {
         let snapshot = dataProvider.snapshot
+        let deep = snapshot.deepFocusSessions
 
-        VStack(spacing: 10) {
-            HStack(spacing: 10) {
-                if let longest = snapshot.longestSession {
-                    MetricCard(
-                        title: "Longest Focus Stretch",
-                        value: TimeFormatter.humanReadable(longest.duration)
-                    )
-                } else {
-                    MetricCard(
-                        title: "Longest Focus Stretch",
-                        value: "—"
-                    )
-                }
-
-                MetricCard(
-                    title: "Avg Session Length",
+        Grid(horizontalSpacing: 10, verticalSpacing: 10) {
+            GridRow {
+                StatTile(
+                    title: "Longest Stretch",
+                    systemImage: "timer",
+                    tint: .blue,
+                    value: snapshot.longestSession.map { TimeFormatter.humanReadable($0.duration) } ?? "—"
+                )
+                StatTile(
+                    title: "Avg Session",
+                    systemImage: "clock",
+                    tint: .teal,
                     value: snapshot.averageSessionLength > 0
                         ? TimeFormatter.humanReadable(snapshot.averageSessionLength)
                         : "—"
                 )
             }
-
-            HStack(spacing: 10) {
-                let deep = snapshot.deepFocusSessions
-                MetricCard(
+            GridRow {
+                StatTile(
                     title: "Deep Focus (25m+)",
-                    value: deep.total > 0 ? "\(deep.deep) of \(deep.total)" : "—"
+                    systemImage: "brain.head.profile",
+                    tint: .purple,
+                    value: deep.total > 0 ? "\(deep.deep)" : "—",
+                    detail: deep.total > 0 ? "of \(deep.total) sessions" : nil
                 )
-
-                MetricCard(
+                StatTile(
                     title: "Switches / Session",
+                    systemImage: "arrow.triangle.swap",
+                    tint: .orange,
                     value: snapshot.sessionCount == 0
                         ? "—"
                         : String(format: "%.1f", snapshot.contextSwitchesPerSession)
@@ -863,23 +980,7 @@ struct InsightsView: View {
                             InsightsFocusQualityPane(dataProvider: dataProvider)
                         }
                     } else {
-                        // Visible header with real data
-                        GroupBox {
-                            VStack {
-                                Text("You've focussed for").font(.title2)
-                                    .fontDesign(.default)
-                                    .foregroundStyle(.secondary)
-                                let totalSeconds = Int(dataProvider.snapshot.totalFocusTimeThisMonth)
-                                let totalMinutes = Int(totalSeconds / 60)
-
-                                Text("\(TimeFormatter.duration(totalMinutes)) this month")
-                                    .font(.title)
-                                    .fontWeight(.bold)
-                            }
-                            .padding(.horizontal, 40)
-                            .padding(.vertical)
-                            .frame(maxWidth: .infinity)
-                        }
+                        MonthlyFocusHeroView(totalFocusTimeThisMonth: dataProvider.snapshot.totalFocusTimeThisMonth)
 
                         // Blurred preview of premium insights
                         ZStack {
@@ -893,7 +994,7 @@ struct InsightsView: View {
                             VStack(spacing: 12) {
                                 Image(systemName: "lock.fill")
                                     .font(.title2)
-                                    .foregroundColor(.secondary)
+                                    .foregroundStyle(.secondary)
                                 Text("Unlock detailed insights")
                                     .font(.headline)
                                 Button("Get Auto-Focus+") {

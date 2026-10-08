@@ -9,6 +9,7 @@ import SwiftUI
 
 struct SessionListView: View {
     @EnvironmentObject var focusManager: FocusManager
+    @Environment(\.dismiss) private var dismiss
     @State private var showingDeleteConfirmation = false
     @State private var showingBulkDeleteConfirmation = false
     @State private var sessionToDelete: FocusSession?
@@ -63,18 +64,33 @@ struct SessionListView: View {
         }
     }
 
+    private var sessionCountText: String {
+        "\(filteredAndSortedSessions.count.formatted()) session\(filteredAndSortedSessions.count == 1 ? "" : "s")"
+    }
+
     var body: some View {
-        VStack(spacing: 12) {
-            // Header and Controls
+        VStack(spacing: 0) {
             sessionControlsHeader
+                .padding()
+
+            Divider()
 
             if filteredAndSortedSessions.isEmpty {
                 emptyStateView
             } else {
                 sessionsList
             }
+
+            Divider()
+
+            HStack {
+                Spacer()
+                Button("Done") { dismiss() }
+                    .keyboardShortcut(.defaultAction)
+            }
+            .padding()
         }
-        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear(perform: updateFilteredAndSortedSessions)
         .onChange(of: focusManager.focusSessions) { updateFilteredAndSortedSessions() }
         .onChange(of: filterDuration) { updateFilteredAndSortedSessions() }
@@ -82,7 +98,7 @@ struct SessionListView: View {
         .alert(isPresented: $showingDeleteConfirmation) {
             deleteConfirmationAlert
         }
-        .alert("Delete \(filteredAndSortedSessions.count) session\(filteredAndSortedSessions.count == 1 ? "" : "s")?", isPresented: $showingBulkDeleteConfirmation) {
+        .alert("Delete \(sessionCountText)?", isPresented: $showingBulkDeleteConfirmation) {
             Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) {
                 let toDelete = filteredAndSortedSessions
@@ -96,38 +112,36 @@ struct SessionListView: View {
     // MARK: - View Components
 
     private var sessionControlsHeader: some View {
-        VStack(spacing: 8) {
-            HStack {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
                 Text("Focus Sessions")
-                    .font(.headline)
+                    .font(.title3)
                     .fontWeight(.semibold)
 
                 Spacer()
 
-                Text("\(filteredAndSortedSessions.count) sessions")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                Text(sessionCountText)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
             }
 
-            // Filters and Sort Controls
             HStack(spacing: 12) {
-                // Duration Filter
                 Picker("Filter", selection: $filterDuration) {
                     ForEach(SessionDurationFilter.allCases, id: \.self) { filter in
                         Text(filter.displayName).tag(filter)
                     }
                 }
                 .pickerStyle(.menu)
-                .frame(maxWidth: 150)
+                .fixedSize()
 
-                // Sort Order
                 Picker("Sort", selection: $sortOrder) {
                     ForEach(SessionSortOrder.allCases, id: \.self) { order in
                         Text(order.displayName).tag(order)
                     }
                 }
                 .pickerStyle(.menu)
-                .frame(maxWidth: 150)
+                .fixedSize()
 
                 Spacer()
 
@@ -135,9 +149,8 @@ struct SessionListView: View {
                     Button(role: .destructive) {
                         showingBulkDeleteConfirmation = true
                     } label: {
-                        Label("Delete \(filteredAndSortedSessions.count) session\(filteredAndSortedSessions.count == 1 ? "" : "s")", systemImage: "trash")
+                        Label("Delete \(sessionCountText)", systemImage: "trash")
                     }
-                    .buttonStyle(.bordered)
                     .tint(.red)
                     .help("Delete every session matching the current filter")
                 }
@@ -149,41 +162,36 @@ struct SessionListView: View {
         VStack(spacing: 8) {
             Image(systemName: "clock.badge.questionmark")
                 .font(.title)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
 
             Text("No sessions found")
                 .font(.headline)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
 
             if filterDuration != .all || focusManager.focusSessions.isEmpty {
                 Text(focusManager.focusSessions.isEmpty
                      ? "Start using Auto-Focus to record your first session"
                      : "Try adjusting your filters to see more sessions")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
         }
+        .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.vertical, 20)
     }
 
     private var sessionsList: some View {
-        ScrollView {
-            LazyVStack(spacing: 6) {
-                ForEach(filteredAndSortedSessions) { session in
-                    SessionRowView(
-                        session: session,
-                        onDelete: {
-                            sessionToDelete = session
-                            showingDeleteConfirmation = true
-                        }
-                    )
+        List(filteredAndSortedSessions) { session in
+            SessionRowView(
+                session: session,
+                onDelete: {
+                    sessionToDelete = session
+                    showingDeleteConfirmation = true
                 }
-            }
-            .padding(.horizontal, 4)
+            )
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .listStyle(.inset(alternatesRowBackgrounds: true))
     }
 
     // MARK: - Alerts
@@ -210,93 +218,60 @@ struct SessionListView: View {
 struct SessionRowView: View {
     let session: FocusSession
     let onDelete: () -> Void
+    @State private var isHovering = false
 
-    private var durationColor: Color {
+    private var durationCategory: (color: Color, description: String) {
         let duration = session.duration
-        if duration < 60 { return .orange } // Very short
-        if duration < 10 * 60 { return .yellow } // Short
-        if duration < 60 * 60 { return .green } // Good
-        return .blue // Long
+        if duration < 60 { return (.orange, "Very short session (under 1 minute)") }
+        if duration < 10 * 60 { return (.yellow, "Short session (1–10 minutes)") }
+        if duration < 60 * 60 { return (.green, "Medium session (10–60 minutes)") }
+        return (.blue, "Long session (1 hour or more)")
+    }
+
+    private var timeRangeText: String {
+        let start = session.startTime.formatted(date: .abbreviated, time: .shortened)
+        let sameDay = Calendar.current.isDate(session.startTime, inSameDayAs: session.endTime)
+        let end = session.endTime.formatted(date: sameDay ? .omitted : .abbreviated, time: .shortened)
+        return "\(start) – \(end)"
     }
 
     var body: some View {
-        HStack(spacing: 12) {
-            // Duration indicator
-            if #available(macOS 14.0, *) {
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(durationColor.gradient)
-                    .frame(width: 4)
-            } else {
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(durationColor)
-                    .frame(width: 4)
+        let category = durationCategory
+
+        HStack(spacing: 10) {
+            Circle()
+                .fill(category.color.gradient)
+                .frame(width: 8, height: 8)
+                .help(category.description)
+                .accessibilityLabel(category.description)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(TimeFormatter.duration(Int(session.duration / 60)))
+                    .font(.headline)
+                    .monospacedDigit()
+
+                Text(timeRangeText)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
             }
 
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(TimeFormatter.duration(Int(session.duration / 60)))
-                        .font(.headline)
-                        .fontWeight(.semibold)
+            Spacer()
 
-                    Spacer()
-
-                    Text(DateFormatter.mediumDateShortTime.string(from: session.startTime))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-
-                HStack {
-                    Text("Started: \(formatTime(session.startTime))")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-
-                    Text("•")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-
-                    Text("Ended: \(formatTime(session.endTime))")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-
-                    Spacer()
-                }
-            }
-
-            // Action button
             Button(action: onDelete) {
                 Image(systemName: "trash")
-                    .foregroundColor(.red)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.borderless)
+            .foregroundStyle(.secondary)
             .help("Delete session")
+            .opacity(isHovering ? 1 : 0)
+            .allowsHitTesting(isHovering)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(backgroundMaterial)
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(separatorColor, lineWidth: 0.5)
-        )
-    }
-
-    private func formatTime(_ date: Date) -> String {
-        DateFormatter.shortTime.string(from: date)
-    }
-
-    @ViewBuilder
-    private var backgroundMaterial: some View {
-        if #available(macOS 11.0, *) {
-            RoundedRectangle(cornerRadius: 10)
-                .fill(.regularMaterial)
-        } else {
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color(.controlBackgroundColor))
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
+        .onHover { isHovering = $0 }
+        .contextMenu {
+            Button("Delete", role: .destructive, action: onDelete)
         }
-    }
-
-    private var separatorColor: Color {
-        // Use NSColor.separatorColor which is available on macOS 10.14+
-        return Color(NSColor.separatorColor).opacity(0.5)
     }
 }
 

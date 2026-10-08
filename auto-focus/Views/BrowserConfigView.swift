@@ -8,19 +8,16 @@ struct BrowserConfigView: View {
     @State private var selectedURLId: UUID?
 
     var body: some View {
-        VStack(spacing: 10) {
-            HeaderView()
-
+        Form {
             BrowserIntegrationsSection(
                 permissionService: focusManager.automationPermissionService,
                 enablementStore: focusManager.browserEnablementStore
             )
 
-            FocusURLsManagementView(selectedTab: $selectedTab, selectedURLId: $selectedURLId, showingAddURL: $showingAddURL)
-
-            Spacer()
+            FocusURLsSection(selectedTab: $selectedTab, selectedURLId: $selectedURLId, showingAddURL: $showingAddURL)
         }
-        .padding()
+        .formStyle(.grouped)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .sheet(isPresented: $showingAddURL) {
             AddURLSheet()
                 .frame(minWidth: 500, minHeight: 300)
@@ -35,40 +32,38 @@ private struct BrowserIntegrationsSection: View {
     @State private var browsers: [BrowserDescriptor] = []
 
     var body: some View {
-        GroupBox(label: Text("Browser integrations").font(.headline)) {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Auto-Focus reads only the domain of your active tab so it knows when you're on a focus website. No page content is accessed. Enable each browser you'd like Auto-Focus to watch — macOS will ask for Automation permission the first time.")
-                    .font(.callout)
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                if browsers.isEmpty {
-                    Text("No supported browsers installed.")
-                        .font(.callout)
-                        .foregroundColor(.secondary)
-                        .padding(.vertical, 8)
-                } else {
-                    VStack(spacing: 0) {
-                        ForEach(Array(browsers.enumerated()), id: \.element.id) { index, browser in
-                            BrowserRow(
-                                browser: browser,
-                                status: permissionService.status(for: browser.bundleId),
-                                isEnabled: enablementStore.isEnabled(browser.bundleId),
-                                onToggle: { enabled in handleToggle(enabled, for: browser) },
-                                onRequestPermission: { permissionService.requestPermission(bundleId: browser.bundleId) },
-                                onOpenSettings: { permissionService.openSystemSettings() }
-                            )
-                            if index < browsers.count - 1 {
-                                Divider()
-                            }
-                        }
-                    }
+        Section {
+            if browsers.isEmpty {
+                Text("No supported browsers installed.")
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(browsers) { browser in
+                    BrowserRow(
+                        browser: browser,
+                        status: permissionService.status(for: browser.bundleId),
+                        isEnabled: enablementStore.isEnabled(browser.bundleId),
+                        onToggle: { enabled in handleToggle(enabled, for: browser) },
+                        onRequestPermission: { permissionService.requestPermission(bundleId: browser.bundleId) },
+                        onOpenSettings: { permissionService.openSystemSettings() }
+                    )
                 }
             }
-            .padding(.horizontal, 5)
-            .padding(.vertical)
+
+            Label(
+                "Don't add your browser as a focus app — URL detection handles website tracking automatically.",
+                systemImage: "lightbulb"
+            )
+            .labelStyle(TintedIconLabelStyle(tint: .orange))
+            .font(.callout)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+        } header: {
+            Text("Browser Integrations")
+        } footer: {
+            Text("Auto-Focus reads only the domain of your active tab so it knows when you're on a focus website. No page content is accessed. Enable each browser you'd like Auto-Focus to watch — macOS will ask for Automation permission the first time.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
         }
-        .frame(maxWidth: .infinity)
         .onAppear {
             browsers = AppConfiguration.installedSupportedBrowsers()
             permissionService.refreshAll(bundleIds: browsers.map(\.bundleId))
@@ -94,23 +89,28 @@ private struct BrowserRow: View {
     let onRequestPermission: () -> Void
     let onOpenSettings: () -> Void
 
+    /// AppleScript reports -600 (procNotFound) as `.notInstalled`, which here means the browser isn't running.
+    private var isRunning: Bool {
+        browser.isInstalled && status != .notInstalled
+    }
+
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
             browserIcon
-                .frame(width: 28, height: 28)
+                .frame(width: 24, height: 24)
 
-            Text(browser.displayName)
-                .font(.body)
-
-            statusBadge
+            VStack(alignment: .leading, spacing: 2) {
+                Text(browser.displayName)
+                statusBadge
+            }
 
             Spacer()
 
-            if isEnabled {
+            if isEnabled, isRunning {
                 contextualAction
             }
 
-            Toggle("", isOn: Binding(
+            Toggle(browser.displayName, isOn: Binding(
                 get: { isEnabled },
                 set: { onToggle($0) }
             ))
@@ -118,8 +118,6 @@ private struct BrowserRow: View {
             .toggleStyle(.switch)
             .controlSize(.small)
         }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 4)
     }
 
     private var browserIcon: some View {
@@ -129,7 +127,7 @@ private struct BrowserRow: View {
                     .resizable().scaledToFit()
             } else {
                 Image(systemName: "globe")
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -138,26 +136,23 @@ private struct BrowserRow: View {
     private var statusBadge: some View {
         switch status {
         case .granted:
-            badge(systemImage: "checkmark.circle.fill", text: "Granted", color: .green)
+            badge("Granted", systemImage: "checkmark.circle.fill", tint: .green)
         case .denied:
-            badge(systemImage: "xmark.octagon.fill", text: "Denied", color: .red)
+            badge("Denied", systemImage: "xmark.octagon.fill", tint: .red)
         case .notDetermined:
-            badge(systemImage: "questionmark.circle.fill", text: "Not determined", color: .orange)
+            badge("Not determined", systemImage: "questionmark.circle.fill", tint: .orange)
         case .unknown:
-            badge(systemImage: "circle", text: "Not checked", color: .secondary)
+            badge("Not checked", systemImage: "circle", tint: .secondary)
         case .notInstalled:
-            badge(systemImage: "slash.circle", text: "Not installed", color: .secondary)
+            badge("Not running", systemImage: "moon.zzz", tint: .secondary)
         }
     }
 
-    private func badge(systemImage: String, text: String, color: Color) -> some View {
-        HStack(spacing: 4) {
-            Image(systemName: systemImage)
-                .foregroundColor(color)
-            Text(text)
-                .font(.caption)
-                .foregroundColor(color)
-        }
+    private func badge(_ title: String, systemImage: String, tint: Color) -> some View {
+        Label(title, systemImage: systemImage)
+            .labelStyle(TintedIconLabelStyle(tint: tint))
+            .font(.caption)
+            .foregroundStyle(.secondary)
     }
 
     @ViewBuilder
@@ -167,7 +162,7 @@ private struct BrowserRow: View {
             Button("Fix in System Settings…") { onOpenSettings() }
                 .controlSize(.small)
         case .notDetermined, .unknown:
-            Button("Request permission") { onRequestPermission() }
+            Button("Request Permission") { onRequestPermission() }
                 .controlSize(.small)
         default:
             EmptyView()
@@ -175,105 +170,12 @@ private struct BrowserRow: View {
     }
 }
 
-private struct HeaderView: View {
-    var body: some View {
-        GroupBox {
-            VStack {
-                Text("Browser Integration").font(.title)
-                    .fontDesign(.default)
-                    .fontWeight(.bold)
-                    .bold()
-                Text("Track focus time on specific websites and web apps. Auto-Focus automatically detects URLs in Safari, Chrome, Brave, Edge, Arc, and other browsers.")
-                    .font(.callout)
-                    .fontDesign(.default)
-                    .fontWeight(.regular)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-
-                Text("💡 Tip: Don't add your browser as a focus app — URL detection handles website tracking automatically!")
-                    .font(.caption)
-                    .fontDesign(.default)
-                    .fontWeight(.medium)
-                    .foregroundColor(.orange)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color.orange.opacity(0.1))
-                    .cornerRadius(6)
-            }
-            .padding(.horizontal, 40)
-            .padding(.vertical)
-        }
-        .frame(maxWidth: .infinity)
-    }
-}
-
-private struct FocusURLsManagementView: View {
+private struct FocusURLsSection: View {
     @EnvironmentObject var focusManager: FocusManager
     @EnvironmentObject var licenseManager: LicenseManager
     @Binding var selectedTab: Int
     @Binding var selectedURLId: UUID?
     @Binding var showingAddURL: Bool
-
-    var body: some View {
-        GroupBox(label: Text("Focus URLs").font(.headline)) {
-            VStack(alignment: .leading) {
-                Text("Being on any of these websites will automatically activate focus mode.")
-                    .font(.callout)
-                    .fontDesign(.default)
-                    .fontWeight(.regular)
-                    .foregroundColor(.secondary)
-
-                FocusURLsList(selectedTab: $selectedTab, selectedURLId: $selectedURLId)
-
-                HStack {
-                    Button {
-                        showingAddURL = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .frame(width: 16, height: 16)
-                    }
-                    .disabled(!focusManager.canAddMoreURLs)
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .frame(width: 28, height: 28)
-
-                    Button {
-                        removeSelectedURL()
-                    } label: {
-                        Image(systemName: "minus")
-                            .frame(width: 16, height: 16)
-                    }
-                    .disabled(selectedURLId == nil)
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .frame(width: 28, height: 28)
-
-                    Spacer()
-                }
-            }
-            .padding(.horizontal, 5)
-            .padding(.vertical)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private func removeSelectedURL() {
-        guard let selectedId = selectedURLId,
-              let focusURL = focusManager.focusURLs.first(where: { $0.id == selectedId }) else {
-            return
-        }
-
-        focusManager.removeFocusURL(focusURL)
-        selectedURLId = nil
-    }
-}
-
-private struct FocusURLsList: View {
-    @EnvironmentObject var focusManager: FocusManager
-    @EnvironmentObject var licenseManager: LicenseManager
-    @Binding var selectedTab: Int
-    @Binding var selectedURLId: UUID?
     @State private var searchText = ""
 
     private var sortedAndFilteredURLs: [FocusURL] {
@@ -288,40 +190,79 @@ private struct FocusURLsList: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
+        Section {
+            HStack(spacing: 6) {
                 Image(systemName: "magnifyingglass")
-                    .foregroundColor(.secondary)
-                TextField("Filter URLs…", text: $searchText)
+                    .foregroundStyle(.secondary)
+                TextField("Filter URLs", text: $searchText, prompt: Text("Filter URLs…"))
                     .textFieldStyle(.plain)
+                    .labelsHidden()
                 if !searchText.isEmpty {
                     Button {
                         searchText = ""
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.plain)
+                    .help("Clear filter")
                 }
             }
-            .padding(8)
-            .background(.quaternary, in: RoundedRectangle(cornerRadius: 6))
 
-            List(selection: $selectedURLId) {
+            if focusManager.focusURLs.isEmpty {
+                Text("No focus URLs added yet")
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            } else if sortedAndFilteredURLs.isEmpty {
+                Text("No URLs match \u{201C}\(searchText)\u{201D}")
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            } else {
                 ForEach(sortedAndFilteredURLs) { focusURL in
-                    FocusURLRowSimple(focusURL: focusURL)
+                    FocusURLRow(focusURL: focusURL)
+                        .selectableFormRow(isSelected: selectedURLId == focusURL.id) {
+                            selectedURLId = selectedURLId == focusURL.id ? nil : focusURL.id
+                        }
+                        .contextMenu {
+                            Button("Remove", role: .destructive) {
+                                focusManager.removeFocusURL(focusURL)
+                                if selectedURLId == focusURL.id {
+                                    selectedURLId = nil
+                                }
+                            }
+                        }
                 }
             }
-            .listStyle(.bordered)
-            .animation(.easeInOut(duration: 0.2), value: focusManager.focusURLs.count)
+
+            HStack(spacing: 4) {
+                Button {
+                    showingAddURL = true
+                } label: {
+                    Image(systemName: "plus")
+                        .frame(width: 12, height: 12)
+                }
+                .help("Add focus URL")
+                .disabled(!focusManager.canAddMoreURLs)
+
+                Button {
+                    removeSelectedURL()
+                } label: {
+                    Image(systemName: "minus")
+                        .frame(width: 12, height: 12)
+                }
+                .help("Remove selected URL")
+                .disabled(selectedURLId == nil)
+
+                Spacer()
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
 
             if !licenseManager.isLicensed {
                 HStack {
-                    Image(systemName: "lock.fill")
-                        .foregroundColor(.secondary)
-                    Text("Upgrade to Auto-Focus+ for unlimited URLs")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    Label("Upgrade to Auto-Focus+ for unlimited URLs", systemImage: "lock.fill")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
 
                     Spacer()
 
@@ -330,15 +271,28 @@ private struct FocusURLsList: View {
                     }
                     .controlSize(.small)
                 }
-                .padding(.vertical, 8)
-                .padding(.horizontal, 12)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
             }
+        } header: {
+            Text("Focus URLs")
+        } footer: {
+            Text("Being on any of these websites will automatically activate focus mode. Select a URL and click − to remove it, or right-click it.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
         }
+    }
+
+    private func removeSelectedURL() {
+        guard let selectedId = selectedURLId,
+              let focusURL = focusManager.focusURLs.first(where: { $0.id == selectedId }) else {
+            return
+        }
+
+        focusManager.removeFocusURL(focusURL)
+        selectedURLId = nil
     }
 }
 
-private struct FocusURLRowSimple: View {
+private struct FocusURLRow: View {
     let focusURL: FocusURL
 
     private var showName: Bool {
@@ -347,49 +301,32 @@ private struct FocusURLRowSimple: View {
     }
 
     var body: some View {
-        HStack {
-            Image(systemName: focusURL.category.icon)
-                .foregroundColor(colorForCategory(focusURL.category))
+        HStack(spacing: 8) {
+            Image(systemName: "globe")
+                .foregroundStyle(.secondary)
                 .frame(width: 20)
 
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    Text(focusURL.domain)
-                        .font(.body.monospaced())
+            Text(focusURL.domain)
 
-                    if showName {
-                        Text(focusURL.name)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-
-                    if focusURL.isPremium {
-                        Image(systemName: "crown.fill")
-                            .foregroundColor(.yellow)
-                            .font(.caption)
-                    }
-
-                    if !focusURL.isEnabled {
-                        Image(systemName: "pause.circle")
-                            .foregroundColor(.orange)
-                            .font(.caption)
-                    }
-                }
+            if showName {
+                Text(focusURL.name)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
             }
-        }
-        .tag(focusURL.id)
-    }
 
-    private func colorForCategory(_ category: URLCategory) -> Color {
-        switch category.color {
-        case "blue": .blue
-        case "green": .green
-        case "purple": .purple
-        case "pink": .pink
-        case "orange": .orange
-        case "indigo": .indigo
-        case "yellow": .yellow
-        default: .gray
+            if focusURL.isPremium {
+                Image(systemName: "crown.fill")
+                    .foregroundStyle(.yellow)
+                    .font(.caption)
+                    .help("Premium")
+            }
+
+            if !focusURL.isEnabled {
+                Image(systemName: "pause.circle")
+                    .foregroundStyle(.orange)
+                    .font(.caption)
+                    .help("Paused")
+            }
         }
     }
 }
@@ -427,26 +364,26 @@ private struct AddURLSheet: View {
 
                     Text("Use *.domain.com to match all subdomains. You can also paste a full URL.")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
 
                     if !cleanedDomain.isEmpty {
                         HStack(spacing: 4) {
                             Text("Will be saved as:")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                             Text(derivedName)
                                 .font(.caption)
                                 .bold()
                             Text("(\(cleanedDomain))")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
                     }
 
                     if isDuplicate {
                         Label("This domain is already in your list", systemImage: "exclamationmark.triangle.fill")
                             .font(.caption)
-                            .foregroundColor(.orange)
+                            .foregroundStyle(.orange)
                     }
                 }
 
