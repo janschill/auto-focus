@@ -14,38 +14,61 @@ class AppMonitor: ObservableObject, AppMonitoring {
     @Published var previousNonSelfApp: String?
     @Published var previousNonSelfAppName: String?
 
-    private var timer: Timer?
-    private let checkInterval: TimeInterval
+    private var isMonitoring = false
     private var focusApps: [AppInfo] = []
     private var lastFocusAppActive = false
     private let appEventRepo: AppEventRepository?
 
     weak var delegate: AppMonitorDelegate?
 
-    init(checkInterval: TimeInterval = AppConfiguration.checkInterval, appEventRepo: AppEventRepository? = AppEventRepository()) {
-        self.checkInterval = checkInterval
+    init(appEventRepo: AppEventRepository? = AppEventRepository()) {
         self.appEventRepo = appEventRepo
     }
 
     // MARK: - Monitoring Control
 
+    /// Starts observing app activation. Wake and unlock are observed too, because the app that
+    /// was frontmost before the lock screen does not always post an activation when it returns.
     func startMonitoring() {
-        timer = Timer.scheduledTimer(withTimeInterval: checkInterval, repeats: true) { [weak self] _ in
-            self?.checkActiveApp()
+        guard !isMonitoring else { return }
+        isMonitoring = true
+
+        let workspaceNC = NSWorkspace.shared.notificationCenter
+        for name in [
+            NSWorkspace.didActivateApplicationNotification,
+            NSWorkspace.screensDidWakeNotification,
+            NSWorkspace.didWakeNotification
+        ] {
+            workspaceNC.addObserver(self, selector: #selector(frontmostAppMayHaveChanged(_:)), name: name, object: nil)
         }
-        AppLogger.focus.info("App monitoring started", metadata: [
-            "check_interval": String(format: "%.1f", checkInterval)
-        ])
+        DistributedNotificationCenter.default().addObserver(
+            self,
+            selector: #selector(frontmostAppMayHaveChanged(_:)),
+            name: NSNotification.Name("com.apple.screenIsUnlocked"),
+            object: nil
+        )
+
+        checkActiveApp()
+        AppLogger.focus.info("App monitoring started")
     }
 
     func stopMonitoring() {
-        timer?.invalidate()
-        timer = nil
+        guard isMonitoring else { return }
+        isMonitoring = false
+        NSWorkspace.shared.notificationCenter.removeObserver(self)
+        DistributedNotificationCenter.default().removeObserver(self)
         AppLogger.focus.info("App monitoring stopped")
+    }
+
+    func refresh() {
+        guard isMonitoring else { return }
+        checkActiveApp()
     }
 
     func updateFocusApps(_ apps: [AppInfo]) {
         focusApps = apps
+        // The frontmost app may have just become (or stopped being) a focus app
+        refresh()
     }
 
     func resetState() {
@@ -55,8 +78,14 @@ class AppMonitor: ObservableObject, AppMonitoring {
 
     // MARK: - Private Methods
 
-    private func checkActiveApp() {
-        guard let workspace = NSWorkspace.shared.frontmostApplication else { return }
+    @objc private func frontmostAppMayHaveChanged(_ notification: Notification) {
+        // Prefer the activated app from the notification; frontmostApplication can lag behind it
+        let activatedApp = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+        checkActiveApp(activatedApp)
+    }
+
+    private func checkActiveApp(_ activatedApp: NSRunningApplication? = nil) {
+        guard let workspace = activatedApp ?? NSWorkspace.shared.frontmostApplication else { return }
         let currentAppBundleId = workspace.bundleIdentifier
         let previousApp = currentApp
 

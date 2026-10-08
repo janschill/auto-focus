@@ -92,7 +92,6 @@ class FocusManager: ObservableObject {
     @Published var isPremiumUser: Bool = false
 
     private let focusTimer: FocusTimer
-    private let checkInterval: TimeInterval = AppConfiguration.checkInterval
     private var bufferChangeCancellable: AnyCancellable?
 
     // MARK: - Buffer Access
@@ -197,9 +196,8 @@ class FocusManager: ObservableObject {
         self.browserEnablementStore = browserEnablementStore ?? BrowserEnablementStore(settingsRepo: settingsRepo)
 
         // Create default implementations if not provided
-        let checkInterval = AppConfiguration.checkInterval
         self.sessionManager = sessionManager ?? SessionManager()
-        self.appMonitor = appMonitor ?? AppMonitor(checkInterval: checkInterval)
+        self.appMonitor = appMonitor ?? AppMonitor()
         self.bufferManager = bufferManager ?? BufferManager()
         self.focusModeController = focusModeController ?? FocusModeManager()
         self.browserManager = browserManager ?? BrowserManager(
@@ -207,7 +205,7 @@ class FocusManager: ObservableObject {
             permissionService: self.automationPermissionService
         )
 
-        self.focusTimer = FocusTimer(interval: checkInterval)
+        self.focusTimer = FocusTimer()
 
         loadFocusApps()
         // Load settings from SQLite
@@ -270,6 +268,7 @@ class FocusManager: ObservableObject {
             }
         } else {
             appMonitor.resetState()
+            appMonitor.refresh()
         }
     }
 

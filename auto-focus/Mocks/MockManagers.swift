@@ -109,6 +109,7 @@ class MockAppMonitor: ObservableObject, AppMonitoring {
     var shouldFailMonitoring = false
     var monitoringInterval: TimeInterval = 2.0
     private(set) var resetStateCallCount = 0
+    private(set) var refreshCallCount = 0
 
     func startMonitoring() {
         guard !shouldFailMonitoring else { return }
@@ -126,6 +127,10 @@ class MockAppMonitor: ObservableObject, AppMonitoring {
     func resetState() {
         currentApp = nil
         resetStateCallCount += 1
+    }
+
+    func refresh() {
+        refreshCallCount += 1
     }
 
     // Test helper methods
@@ -155,6 +160,7 @@ class MockAppMonitor: ObservableObject, AppMonitoring {
         focusApps.removeAll()
         shouldFailMonitoring = false
         resetStateCallCount = 0
+        refreshCallCount = 0
     }
 }
 

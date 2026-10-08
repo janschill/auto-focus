@@ -8,7 +8,7 @@ struct AppConfiguration {
     static let preSessionBuffer: TimeInterval = 1 // 1 second buffer before focus session starts
 
     // MARK: - Timer Intervals
-    static let checkInterval: TimeInterval = 1.0 // Check active app every second
+    static let checkInterval: TimeInterval = 1.0 // Focus timer tick interval
     static let bufferTimerInterval: TimeInterval = 1.0 // Buffer countdown interval
 
     // MARK: - Debug Settings

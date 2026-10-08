@@ -1,121 +1,89 @@
 import Foundation
 
-/// Manages focus time tracking with configurable intervals and thresholds
+/// Tracks focus time. Elapsed time is measured from the clock rather than by counting ticks,
+/// so coalesced or delayed timer fires (App Nap, energy saving) don't lose time.
 class FocusTimer {
     private var timer: Timer?
-    private var elapsedTime: TimeInterval = 0
-    private var isPaused: Bool = false
+    /// Time accumulated in previous running segments.
+    private var accumulatedTime: TimeInterval = 0
+    /// Start of the current running segment, nil while stopped or paused.
+    private var segmentStart: Date?
     private let interval: TimeInterval
+    private let now: () -> Date
 
     /// Callback invoked on each timer tick with the current elapsed time
     var onTick: ((TimeInterval) -> Void)?
 
     /// Current elapsed time
     var currentTime: TimeInterval {
-        return elapsedTime
+        guard let segmentStart else { return accumulatedTime }
+        return accumulatedTime + now().timeIntervalSince(segmentStart)
     }
 
     /// Whether the timer is currently running
     var isRunning: Bool {
-        return timer != nil && !isPaused
+        return segmentStart != nil
     }
 
-    init(interval: TimeInterval = AppConfiguration.checkInterval) {
+    init(interval: TimeInterval = AppConfiguration.checkInterval, now: @escaping () -> Date = Date.init) {
         self.interval = interval
+        self.now = now
     }
 
     // MARK: - Timer Control
 
     /// Start the timer, optionally preserving existing elapsed time
-    /// - Parameter preserveTime: If true, keeps current elapsedTime; if false, resets to 0
+    /// - Parameter preserveTime: If true, keeps current elapsed time; if false, resets to 0
     func start(preserveTime: Bool = false) {
-        // Stop any existing timer first
-        stop()
+        accumulatedTime = preserveTime ? currentTime : 0
+        invalidateTimer()
+        segmentStart = now()
 
-        if !preserveTime {
-            elapsedTime = 0
-        }
-
-        isPaused = false
-
-        timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
             self?.tick()
         }
+        timer.tolerance = interval * 0.1
+        RunLoop.main.add(timer, forMode: .common)
+        self.timer = timer
 
-        AppLogger.focus.info("▶️ FocusTimer: Timer STARTED", metadata: [
+        AppLogger.focus.info("FocusTimer started", metadata: [
             "preserve_time": String(preserveTime),
-            "elapsed_time": String(format: "%.1f", elapsedTime),
-            "interval": String(format: "%.1f", interval),
-            "timer_exists": String(timer != nil),
-            "is_paused": String(isPaused)
+            "elapsed_time": String(format: "%.1f", accumulatedTime)
         ])
     }
 
     /// Pause the timer without resetting elapsed time
     func pause() {
-        guard timer != nil else {
-            AppLogger.focus.info("⚠️ FocusTimer: Pause called but timer is nil", metadata: [
-                "elapsed_time": String(format: "%.1f", elapsedTime)
-            ])
-            return
-        }
+        guard isRunning else { return }
+        accumulatedTime = currentTime
+        segmentStart = nil
+        invalidateTimer()
 
-        timer?.invalidate()
-        timer = nil
-        isPaused = true
-
-        AppLogger.focus.info("⏸️ FocusTimer: Timer PAUSED", metadata: [
-            "elapsed_time": String(format: "%.1f", elapsedTime)
-        ])
-    }
-
-    /// Resume a paused timer
-    func resume() {
-        guard isPaused else { return }
-
-        isPaused = false
-
-        timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
-            self?.tick()
-        }
-
-        AppLogger.focus.debug("Focus timer resumed", metadata: [
-            "elapsed_time": String(format: "%.1f", elapsedTime)
+        AppLogger.focus.info("FocusTimer paused", metadata: [
+            "elapsed_time": String(format: "%.1f", accumulatedTime)
         ])
     }
 
     /// Reset elapsed time to 0 and stop the timer
     func reset() {
-        stop()
-        elapsedTime = 0
-
-        AppLogger.focus.debug("Focus timer reset")
-    }
-
-    /// Stop the timer completely
-    func stop() {
-        let wasRunning = timer != nil && !isPaused
-        timer?.invalidate()
-        timer = nil
-        isPaused = false
-
-        AppLogger.focus.info("⏹️ FocusTimer: Timer STOPPED", metadata: [
-            "elapsed_time": String(format: "%.1f", elapsedTime),
-            "was_running": String(wasRunning)
-        ])
+        segmentStart = nil
+        accumulatedTime = 0
+        invalidateTimer()
     }
 
     // MARK: - Private Methods
 
-    private func tick() {
-        guard !isPaused else { return }
+    private func invalidateTimer() {
+        timer?.invalidate()
+        timer = nil
+    }
 
-        elapsedTime += interval
-        onTick?(elapsedTime)
+    private func tick() {
+        guard isRunning else { return }
+        onTick?(currentTime)
     }
 
     deinit {
-        stop()
+        invalidateTimer()
     }
 }
-

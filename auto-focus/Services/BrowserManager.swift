@@ -52,6 +52,8 @@ class BrowserManager: ObservableObject, BrowserManaging {
     private var pollingGeneration = 0
     /// The first result after `startPolling()` is always reported so the delegate can resolve an app → browser hand-off.
     private var hasReportedInitialResult = false
+    /// Browser whose blocked polling was last logged, so the warning isn't repeated every second.
+    private var lastLoggedBlockedBundleId: String?
 
     init(
         focusURLRepo: FocusURLRepository = FocusURLRepository(),
@@ -85,6 +87,7 @@ class BrowserManager: ObservableObject, BrowserManaging {
         guard pollingTimer == nil else { return }
         pollingGeneration += 1
         hasReportedInitialResult = false
+        lastLoggedBlockedBundleId = nil
         AppLogger.browser.info("Started URL polling for browser")
         pollingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             self?.pollCurrentURL()
@@ -171,17 +174,20 @@ class BrowserManager: ObservableObject, BrowserManaging {
             return
         }
 
+        lastLoggedBlockedBundleId = nil
         handlePolledURL(url, appName: appName, bundleId: bundleId)
     }
 
     func handlePollingBlocked(appName: String, bundleId: String) {
-        let status = permissionService.status(for: bundleId)
-        AppLogger.browser.warning("Browser URL polling blocked", metadata: [
-            "browser": appName,
-            "bundleId": bundleId,
-            "enabled": String(enablementStore.isEnabled(bundleId)),
-            "permission_status": status.rawValue
-        ])
+        if lastLoggedBlockedBundleId != bundleId {
+            lastLoggedBlockedBundleId = bundleId
+            AppLogger.browser.warning("Browser URL polling blocked", metadata: [
+                "browser": appName,
+                "bundleId": bundleId,
+                "enabled": String(enablementStore.isEnabled(bundleId)),
+                "permission_status": permissionService.status(for: bundleId).rawValue
+            ])
+        }
         handleURLUnavailable(appName: appName, bundleId: bundleId, errorNumber: nil)
     }
 

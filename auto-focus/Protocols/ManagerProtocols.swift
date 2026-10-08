@@ -29,7 +29,10 @@ protocol AppMonitoring: AnyObject, ObservableObject {
     func startMonitoring()
     func stopMonitoring()
     func updateFocusApps(_ apps: [AppInfo])
+    /// Forgets the last reported app so the next check reports the frontmost app afresh.
     func resetState()
+    /// Re-evaluates the frontmost app immediately.
+    func refresh()
 }
 
 // MARK: - Buffer Management Protocol
