@@ -500,7 +500,7 @@ class LicenseManager: ObservableObject {
                     "status_code": String(httpResponse.statusCode),
                     "error_message": errorMessage
                 ])
-                throw LicenseError.serverError(errorMessage)
+                throw Self.validationError(forStatusCode: httpResponse.statusCode, message: errorMessage)
             }
 
             guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
@@ -529,6 +529,20 @@ class LicenseManager: ObservableObject {
         }
     }
 
+    /// Maps a non-200 validation response to a `LicenseError`.
+    ///
+    /// Server-side failures (5xx), request timeouts (408) and rate limiting (429) are transient and map to
+    /// `.networkError` so the offline grace period applies. Any other status (e.g. 400/401/403/404) means
+    /// the server rejected the key.
+    static func validationError(forStatusCode statusCode: Int, message: String) -> LicenseError {
+        switch statusCode {
+        case 408, 429, 500...599:
+            return .networkError
+        default:
+            return .serverError(message)
+        }
+    }
+
     private func deactivateLicenseWithServer(_ key: String) async throws {
         guard let url = URL(string: "\(licenseServerURL)/deactivate") else {
             throw LicenseError.serverError("Invalid server URL")
@@ -553,7 +567,7 @@ class LicenseManager: ObservableObject {
         }
     }
 
-    private func parseLicenseResponse(_ json: [String: Any], licenseKey: String) throws -> License {
+    func parseLicenseResponse(_ json: [String: Any], licenseKey: String, now: Date = Date()) throws -> License {
         guard let valid = json["valid"] as? Bool,
               let message = json["message"] as? String,
               let timestamp = json["timestamp"] as? Int64,
@@ -571,7 +585,7 @@ class LicenseManager: ObservableObject {
         }
 
         // Check timestamp is recent (within 5 minutes)
-        let currentTime = Int64(Date().timeIntervalSince1970)
+        let currentTime = Int64(now.timeIntervalSince1970)
         let timeDiff = abs(currentTime - timestamp)
         if timeDiff > 300 { // 5 minutes
             logger.error("Response timestamp too old", metadata: [
@@ -579,7 +593,8 @@ class LicenseManager: ObservableObject {
                 "current_time": String(currentTime),
                 "diff": String(timeDiff)
             ])
-            throw LicenseError.serverError("Response timestamp invalid")
+            // Usually local clock skew, not a rejected key: treat as transient so the grace period applies
+            throw LicenseError.networkError
         }
 
         guard valid else {

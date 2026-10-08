@@ -151,35 +151,15 @@ class InsightsDataProvider {
         var hourlyTotals = Array(repeating: TimeInterval(0), count: 24)
 
         for session in allSessions {
-            let sessionStartHour = calendar.component(.hour, from: session.startTime)
-            let sessionEndHour = calendar.component(.hour, from: session.endTime)
-
-            if sessionStartHour == sessionEndHour {
-                // Session is entirely within one hour
-                hourlyTotals[sessionStartHour] += session.duration
-            } else {
-                // Session spans multiple hours - calculate portion per hour
-                let dayStart = calendar.startOfDay(for: session.startTime)
-
-                // First hour: from session start to end of hour
-                let firstHourStart = calendar.date(byAdding: .hour, value: sessionStartHour, to: dayStart)!
-                let firstHourEnd = calendar.date(byAdding: .hour, value: 1, to: firstHourStart)!
-                let firstHourDuration = firstHourEnd.timeIntervalSince(session.startTime)
-                hourlyTotals[sessionStartHour] += firstHourDuration
-
-                // Middle hours: full hours
-                var currentHour = sessionStartHour + 1
-                while currentHour < sessionEndHour {
-                    hourlyTotals[currentHour] += 3600 // 1 hour in seconds
-                    currentHour += 1
-                }
-
-                // Last hour: from start of hour to session end
-                if sessionEndHour < 24 {
-                    let lastHourStart = calendar.date(byAdding: .hour, value: sessionEndHour, to: dayStart)!
-                    let lastHourDuration = session.endTime.timeIntervalSince(lastHourStart)
-                    hourlyTotals[sessionEndHour] += lastHourDuration
-                }
+            // Walk the session in absolute clock-hour chunks so sessions crossing
+            // midnight (or any day boundary) land in the correct hour buckets.
+            var chunkStart = session.startTime
+            while chunkStart < session.endTime {
+                guard let hourInterval = calendar.dateInterval(of: .hour, for: chunkStart) else { break }
+                let chunkEnd = min(hourInterval.end, session.endTime)
+                let hour = calendar.component(.hour, from: chunkStart)
+                hourlyTotals[hour] += chunkEnd.timeIntervalSince(chunkStart)
+                chunkStart = chunkEnd
             }
         }
 

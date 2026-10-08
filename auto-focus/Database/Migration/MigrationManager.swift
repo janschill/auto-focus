@@ -7,9 +7,10 @@ final class MigrationManager {
         sessionRepo: SessionRepository,
         focusAppRepo: FocusAppRepository,
         focusURLRepo: FocusURLRepository,
-        settingsRepo: SettingsRepository
+        settingsRepo: SettingsRepository,
+        defaults: UserDefaults = .standard
     ) {
-        guard !UserDefaults.standard.bool(forKey: migrationCompleteKey) else {
+        guard !defaults.bool(forKey: migrationCompleteKey) else {
             return
         }
 
@@ -21,72 +22,62 @@ final class MigrationManager {
         var expectedURLs = 0
 
         do {
+            // Sessions, apps and URLs are critical: a decode or insert failure throws to the
+            // outer catch so the flag stays unset and the legacy keys are kept for retry.
             // Migrate sessions
-            if let sessionsData = UserDefaults.standard.data(forKey: "focusSessions") {
-                do {
-                    let sessions = try JSONDecoder().decode([FocusSession].self, from: sessionsData)
-                    expectedSessions = sessions.count
-                    for session in sessions {
-                        try sessionRepo.insert(session)
-                    }
-                    AppLogger.focus.info("Migrated sessions", metadata: [
-                        "count": String(sessions.count)
-                    ])
-                } catch {
-                    AppLogger.focus.error("Failed to decode sessions from UserDefaults", error: error)
+            if let sessionsData = defaults.data(forKey: "focusSessions") {
+                let sessions = try JSONDecoder().decode([FocusSession].self, from: sessionsData)
+                expectedSessions = sessions.count
+                for session in sessions {
+                    try sessionRepo.insert(session)
                 }
+                AppLogger.focus.info("Migrated sessions", metadata: [
+                    "count": String(sessions.count)
+                ])
             }
 
             // Migrate focus apps
-            if let appsData = UserDefaults.standard.data(forKey: "focusApps") {
-                do {
-                    let apps = try JSONDecoder().decode([AppInfo].self, from: appsData)
-                    expectedApps = apps.count
-                    for app in apps {
-                        try focusAppRepo.insert(app)
-                    }
-                    AppLogger.focus.info("Migrated focus apps", metadata: [
-                        "count": String(apps.count)
-                    ])
-                } catch {
-                    AppLogger.focus.error("Failed to decode focus apps from UserDefaults", error: error)
+            if let appsData = defaults.data(forKey: "focusApps") {
+                let apps = try JSONDecoder().decode([AppInfo].self, from: appsData)
+                expectedApps = apps.count
+                for app in apps {
+                    try focusAppRepo.insert(app)
                 }
+                AppLogger.focus.info("Migrated focus apps", metadata: [
+                    "count": String(apps.count)
+                ])
             }
 
             // Migrate focus URLs
-            if let urlsData = UserDefaults.standard.data(forKey: "focusURLs") {
-                do {
-                    let urls = try JSONDecoder().decode([FocusURL].self, from: urlsData)
-                    expectedURLs = urls.count
-                    for url in urls {
-                        try focusURLRepo.insert(url)
-                    }
-                    AppLogger.focus.info("Migrated focus URLs", metadata: [
-                        "count": String(urls.count)
-                    ])
-                } catch {
-                    AppLogger.focus.error("Failed to decode focus URLs from UserDefaults", error: error)
+            if let urlsData = defaults.data(forKey: "focusURLs") {
+                let urls = try JSONDecoder().decode([FocusURL].self, from: urlsData)
+                expectedURLs = urls.count
+                for url in urls {
+                    try focusURLRepo.insert(url)
                 }
+                AppLogger.focus.info("Migrated focus URLs", metadata: [
+                    "count": String(urls.count)
+                ])
             }
 
             // Migrate settings
-            let threshold = UserDefaults.standard.double(forKey: "focusThreshold")
+            let threshold = defaults.double(forKey: "focusThreshold")
             if threshold > 0 {
                 try settingsRepo.setDouble(threshold, forKey: "focusThreshold")
             }
 
-            let buffer = UserDefaults.standard.double(forKey: "focusLossBuffer")
+            let buffer = defaults.double(forKey: "focusLossBuffer")
             if buffer > 0 {
                 try settingsRepo.setDouble(buffer, forKey: "focusLossBuffer")
             }
 
-            let isPaused = UserDefaults.standard.bool(forKey: "isPaused")
+            let isPaused = defaults.bool(forKey: "isPaused")
             try settingsRepo.setBool(isPaused, forKey: "isPaused")
 
-            let onboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+            let onboarding = defaults.bool(forKey: "hasCompletedOnboarding")
             try settingsRepo.setBool(onboarding, forKey: "hasCompletedOnboarding")
 
-            if let modeData = UserDefaults.standard.data(forKey: "timerDisplayMode") {
+            if let modeData = defaults.data(forKey: "timerDisplayMode") {
                 do {
                     let mode = try JSONDecoder().decode(TimerDisplayMode.self, from: modeData)
                     try settingsRepo.setCodable(mode, forKey: "timerDisplayMode")
@@ -115,7 +106,7 @@ final class MigrationManager {
             }
 
             // Verification passed — safe to clean up
-            UserDefaults.standard.set(true, forKey: migrationCompleteKey)
+            defaults.set(true, forKey: migrationCompleteKey)
 
             let keysToRemove = [
                 "focusSessions", "focusApps", "focusURLs",
@@ -123,7 +114,7 @@ final class MigrationManager {
                 "hasCompletedOnboarding", "timerDisplayMode",
             ]
             for key in keysToRemove {
-                UserDefaults.standard.removeObject(forKey: key)
+                defaults.removeObject(forKey: key)
             }
 
             AppLogger.focus.info("Migration complete — UserDefaults keys removed")
