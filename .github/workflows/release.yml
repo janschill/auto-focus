@@ -273,7 +273,7 @@ jobs:
         if: steps.should_release.outputs.proceed == 'true'
         run: |
           mkdir -p build
-          cp -R build/auto-focus.xcarchive/Products/Applications/auto-focus.app build/auto-focus_temp.app
+          ditto build/auto-focus.xcarchive/Products/Applications/auto-focus.app build/auto-focus_temp.app
 
           # Verify the extracted app has the executable
           if [ ! -f "build/auto-focus_temp.app/Contents/MacOS/auto-focus" ]; then
@@ -296,7 +296,7 @@ jobs:
             build/auto-focus_temp.app
 
           # Verify signature
-          codesign --verify --verbose build/auto-focus_temp.app
+          codesign --verify --deep --strict --verbose=2 build/auto-focus_temp.app
 
           # Verify entitlements are embedded (regression guard)
           ENTITLEMENTS_OUT=$(codesign -d --entitlements :- build/auto-focus_temp.app 2>/dev/null)
@@ -312,7 +312,7 @@ jobs:
         if: steps.should_release.outputs.proceed == 'true'
         run: |
           cd build
-          zip -r auto-focus_notarization.zip auto-focus_temp.app
+          ditto -c -k --keepParent auto-focus_temp.app auto-focus_notarization.zip
           echo "Created notarization ZIP"
 
       - name: Notarize app
@@ -336,6 +336,7 @@ jobs:
         run: |
           xcrun stapler staple build/auto-focus_temp.app
           xcrun stapler validate build/auto-focus_temp.app
+          codesign --verify --deep --strict --verbose=2 build/auto-focus_temp.app
           echo "✅ Notarization ticket stapled"
 
       - name: Package app for distribution
@@ -346,16 +347,16 @@ jobs:
 
           # Rename app for distribution (remove _temp suffix)
           cd build
-          cp -R auto-focus_temp.app auto-focus.app
+          ditto auto-focus_temp.app auto-focus.app
 
           if [ "${{ steps.should_release.outputs.is_beta }}" = "true" ]; then
             # Beta: write zip to build/ only (not docs/downloads/)
-            zip -r ${ZIP_NAME} auto-focus.app
+            ditto -c -k --keepParent auto-focus.app ${ZIP_NAME}
             echo "✅ Created build/${ZIP_NAME} (beta — not updating docs/downloads/)"
           else
             # Stable: write to docs/downloads/ for website distribution
             mkdir -p ../docs/downloads
-            zip -r ../docs/downloads/${ZIP_NAME} auto-focus.app
+            ditto -c -k --keepParent auto-focus.app ../docs/downloads/${ZIP_NAME}
 
             # Also create a copy for backward compatibility
             cd ../docs/downloads
@@ -383,6 +384,13 @@ jobs:
             unzip -l ${ZIP_PATH} | head -20
             exit 1
           fi
+
+          rm -rf build/verify-zip
+          mkdir -p build/verify-zip
+          ditto -x -k ${ZIP_PATH} build/verify-zip
+          codesign --verify --deep --strict --verbose=2 build/verify-zip/auto-focus.app
+          xcrun stapler validate build/verify-zip/auto-focus.app
+          echo "✅ Packaged app verifies after extraction"
 
       - name: Generate version.json
         if: steps.should_release.outputs.proceed == 'true' && steps.should_release.outputs.is_beta != 'true'
