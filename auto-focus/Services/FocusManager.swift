@@ -92,7 +92,7 @@ class FocusManager: ObservableObject {
     @Published var isPremiumUser: Bool = false
 
     private let focusTimer: FocusTimer
-    private var bufferChangeCancellable: AnyCancellable?
+    private var dependencyChangeCancellables: [AnyCancellable] = []
 
     // MARK: - Buffer Access
     var bufferTimeRemaining: TimeInterval {
@@ -222,8 +222,12 @@ class FocusManager: ObservableObject {
         self.bufferManager.delegate = self
         self.focusModeController.delegate = self
         self.browserManager.delegate = self
-        // Buffer state is exposed through computed properties, so relay its changes to observing views
-        self.bufferChangeCancellable = Self.relayChanges(of: self.bufferManager, to: self)
+        // Buffer and session state is exposed through computed properties,
+        // so relay those managers' changes to observing views
+        self.dependencyChangeCancellables = [
+            Self.relayChanges(of: self.bufferManager, to: self),
+            Self.relayChanges(of: self.sessionManager, to: self)
+        ]
         self.appMonitor.updateFocusApps(focusApps)
         self.appMonitor.startMonitoring()
 
