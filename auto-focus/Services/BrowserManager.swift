@@ -101,16 +101,21 @@ class BrowserManager: ObservableObject, BrowserManaging {
         pollingTimer = nil
         isBrowserInFocus = false
         currentBrowserTab = nil
+        // Record the tab again when the user comes back, even if it is unchanged
+        lastRecordedURL = nil
         AppLogger.browser.info("Stopped URL polling")
     }
 
     /// Returns true when the given browser is currently eligible to be polled: the user has
     /// explicitly enabled it and automation permission has been granted.
+    ///
+    /// A cached `.notInstalled` (procNotFound) only means the browser wasn't running when it was
+    /// last checked; the browser being polled is frontmost, so that status is re-queried.
     func shouldPoll(bundleId: String) -> Bool {
         guard enablementStore.isEnabled(bundleId) else { return false }
 
         let status = permissionService.status(for: bundleId)
-        if status == .unknown {
+        if status == .unknown || status == .notInstalled {
             return permissionService.refresh(bundleId: bundleId) == .granted
         }
 
