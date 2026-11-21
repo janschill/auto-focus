@@ -1,4 +1,4 @@
-.PHONY: build test test-coverage clean lint fmt codesign-check archive-mac notarize prepare-downloads prepare-app-for-notarization package-app generate-version prepare-distribution deploy-downloads create-dmg tag-release create-github-release manual-release
+.PHONY: build test test-coverage clean lint fmt shortcut codesign-check archive-mac notarize prepare-downloads prepare-app-for-notarization package-app generate-version prepare-distribution deploy-downloads create-dmg tag-release create-github-release manual-release
 
 # Project configuration
 PROJECT_NAME = auto-focus
@@ -117,6 +117,10 @@ lint:
 fmt:
 	@test -n "$(SWIFTLINT)" || { echo "SwiftLint not installed. Install with: brew install swiftlint"; exit 1; }
 	@swiftlint --fix --quiet
+
+# Builds and signs the Do Not Disturb shortcut bundled with the app (requires iCloud sign-in).
+shortcut:
+	@python3 -I scripts/build-dnd-shortcut.py "auto-focus/Shortcuts/Auto-Focus Do Not Disturb.shortcut"
 
 # Distribution targets
 prepare-downloads:

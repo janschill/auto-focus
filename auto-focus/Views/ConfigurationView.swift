@@ -140,12 +140,10 @@ struct GeneralSettingsView: View {
                         .disabled(focusManager.isShortcutInstalled)
                     }
                 }
-
-                ShortcutsPermissionRow(permissionService: focusManager.automationPermissionService)
             } header: {
                 Text("Do Not Disturb")
             } footer: {
-                Text("Auto-Focus installs a custom Shortcut to toggle the Do Not Disturb focus mode, which is necessary to block notifications. It also needs Automation permission for Shortcuts Events — macOS will prompt you once. If you denied it previously, open System Settings to re-enable it.")
+                Text("macOS has no public way for apps to control Focus, so Auto-Focus uses a Shortcut to turn Do Not Disturb on and off. Add it once; a Focus you turned on yourself is left alone.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
@@ -343,7 +341,6 @@ struct ConfigurationView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
             focusManager.refreshShortcutStatus()
-            focusManager.automationPermissionService.refresh(bundleId: AppConfiguration.shortcutsEventsBundleIdentifier)
             VersionCheckManager.shared.checkForUpdates()
         }
     }
@@ -354,57 +351,6 @@ struct ConfigurationView: View {
         .environmentObject(LicenseManager())
         .environmentObject(FocusManager.shared)
         .frame(width: 600, height: 900)
-}
-
-private struct ShortcutsPermissionRow: View {
-    @ObservedObject var permissionService: AutomationPermissionService
-
-    private var status: BrowserPermissionStatus {
-        permissionService.status(for: AppConfiguration.shortcutsEventsBundleIdentifier)
-    }
-
-    var body: some View {
-        LabeledContent("Shortcuts Permission") {
-            HStack(spacing: 8) {
-                statusBadge
-
-                if status == .denied {
-                    Button("Fix in System Settings…") {
-                        permissionService.openSystemSettings()
-                    }
-                    .controlSize(.small)
-                } else if status != .granted {
-                    Button("Request Permission") {
-                        permissionService.requestPermission(bundleId: AppConfiguration.shortcutsEventsBundleIdentifier)
-                    }
-                    .controlSize(.small)
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var statusBadge: some View {
-        switch status {
-        case .granted:
-            badge("Granted", systemImage: "checkmark.circle.fill", tint: .green)
-        case .denied:
-            badge("Denied", systemImage: "xmark.octagon.fill", tint: .red)
-        case .notDetermined:
-            badge("Not determined", systemImage: "questionmark.circle.fill", tint: .orange)
-        case .unknown:
-            badge("Not checked", systemImage: "circle", tint: .secondary)
-        case .notInstalled:
-            badge("Not installed", systemImage: "slash.circle", tint: .secondary)
-        }
-    }
-
-    private func badge(_ title: String, systemImage: String, tint: Color) -> some View {
-        Label(title, systemImage: systemImage)
-            .labelStyle(TintedIconLabelStyle(tint: tint))
-            .font(.callout)
-            .foregroundStyle(.secondary)
-    }
 }
 
 /// Highlights a row inside a grouped `Form`, where `listRowBackground` and `List` selection have no effect.

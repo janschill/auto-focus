@@ -42,6 +42,7 @@ struct MenuBarView: View {
         .frame(width: 290)
         .onAppear {
             versionCheckManager.checkForUpdates()
+            focusManager.refreshShortcutStatus()
         }
     }
 
@@ -108,6 +109,21 @@ struct MenuBarView: View {
 
     @ViewBuilder
     private var actionRows: some View {
+        // Without the shortcut, sessions are tracked but notifications are not silenced
+        if !focusManager.isShortcutInstalled {
+            Button {
+                ResourceManager.installShortcut()
+            } label: {
+                MenuRowLabel(
+                    title: "Add Do Not Disturb Shortcut…",
+                    systemImage: "exclamationmark.triangle.fill",
+                    showsBadge: true
+                )
+            }
+            .buttonStyle(MenuRowButtonStyle())
+            .help("Auto-Focus needs the \(AppConfiguration.shortcutName) shortcut to silence notifications")
+        }
+
         if versionCheckManager.isUpdateAvailable {
             Button {
                 versionCheckManager.openDownloadPage()
@@ -181,7 +197,7 @@ struct MenuBarView: View {
                 symbol: "moon.fill",
                 tint: .indigo,
                 title: "Focused · \(elapsed)",
-                detail: [context, "Do Not Disturb is on"].compactMap { $0 }.joined(separator: " · ")
+                detail: [context, doNotDisturbDetail].compactMap { $0 }.joined(separator: " · ")
             )
         }
 
@@ -226,6 +242,10 @@ struct MenuBarView: View {
 
     private var isBetaBuild: Bool {
         version.contains("-beta")
+    }
+
+    private var doNotDisturbDetail: String {
+        focusManager.isShortcutInstalled ? "Do Not Disturb is on" : "Do Not Disturb shortcut missing"
     }
 
     private var totalFocusTimeToday: TimeInterval {

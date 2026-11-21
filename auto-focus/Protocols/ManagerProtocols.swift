@@ -49,9 +49,9 @@ protocol BufferManaging: AnyObject, ObservableObject {
 
 // MARK: - Focus Mode Control Protocol
 protocol FocusModeControlling: AnyObject, ObservableObject {
-    var isFocusModeEnabled: Bool { get }
     var delegate: FocusModeManagerDelegate? { get set }
 
+    /// Turns Do Not Disturb on, or off again if Auto-Focus turned it on.
     func setFocusMode(enabled: Bool)
     func checkShortcutExists() -> Bool
 }
