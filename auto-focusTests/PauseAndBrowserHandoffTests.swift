@@ -124,7 +124,7 @@ final class PauseAndBrowserHandoffTests: XCTestCase {
         browserManager.simulateBrowserFocusDeactivated()
 
         XCTAssertEqual(bufferManager.bufferStartCount, 1)
-        XCTAssertEqual(bufferManager.lastStartedBufferDuration, AppConfiguration.preSessionBuffer)
+        XCTAssertEqual(bufferManager.lastStartedBufferDuration, focusManager.glanceTolerance)
     }
 
     func testReturningToFocusAppBeforeBrowserResultKeepsTime() {

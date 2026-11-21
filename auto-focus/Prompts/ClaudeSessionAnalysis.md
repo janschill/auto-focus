@@ -34,7 +34,7 @@ period both tables cover, and say which period that is.
 - `focusSession(id, startTime, endTime)`: one row per completed focus session. `startTime` is
   when I started working in a focus app or site. A session is saved only once I pass the
   focus threshold. I may have changed the threshold over time, so older sessions can be
-  shorter than today's threshold. `endTime` is when focus ended, after any buffer period.
+  shorter than today's threshold. `endTime` is when focus ended, after any glance tolerance.
 - `appEvent(id, bundleIdentifier, appName, timestamp, eventType, domain, url)`: an activity log.
   - `eventType = 'activate'`: I switched to the app `bundleIdentifier` / `appName`.
   - `eventType = 'tab_changed'`: the active browser tab changed. `bundleIdentifier` is the
@@ -57,8 +57,10 @@ period both tables cover, and say which period that is.
   wildcard domains. A site counts as a focus site if its domain equals a focus domain or is a
   subdomain of one. Only rows with `isEnabled = 1` are active.
 - `setting(key, value)`: values are stored as text, so use `CAST(value AS REAL)`.
-  `focusThreshold` is in **minutes** and is how long until a session starts. `focusLossBuffer`
-  is in **seconds** and is the grace period after leaving focus. Ignore the other keys.
+  `focusThreshold` is in **minutes** and is how long until a session starts. `glanceTolerance`
+  is in **seconds** and is how long I can be in a non-focus app before it counts as leaving
+  focus; it is 30 when the key is missing. `focusLossBuffer` is an old, unused key. Ignore the
+  other keys.
 - Weekdays: `strftime('%w', ...)` returns `0` for Sunday. Use Monday-based weeks
   (`strftime('%Y-W%W', ...)`).
 - SQLite has no `MEDIAN`. Use `ORDER BY ... LIMIT 1 OFFSET (COUNT(*) / 2)` or a window function.
@@ -111,7 +113,7 @@ Look at all my data, but put the most weight on the **last 90 days**. Compare th
 days with the 30 days before that where it's useful.
 
 1. **Overview:** total focus hours; number of sessions; average and median session length;
-   sessions per active day; my current threshold and buffer settings.
+   sessions per active day; my current threshold and glance tolerance settings.
 2. **When I focus best:** focus hours and average session length by hour of day and by
    weekday. Name my best 2–3 time windows and my weakest ones.
 3. **Session depth:** session length distribution (for example under 15 min, 15–30, 30–60,
@@ -123,7 +125,7 @@ days with the 30 days before that where it's useful.
    ended (the latest event between `startTime` and `endTime`). Count sessions with no event
    inside them as "(no switch recorded)". Rank them. Also show how much clipped session time
    went to things that are neither focus apps nor focus sites, such as chat or email during
-   the buffer.
+   the glance tolerance.
 6. **Fragmentation:** switches per focused hour, counting both `activate` and `tab_changed`
    events inside sessions (report the two separately too), and whether sessions with fewer
    switches last longer. Don't assume more switching is bad. Report what the data shows.
@@ -137,7 +139,7 @@ days with the 30 days before that where it's useful.
   numbers.
 - End with **3 specific, actionable recommendations** based on my data. Examples: protect a
   particular time window, mute a specific app that keeps breaking sessions, add a site I
-  clearly focus on as a focus URL, or adjust the threshold or buffer, with a reason for each.
+  clearly focus on as a focus URL, or adjust the threshold or glance tolerance, with a reason for each.
 - Don't moralize. If the data is too thin for a conclusion, say so.
 - Afterwards, offer follow-ups: drill into a specific week, compare two months, or make a
   chart.

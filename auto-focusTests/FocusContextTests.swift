@@ -115,7 +115,7 @@ final class FocusContextTests: XCTestCase {
 
         switchTo("com.test.other", isFocusApp: false)
 
-        XCTAssertEqual(focusManager.bufferDuration, AppConfiguration.preSessionBuffer)
+        XCTAssertEqual(focusManager.bufferDuration, focusManager.glanceTolerance)
     }
 }
 

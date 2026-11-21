@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MenuBarView: View {
     @EnvironmentObject var focusManager: FocusManager
+    @EnvironmentObject var flowMonitor: FlowMonitor
     @ObservedObject private var versionCheckManager = VersionCheckManager.shared
     @State private var showAddedSiteConfirmation = false
     @State private var showAddedAppConfirmation = false
@@ -9,6 +10,11 @@ struct MenuBarView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             MenuStatusHeader(status: status)
+
+            if !focusManager.isPaused {
+                MenuSeparator()
+                flowRow
+            }
 
             if totalFocusTimeToday > 0 {
                 MenuSeparator()
@@ -41,6 +47,26 @@ struct MenuBarView: View {
     }
 
     // MARK: - Sections
+
+    /// Attention over the last 10 minutes, from app switches and time in focus work.
+    private var flowRow: some View {
+        let state = flowMonitor.reading.state
+        return HStack(spacing: 6) {
+            Image(systemName: state.systemImage)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(state.color)
+                .frame(width: 16)
+            Text(state.title)
+            Spacer(minLength: 8)
+            Text(flowDetail)
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .help("Based on how often you switched apps and how much time was in focus work over the last 10 minutes.")
+    }
 
     private var todayRow: some View {
         HStack {
@@ -196,6 +222,15 @@ struct MenuBarView: View {
     }
 
     // MARK: - Derived State
+
+    private var flowDetail: String {
+        let switches = flowMonitor.reading.switches
+        let switchText = "\(switches) switch\(switches == 1 ? "" : "es") in 10 min"
+        switch flowMonitor.reading.state {
+        case .flow, .focused, .scattered: return switchText
+        case .neutral: return "Away from focus work"
+        }
+    }
 
     private var version: String {
         #if DEBUG

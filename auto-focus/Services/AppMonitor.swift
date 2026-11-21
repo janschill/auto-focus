@@ -17,6 +17,8 @@ class AppMonitor: ObservableObject, AppMonitoring {
     private var isMonitoring = false
     private var focusApps: [AppInfo] = []
     private var lastFocusAppActive = false
+    /// Set on lock or sleep until an app is frontmost again; lock and sleep notifications arrive in bursts.
+    private var isAway = false
     private let appEventRepo: AppEventRepository?
 
     weak var delegate: AppMonitorDelegate?
@@ -45,6 +47,15 @@ class AppMonitor: ObservableObject, AppMonitoring {
             self,
             selector: #selector(frontmostAppMayHaveChanged(_:)),
             name: NSNotification.Name("com.apple.screenIsUnlocked"),
+            object: nil
+        )
+        for name in [NSWorkspace.screensDidSleepNotification, NSWorkspace.willSleepNotification] {
+            workspaceNC.addObserver(self, selector: #selector(userWentAway(_:)), name: name, object: nil)
+        }
+        DistributedNotificationCenter.default().addObserver(
+            self,
+            selector: #selector(userWentAway(_:)),
+            name: NSNotification.Name("com.apple.screenIsLocked"),
             object: nil
         )
 
@@ -78,6 +89,15 @@ class AppMonitor: ObservableObject, AppMonitoring {
 
     // MARK: - Private Methods
 
+    /// Records an away marker on lock or sleep, and forgets the current app so the frontmost app
+    /// is recorded again on return — otherwise time after unlock would go unattributed.
+    @objc private func userWentAway(_ notification: Notification) {
+        guard !isAway else { return }
+        isAway = true
+        try? appEventRepo?.insert(AppEvent.awayMarker())
+        currentApp = nil
+    }
+
     @objc private func frontmostAppMayHaveChanged(_ notification: Notification) {
         // Prefer the activated app from the notification; frontmostApplication can lag behind it
         let activatedApp = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
@@ -92,6 +112,7 @@ class AppMonitor: ObservableObject, AppMonitoring {
         if let bundleId = currentAppBundleId, AppConfiguration.isScreenInactiveApp(bundleId) {
             return
         }
+        isAway = false
 
         if let bundleId = currentAppBundleId, bundleId != AppConfiguration.ownBundleId {
             previousNonSelfApp = bundleId

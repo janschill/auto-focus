@@ -4,8 +4,9 @@ import Foundation
 struct AppConfiguration {
     // MARK: - Focus Settings
     static let defaultFocusThreshold: TimeInterval = 12 // 12 minutes
-    static let defaultBufferTime: TimeInterval = 2 // 2 seconds
-    static let preSessionBuffer: TimeInterval = 1 // 1 second buffer before focus session starts
+    /// How long you can look at a non-focus app before it counts as leaving focus (seconds): the run-up
+    /// resets, or an active session ends. Agent-era work is full of short glances (median ~8s).
+    static let defaultGlanceTolerance: TimeInterval = 30
 
     // MARK: - Timer Intervals
     static let checkInterval: TimeInterval = 1.0 // Focus timer tick interval

@@ -135,17 +135,7 @@ struct ActivityInsightsService {
         focusBundleIDs: Set<String>,
         focusDomains: [FocusURL]
     ) -> Bool {
-        if focusBundleIDs.contains(event.bundleIdentifier) {
-            return true
-        }
-
-        if let domain = event.domain {
-            return focusDomains.contains { focusURL in
-                focusURL.matches(domain) || focusURL.matches("https://\(domain)")
-            }
-        }
-
-        return false
+        FocusContext(bundleIDs: focusBundleIDs, urls: focusDomains).contains(event)
     }
 
     private static func distractorName(for event: AppEvent) -> String {

@@ -49,6 +49,32 @@ final class BrowserPollingGatingTests: XCTestCase {
         XCTAssertEqual(checker.callLog.last?.askUserIfNeeded, false)
     }
 
+    /// procNotFound (-600) only means the browser wasn't running when last checked. A browser
+    /// that is frontmost and being polled is running, so that cached status must be re-queried.
+    func testShouldPollRefreshesStaleNotRunningStatus() {
+        enablementStore.setEnabled(true, for: "com.google.Chrome")
+        checker.scriptedStatuses = ["com.google.Chrome": OSStatus(-600)]
+        permissionService.refreshAll(bundleIds: ["com.google.Chrome"])
+        XCTAssertEqual(permissionService.status(for: "com.google.Chrome"), .notInstalled)
+
+        checker.scriptedStatuses = ["com.google.Chrome": OSStatus(noErr)]
+
+        XCTAssertTrue(browserManager.shouldPoll(bundleId: "com.google.Chrome"))
+        XCTAssertEqual(permissionService.status(for: "com.google.Chrome"), .granted)
+    }
+
+    func testReturningToBrowserRecordsUnchangedTabAgain() throws {
+        let url = "https://github.com/janschill/auto-focus"
+        for _ in 0..<2 {
+            browserManager.startPolling()
+            browserManager.handleURLQueryResult(url: url, errorNumber: nil, appName: "Google Chrome", bundleId: "com.google.Chrome")
+            browserManager.stopPolling()
+        }
+
+        let events = try AppEventRepository(dbQueue: dbQueue).fetchEvents(since: .distantPast, until: .distantFuture)
+        XCTAssertEqual(events.filter { $0.eventType == "tab_changed" }.count, 2)
+    }
+
     func testShouldPollIsFalseWhenPermissionDenied() {
         enablementStore.setEnabled(true, for: "com.google.Chrome")
         checker.scriptedStatuses = ["com.google.Chrome": OSStatus(-1743)]
