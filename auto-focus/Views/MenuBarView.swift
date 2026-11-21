@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MenuBarView: View {
     @EnvironmentObject var focusManager: FocusManager
+    @EnvironmentObject var flowMonitor: FlowMonitor
     @ObservedObject private var versionCheckManager = VersionCheckManager.shared
     @State private var showAddedSiteConfirmation = false
     @State private var showAddedAppConfirmation = false
@@ -45,6 +46,17 @@ struct MenuBarView: View {
         }
     }
 
+    private var flowDetail: String {
+        let switches = flowMonitor.reading.switches
+        let switchText = "\(switches) switch\(switches == 1 ? "" : "es") in 10 min"
+        switch flowMonitor.reading.state {
+        case .flow: return "Deep in focus work · \(switchText)"
+        case .focused: return "Mostly focus work · \(switchText)"
+        case .scattered: return "Switching a lot · \(switchText)"
+        case .neutral: return "Away from focus work"
+        }
+    }
+
     /// Whether the previous (non-Auto-Focus) app can be offered as a new focus app.
     private var canOfferAddApp: Bool {
         guard let bundleId = focusManager.previousNonSelfAppBundleId,
@@ -65,6 +77,23 @@ struct MenuBarView: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(primaryStatus.color)
                 Spacer()
+            }
+
+            // Attention over the last 10 minutes
+            if !focusManager.isPaused {
+                HStack(spacing: 6) {
+                    Image(systemName: flowMonitor.reading.state.systemImage)
+                        .foregroundStyle(flowMonitor.reading.state.color)
+                        .font(.system(size: 12))
+                        .frame(width: 16)
+                    Text(flowMonitor.reading.state.title)
+                        .font(.system(size: 12, weight: .medium))
+                    Spacer()
+                    Text(flowDetail)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                }
+                .help("Based on how often you switched apps and how much time was in focus work over the last 10 minutes.")
             }
 
             Divider()

@@ -4,6 +4,11 @@ import SwiftUI
 struct AutoFocusApp: App {
     @StateObject private var focusManager = FocusManager.shared
     @StateObject private var licenseManager = LicenseManager.shared
+    @StateObject private var flowMonitor: FlowMonitor = {
+        let monitor = FlowMonitor(focusContext: { FocusManager.shared.focusContext })
+        monitor.start()
+        return monitor
+    }()
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
@@ -24,6 +29,7 @@ struct AutoFocusApp: App {
         MenuBarExtra {
             MenuBarView()
                 .environmentObject(focusManager)
+                .environmentObject(flowMonitor)
         } label: {
             HStack(spacing: 4) {
                 if focusManager.isPaused {
@@ -50,6 +56,9 @@ struct AutoFocusApp: App {
                 if focusManager.isInBufferPeriod {
                     Text(TimeFormatter.duration(focusManager.bufferTimeRemaining))
                         .font(.system(size: 10, weight: .medium))
+                }
+                if !focusManager.isPaused && flowMonitor.reading.state.showsInMenuBar {
+                    Image(systemName: flowMonitor.reading.state.systemImage)
                 }
             }
         }

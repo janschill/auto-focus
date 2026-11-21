@@ -471,6 +471,76 @@ struct FocusRatioBarView: View {
     }
 }
 
+/// Recorded time split into flow, focused and scattered, with the longest unbroken focus stretch.
+struct FlowBreakdownView: View {
+    let flow: FlowSummary
+
+    private var segments: [(state: FlowState, duration: TimeInterval)] {
+        [(.flow, flow.flowTime), (.focused, flow.focusedTime), (.scattered, flow.scatteredTime)]
+    }
+
+    private var total: TimeInterval { segments.reduce(0) { $0 + $1.duration } }
+
+    var body: some View {
+        GroupBox {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Label("Attention", systemImage: "water.waves")
+                        .font(.headline)
+                        .labelStyle(TintedIconLabelStyle(tint: .indigo))
+                    Spacer()
+                    Text("Longest unbroken focus: \(flow.longestFocusStretch > 0 ? TimeFormatter.humanReadable(flow.longestFocusStretch) : "—")")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
+
+                if total > 0 {
+                    GeometryReader { geo in
+                        HStack(spacing: 2) {
+                            ForEach(segments.filter { $0.duration > 0 }, id: \.state) { segment in
+                                Capsule()
+                                    .fill(segment.state.color.gradient)
+                                    .frame(width: geo.size.width * CGFloat(segment.duration / total))
+                            }
+                        }
+                    }
+                    .frame(height: 10)
+
+                    HStack(spacing: 16) {
+                        ForEach(segments, id: \.state) { segment in
+                            legendItem(state: segment.state, duration: segment.duration)
+                        }
+                    }
+                } else {
+                    Text("Not enough activity recorded yet.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Text("Each 10 minutes is rated by how often you switched apps and how much of it was focus work.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(6)
+        }
+    }
+
+    private func legendItem(state: FlowState, duration: TimeInterval) -> some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(state.color)
+                .frame(width: 8, height: 8)
+            Text(state.title)
+                .foregroundStyle(.secondary)
+            Text(TimeFormatter.humanReadable(duration))
+                .fontWeight(.semibold)
+                .monospacedDigit()
+        }
+        .font(.caption)
+    }
+}
+
 /// One row of the activity breakdown: icon, name, relative bar, duration and share.
 private struct UsageBarRow<Icon: View>: View {
     let name: String
@@ -935,6 +1005,7 @@ struct InsightsFocusQualityPane: View {
             InsightsHeaderView(dataProvider: dataProvider)
                 .padding(.horizontal, 4)
 
+            FlowBreakdownView(flow: dataProvider.snapshot.flow)
             FocusQualityMetricsView(dataProvider: dataProvider)
             ContextSwitchesView(dataProvider: dataProvider)
         }

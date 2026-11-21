@@ -47,6 +47,8 @@ struct InsightsSnapshot {
     let disruptionSummary: DisruptionSummary
     let previousPeriodDisruptions: DisruptionSummary
     let disruptionOverTime: [HourlyDisruptionData]
+    /// Time per flow state and longest unbroken focus stretch, from the whole event log of the period.
+    let flow: FlowSummary
     let longestSession: FocusSession?
     let averageSessionLength: TimeInterval
     let deepFocusSessions: (deep: Int, total: Int)
@@ -100,7 +102,9 @@ class InsightsDataProvider {
         let totalTracked = allApps.reduce(0) { $0 + $1.totalDuration }
         let ratio = focusVsOtherRatio(apps: allApps, focusBundleIDs: focusBundleIDs)
 
-        let periodEvents = sessionEvents(timeframe: timeframe, selectedDate: selectedDate, sessions: sessions)
+        let allPeriodEvents = try? appEventRepo.fetchEvents(since: bounds.start, until: bounds.end)
+        // Only context switches during an active focus session count as disruptions.
+        let periodEvents = allPeriodEvents.map { filterEventsToSessions($0, sessions: sessions) }
         let disruptions = periodEvents.map {
             ActivityInsightsService.calculateDisruptions(events: $0, focusBundleIDs: focusBundleIDs, focusDomains: focusURLs)
         } ?? DisruptionSummary(totalSwitches: 0, distractors: [])
@@ -109,7 +113,6 @@ class InsightsDataProvider {
         } ?? []
 
         let productiveTimeRange = calculateProductiveTimeRange().map { formatHourRange($0.startHour, $0.endHour) }
-        let productiveWeekday = calculateProductiveWeekday().map { calendar.weekdaySymbols[$0.weekday - 1] }
 
         return InsightsSnapshot(
             displayedDateString: displayedDateString(timeframe: timeframe, selectedDate: selectedDate),
@@ -128,6 +131,7 @@ class InsightsDataProvider {
                 timeframe: timeframe, selectedDate: selectedDate, focusBundleIDs: focusBundleIDs, focusURLs: focusURLs
             ),
             disruptionOverTime: disruptionTimeline,
+            flow: flowSummary(events: allPeriodEvents, bounds: bounds),
             longestSession: sessions.max(by: { $0.duration < $1.duration }),
             averageSessionLength: sessions.isEmpty ? 0 : totalFocus / Double(sessions.count),
             deepFocusSessions: (deep: sessions.filter { $0.duration >= Self.deepFocusThreshold }.count, total: sessions.count),
@@ -136,7 +140,7 @@ class InsightsDataProvider {
                 sessions: sessions, totalTracked: totalTracked, totalSwitches: disruptions.totalSwitches, timeframe: timeframe
             ),
             productiveTimeRange: productiveTimeRange,
-            productiveWeekday: productiveWeekday,
+            productiveWeekday: calculateProductiveWeekday().map { calendar.weekdaySymbols[$0.weekday - 1] },
             weekdayAverages: rearrangeWeekdaysStartingMonday(calculateWeekdayAverages())
         )
     }
@@ -464,16 +468,6 @@ class InsightsDataProvider {
         )
     }
 
-    /// Events of the period that happened during one of the given sessions, or nil if the fetch failed.
-    /// Only context switches during an active focus session count as disruptions.
-    private func sessionEvents(timeframe: Timeframe, selectedDate: Date, sessions: [FocusSession]) -> [AppEvent]? {
-        let bounds = dateBounds(timeframe: timeframe, selectedDate: selectedDate)
-        guard let events = try? appEventRepo.fetchEvents(since: bounds.start, until: bounds.end) else {
-            return nil
-        }
-        return filterEventsToSessions(events, sessions: sessions)
-    }
-
     private func disruptionOverTime(
         events: [AppEvent],
         timeframe: Timeframe,
@@ -517,10 +511,32 @@ class InsightsDataProvider {
         )
     }
 
+    /// Events of the period that happened during one of the given sessions, or nil if the fetch failed.
+    private func sessionEvents(timeframe: Timeframe, selectedDate: Date, sessions: [FocusSession]) -> [AppEvent]? {
+        let bounds = dateBounds(timeframe: timeframe, selectedDate: selectedDate)
+        guard let events = try? appEventRepo.fetchEvents(since: bounds.start, until: bounds.end) else {
+            return nil
+        }
+        return filterEventsToSessions(events, sessions: sessions)
+    }
+
+    /// Flow breakdown of the period up to now; empty if the events couldn't be read.
+    private func flowSummary(events: [AppEvent]?, bounds: (start: Date, end: Date)) -> FlowSummary {
+        guard let events else { return FlowSummary() }
+        return FlowAnalyzer.summary(
+            events: events,
+            context: focusManager.focusContext,
+            from: bounds.start,
+            to: min(bounds.end, Date())
+        )
+    }
+
+    /// Events inside a session; locking the screen is not a context switch, so away markers are dropped.
     private func filterEventsToSessions(_ events: [AppEvent], sessions: [FocusSession]) -> [AppEvent] {
         guard !sessions.isEmpty else { return [] }
         return events.filter { event in
-            sessions.contains { event.timestamp >= $0.startTime && event.timestamp <= $0.endTime }
+            !AppConfiguration.isScreenInactiveApp(event.bundleIdentifier)
+                && sessions.contains { event.timestamp >= $0.startTime && event.timestamp <= $0.endTime }
         }
     }
 

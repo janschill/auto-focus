@@ -12,6 +12,12 @@ struct AppEvent: Codable, Identifiable, FetchableRecord, PersistableRecord {
 
     static let databaseTableName = "appEvent"
 
+    /// Marks the moment the screen locked or slept, so time away isn't attributed to the last app.
+    /// Uses the lock screen's bundle ID, which every consumer already treats as screen-inactive.
+    static func awayMarker() -> AppEvent {
+        AppEvent(bundleIdentifier: "com.apple.loginwindow", eventType: "away")
+    }
+
     init(bundleIdentifier: String, appName: String? = nil, eventType: String = "activate") {
         self.bundleIdentifier = bundleIdentifier
         self.appName = appName

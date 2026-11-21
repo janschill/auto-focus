@@ -70,9 +70,11 @@ class FocusManager: ObservableObject {
             try? settingsRepo.setDouble(focusThreshold, forKey: "focusThreshold")
         }
     }
-    @Published var focusLossBuffer: TimeInterval = 2 {
+    /// Seconds you can spend in a non-focus app before it counts as leaving focus: the run-up resets,
+    /// or an active session ends. The timer pauses meanwhile.
+    @Published var glanceTolerance: TimeInterval = AppConfiguration.defaultGlanceTolerance {
         didSet {
-            try? settingsRepo.setDouble(focusLossBuffer, forKey: "focusLossBuffer")
+            try? settingsRepo.setDouble(glanceTolerance, forKey: "glanceTolerance")
         }
     }
     @Published var timerDisplayMode: TimerDisplayMode = .full {
@@ -212,8 +214,10 @@ class FocusManager: ObservableObject {
         // Load settings from SQLite
         focusThreshold = settingsRepo.getDouble(forKey: "focusThreshold")
         if focusThreshold == 0 { focusThreshold = AppConfiguration.defaultFocusThreshold }
-        focusLossBuffer = settingsRepo.getDouble(forKey: "focusLossBuffer")
-        if focusLossBuffer == 0 { focusLossBuffer = AppConfiguration.defaultBufferTime }
+        // 0 is a valid tolerance, so only a missing value falls back to the default
+        if settingsRepo.getString(forKey: "glanceTolerance") != nil {
+            glanceTolerance = settingsRepo.getDouble(forKey: "glanceTolerance")
+        }
         isPaused = settingsRepo.getBool(forKey: "isPaused")
         hasCompletedOnboarding = settingsRepo.getBool(forKey: "hasCompletedOnboarding")
         timerDisplayMode = settingsRepo.getCodable(TimerDisplayMode.self, forKey: "timerDisplayMode") ?? .full
@@ -375,19 +379,23 @@ class FocusManager: ObservableObject {
             return
         }
 
-        if isInFocusMode {
-            // In focus session - use configurable buffer to preserve session
-            focusTimer.pause()
-            bufferManager.startBuffer(duration: focusLossBuffer)
-        } else if timeSpent > 0 {
-            // Before focus session but has accumulated time - short buffer for quick reset
-            let preSessionBuffer = AppConfiguration.preSessionBuffer
-            focusTimer.pause()
-            bufferManager.startBuffer(duration: preSessionBuffer)
+        if isInFocusMode || timeSpent > 0 {
+            pauseForGlance()
         } else {
             // No accumulated time - reset immediately
             endFocus()
         }
+    }
+
+    /// Leaving focus pauses the timer for `glanceTolerance` seconds. Returning in time keeps the run-up
+    /// or session; otherwise the buffer timeout ends it.
+    private func pauseForGlance() {
+        guard glanceTolerance > 0 else {
+            endFocus()
+            return
+        }
+        focusTimer.pause()
+        bufferManager.startBuffer(duration: glanceTolerance)
     }
 
     private var hasFocusInProgress: Bool {
@@ -480,6 +488,11 @@ class FocusManager: ObservableObject {
     }
 
     // MARK: - Browser Management
+
+    /// The focus apps and sites as one value, for classifying events.
+    var focusContext: FocusContext {
+        FocusContext(bundleIDs: Set(focusApps.map(\.bundleIdentifier)), urls: focusURLs)
+    }
 
     var focusURLs: [FocusURL] {
         return browserManager.focusURLs
@@ -718,13 +731,8 @@ extension FocusManager: BrowserManagerDelegate {
             }
         }
 
-        if isInFocusMode {
-            focusTimer.pause()
-            bufferManager.startBuffer(duration: focusLossBuffer)
-        } else if timeSpent > 0 {
-            let preSessionBuffer = AppConfiguration.preSessionBuffer
-            focusTimer.pause()
-            bufferManager.startBuffer(duration: preSessionBuffer)
+        if isInFocusMode || timeSpent > 0 {
+            pauseForGlance()
         } else {
             endFocus()
         }
