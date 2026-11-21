@@ -36,7 +36,6 @@ class FocusManager: ObservableObject {
 
     @Published var timeSpent: TimeInterval = 0
     @Published var isFocusAppActive = false
-    @Published var isNotificationsEnabled: Bool = true
     @Published var isPaused: Bool = false {
         didSet {
             try? settingsRepo.setBool(isPaused, forKey: "isPaused")
@@ -249,7 +248,7 @@ class FocusManager: ObservableObject {
         )
         self.automationPermissionService.refreshAll(bundleIds: installed.map(\.bundleId))
 
-        // Check shortcut status asynchronously to avoid AppleScript blocking
+        // Listing shortcuts spawns a process, so the check runs in the background
         refreshShortcutStatus()
 
         setUpScreenInactivityObservers()
@@ -360,7 +359,7 @@ class FocusManager: ObservableObject {
     }
 
     private var shouldEnterFocusMode: Bool {
-        return isNotificationsEnabled && timeSpent >= (focusThreshold * AppConfiguration.timeMultiplier) && !isInFocusMode
+        return timeSpent >= (focusThreshold * AppConfiguration.timeMultiplier) && !isInFocusMode
     }
 
     // Overall focus state considering both apps and browser URLs
@@ -404,9 +403,7 @@ class FocusManager: ObservableObject {
             sessionManager.cancelCurrentSession()
         }
         resetFocusState()
-        if !isNotificationsEnabled {
-            focusModeController.setFocusMode(enabled: false)
-        }
+        focusModeController.setFocusMode(enabled: false)
     }
 
     private func resetFocusState() {
@@ -432,8 +429,7 @@ class FocusManager: ObservableObject {
     }
 
     func refreshShortcutStatus() {
-        // Run AppleScript check on background thread to avoid blocking UI
-        // and prevent crashes from re-entrancy during SwiftUI view updates
+        // Listing shortcuts spawns a process, so keep it off the main thread
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
             let exists = self.focusModeController.checkShortcutExists()
@@ -563,22 +559,8 @@ class FocusManager: ObservableObject {
 
 // MARK: - FocusModeManagerDelegate
 extension FocusManager: FocusModeManagerDelegate {
-    func focusModeController(_ controller: any FocusModeControlling, didChangeFocusMode enabled: Bool) {
-        // Update notifications state when focus mode changes
-        self.isNotificationsEnabled = !enabled
-    }
-
     func focusModeController(_ controller: any FocusModeControlling, didFailWithError error: FocusModeError) {
-        switch error {
-        case .shortcutNotFound:
-            AppLogger.focus.error("Focus mode error: Toggle Do Not Disturb shortcut not found", error: error)
-        case .appleScriptError(let message):
-            AppLogger.focus.error("Focus mode AppleScript error", error: error, metadata: [
-                "message": message
-            ])
-        case .shortcutsAppNotInstalled:
-            AppLogger.focus.error("Focus mode error: Shortcuts app not installed", error: error)
-        }
+        AppLogger.focus.error("Focus mode error", error: error)
     }
 }
 

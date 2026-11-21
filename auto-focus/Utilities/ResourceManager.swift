@@ -20,7 +20,7 @@ struct ResourceManager {
     }
 
     private static func getShortcutURL() -> URL? {
-        return Bundle.main.url(forResource: "Toggle Do Not Disturb",
+        return Bundle.main.url(forResource: AppConfiguration.shortcutName,
                              withExtension: "shortcut")
     }
 
@@ -28,7 +28,7 @@ struct ResourceManager {
         guard let shortcutUrl = getShortcutURL() else { return nil }
 
         let tempDir = FileManager.default.temporaryDirectory
-        let tempUrl = tempDir.appendingPathComponent("Toggle Do Not Disturb.shortcut")
+        let tempUrl = tempDir.appendingPathComponent("\(AppConfiguration.shortcutName).shortcut")
 
         try? FileManager.default.removeItem(at: tempUrl) // Remove if exists
 

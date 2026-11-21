@@ -238,12 +238,11 @@ class MockFocusModeManager: ObservableObject, FocusModeControlling {
 
     func setFocusMode(enabled: Bool) {
         if shouldFailFocusMode {
-            delegate?.focusModeController(self, didFailWithError: .appleScriptError("Mock error"))
+            delegate?.focusModeController(self, didFailWithError: .shortcutFailed("Mock error"))
             return
         }
 
         isFocusModeEnabled = enabled
-        delegate?.focusModeController(self, didChangeFocusMode: enabled)
     }
 
     func checkShortcutExists() -> Bool {

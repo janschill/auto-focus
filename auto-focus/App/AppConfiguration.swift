@@ -39,9 +39,14 @@ struct AppConfiguration {
     static let ownBundleId = Bundle.main.bundleIdentifier ?? "com.janschill.auto-focus"
 
     // MARK: - System Integration
-    static let shortcutName = "Toggle Do Not Disturb"
-    static let shortcutsAppBundleIdentifier = "com.apple.shortcuts"
-    static let shortcutsEventsBundleIdentifier = "com.apple.shortcuts.events"
+    /// Bundled shortcut that turns Do Not Disturb on or off. Built by `make shortcut`.
+    static let shortcutName = "Auto-Focus Do Not Disturb"
+    static let shortcutInputOn = "on"
+    static let shortcutInputOff = "off"
+    static let shortcutOutputEnabled = "enabled"
+    static let shortcutOutputDisabled = "disabled"
+    /// Shortcut output when a Focus was already active, so Auto-Focus left it alone.
+    static let shortcutOutputAlreadyActive = "already-active"
     static let applicationsDirectory = "/Applications"
 
     // MARK: - Supported Browser Bundle IDs

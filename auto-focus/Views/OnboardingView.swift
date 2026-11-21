@@ -287,7 +287,7 @@ struct InstallShortcutStepView: View {
                     .controlSize(.large)
                 }
 
-                Text("Note: You'll be prompted to add the shortcut to your Shortcuts app. This allows Auto-Focus to toggle Do Not Disturb mode automatically.")
+                Text("Note: You'll be prompted to add the shortcut to your Shortcuts app. This allows Auto-Focus to turn Do Not Disturb on and off automatically.")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)

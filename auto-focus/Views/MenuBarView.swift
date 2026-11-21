@@ -67,6 +67,27 @@ struct MenuBarView: View {
                 Spacer()
             }
 
+            // Without the shortcut, sessions are tracked but notifications are not silenced
+            if !focusManager.isShortcutInstalled {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .font(.system(size: 11))
+                    Text("Do Not Disturb shortcut missing")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+
+                    Spacer()
+
+                    Button("Add") {
+                        ResourceManager.installShortcut()
+                    }
+                    .controlSize(.mini)
+                    .buttonStyle(.borderedProminent)
+                    .help("Add the \(AppConfiguration.shortcutName) shortcut so Auto-Focus can silence notifications")
+                }
+            }
+
             Divider()
 
             // Today (single line, no comparison)
@@ -206,6 +227,7 @@ struct MenuBarView: View {
         .frame(width: 290)
         .onAppear {
             versionCheckManager.checkForUpdates()
+            focusManager.refreshShortcutStatus()
         }
     }
 
