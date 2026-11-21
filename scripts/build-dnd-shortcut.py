@@ -1,8 +1,11 @@
 """Builds and signs the "Auto-Focus Do Not Disturb" shortcut bundled with the app.
 
-Usage: python3 -I scripts/build-dnd-shortcut.py <output.shortcut>
-Signing uses `shortcuts sign`, which requires a Mac signed into iCloud.
+Usage: python3 -I scripts/build-dnd-shortcut.py [--unsigned] <output.shortcut>
+Signing uses `shortcuts sign`, which requires a Mac signed into iCloud. --unsigned writes the
+plain workflow plist instead, for comparing against the shipped shortcut.
 
+The generated workflow matches the shipped shortcut, which was built in the Shortcuts app and
+checked by hand. Apart from action UUIDs, a rebuilt shortcut should not differ from it.
 
 Input: text "on" or "off" (passed as a file by `shortcuts run --input-path`).
 on:  if any Focus is already active -> output "already-active" (leave it alone)
@@ -26,10 +29,7 @@ def cond_input(output_uuid, output_name):
 
 def output(text):
     return {"WFWorkflowActionIdentifier": "is.workflow.actions.output",
-            "WFWorkflowActionParameters": {
-                "UUID": u(),
-                "WFOutput": {"Value": {"string": text, "attachmentsByRange": {}},
-                             "WFSerializationType": "WFTextTokenString"}}}
+            "WFWorkflowActionParameters": {"UUID": u(), "WFOutput": text}}
 
 def ctrl(group, mode, extra=None):
     params = {"GroupingIdentifier": group, "WFControlFlowMode": mode}
@@ -68,19 +68,30 @@ actions = [
 workflow = {
     "WFQuickActionSurfaces": [],
     "WFWorkflowActions": actions,
-    "WFWorkflowClientVersion": "3218.0.4.100",
+    "WFWorkflowClientVersion": "5037.111",
     "WFWorkflowHasOutputFallback": False,
     "WFWorkflowHasShortcutInputVariables": True,
-    "WFWorkflowIcon": {"WFWorkflowIconGlyphNumber": 61532, "WFWorkflowIconStartColor": 2846468607},
+    "WFWorkflowIcon": {"WFWorkflowIconGlyphNumber": 61440, "WFWorkflowIconStartColor": 946986751},
     "WFWorkflowImportQuestions": [],
-    "WFWorkflowInputContentItemClasses": ["WFStringContentItem", "WFGenericFileContentItem"],
+    "WFWorkflowInputContentItemClasses": ["WFAppContentItem", "WFGenericFileContentItem", "WFStringContentItem"],
     "WFWorkflowMinimumClientVersion": 900,
     "WFWorkflowMinimumClientVersionString": "900",
     "WFWorkflowOutputContentItemClasses": ["WFStringContentItem"],
     "WFWorkflowTypes": [],
 }
-with tempfile.TemporaryDirectory() as tmp:
-    unsigned = os.path.join(tmp, "unsigned.shortcut")
-    with open(unsigned, "wb") as f:
+
+args = sys.argv[1:]
+unsigned_only = "--unsigned" in args
+paths = [arg for arg in args if arg != "--unsigned"]
+if len(paths) != 1:
+    sys.exit(__doc__)
+
+if unsigned_only:
+    with open(paths[0], "wb") as f:
         plistlib.dump(workflow, f, fmt=plistlib.FMT_BINARY)
-    subprocess.run(["shortcuts", "sign", "--mode", "anyone", "--input", unsigned, "--output", sys.argv[1]], check=True)
+else:
+    with tempfile.TemporaryDirectory() as tmp:
+        unsigned = os.path.join(tmp, "unsigned.shortcut")
+        with open(unsigned, "wb") as f:
+            plistlib.dump(workflow, f, fmt=plistlib.FMT_BINARY)
+        subprocess.run(["shortcuts", "sign", "--mode", "anyone", "--input", unsigned, "--output", paths[0]], check=True)
