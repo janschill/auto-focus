@@ -26,33 +26,36 @@ struct AutoFocusApp: App {
                 .environmentObject(focusManager)
         } label: {
             HStack(spacing: 4) {
-                if focusManager.isPaused {
-                    Image(systemName: "pause.circle")
-                } else if focusManager.isInOverallFocus {
-                    // Show timer based on user preference
-                    switch focusManager.timerDisplayMode {
-                    case .hidden:
-                        // Don't show timer
-                        EmptyView()
-                    case .full:
-                        Text(TimeFormatter.duration(focusManager.timeSpent))
-                            .font(.system(size: 10, weight: .medium))
-                    case .simplified:
-                        Text(TimeFormatter.minutes(focusManager.timeSpent))
-                            .font(.system(size: 10, weight: .medium))
-                    }
-                }
-                if focusManager.isInFocusMode {
-                    Image(systemName: "brain.head.profile.fill")
-                } else {
-                    Image(systemName: "brain.head.profile")
-                }
-                if focusManager.isInBufferPeriod {
-                    Text(TimeFormatter.duration(focusManager.bufferTimeRemaining))
+                Image(systemName: menuBarSymbol)
+                if let timerText = menuBarTimerText {
+                    Text(timerText)
                         .font(.system(size: 10, weight: .medium))
+                        .monospacedDigit()
                 }
             }
         }
         .menuBarExtraStyle(.window)
+    }
+
+    private var menuBarSymbol: String {
+        if focusManager.isPaused { return "pause.circle" }
+        return focusManager.isInFocusMode ? "brain.head.profile.fill" : "brain.head.profile"
+    }
+
+    /// The buffer countdown always shows; the session timer follows the user's display preference.
+    private var menuBarTimerText: String? {
+        guard !focusManager.isPaused else { return nil }
+        if focusManager.isInBufferPeriod {
+            return TimeFormatter.duration(focusManager.bufferTimeRemaining)
+        }
+        guard focusManager.isInOverallFocus else { return nil }
+        switch focusManager.timerDisplayMode {
+        case .hidden:
+            return nil
+        case .full:
+            return TimeFormatter.duration(focusManager.timeSpent)
+        case .simplified:
+            return TimeFormatter.minutes(focusManager.timeSpent)
+        }
     }
 }

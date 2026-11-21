@@ -403,6 +403,56 @@ struct InsightsSummaryPane: View {
                 }
                 .padding(6)
             }
+
+            ClaudeAnalysisPromptCard()
+        }
+    }
+}
+
+/// Plus-only card that copies a ready-made session analysis prompt for Claude.
+struct ClaudeAnalysisPromptCard: View {
+    @State private var didCopy = false
+    @State private var copyFailed = false
+
+    var body: some View {
+        GroupBox {
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label("Analyze your sessions with Claude", systemImage: "sparkles")
+                        .labelStyle(TintedIconLabelStyle(tint: .orange))
+                        .font(.callout.weight(.semibold))
+                    Text("Paste into Claude Code or the Claude desktop app. Claude reads your local data read-only. Only summaries, like time per app or website, go into the chat.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if copyFailed {
+                        Text("Couldn't load the prompt. Please reinstall Auto-Focus.")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                }
+                Spacer()
+                Button(action: copyPrompt) {
+                    Label(didCopy ? "Copied" : "Copy Prompt", systemImage: didCopy ? "checkmark" : "doc.on.doc")
+                }
+                .controlSize(.small)
+            }
+            .padding(6)
+        }
+    }
+
+    private func copyPrompt() {
+        guard let prompt = ClaudeAnalysisPrompt.load() else {
+            copyFailed = true
+            return
+        }
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(prompt, forType: .string)
+        copyFailed = false
+        didCopy = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            didCopy = false
         }
     }
 }

@@ -85,6 +85,9 @@ class FocusManager: ObservableObject {
     @Published var hasCompletedOnboarding: Bool = false
     @Published var isBrowserInFocus: Bool = false
     @Published var currentBrowserTab: BrowserTabInfo?
+    /// Name of the app or site holding focus. Kept through a buffer period so the menu bar can say
+    /// what will be lost; cleared when focus ends.
+    @Published private(set) var focusContextName: String?
     @Published var isShortcutInstalled: Bool = false
 
     private var freeAppLimit: Int = AppConfiguration.freeAppLimit
@@ -100,6 +103,10 @@ class FocusManager: ObservableObject {
 
     var isInBufferPeriod: Bool {
         return bufferManager.isInBufferPeriod
+    }
+
+    var bufferDuration: TimeInterval {
+        return bufferManager.bufferDuration
     }
 
     // MARK: - Session Access
@@ -299,6 +306,7 @@ class FocusManager: ObservableObject {
     private func handleFocusAppInFront() {
         let wasInBuffer = bufferManager.isInBufferPeriod
         bufferManager.cancelBuffer()
+        focusContextName = currentAppInfo?.name
 
         if !isFocusAppActive {
             let hasAccumulatedTime = timeSpent > 0 || focusTimer.currentTime > 0
@@ -412,6 +420,7 @@ class FocusManager: ObservableObject {
         timeSpent = 0
         isInFocusMode = false
         didReachFocusThreshold = false
+        focusContextName = nil
         focusTimer.reset()
     }
 
@@ -592,6 +601,11 @@ extension FocusManager: AppMonitorDelegate {
     func appMonitor(_ monitor: any AppMonitoring, didChangeToApp bundleIdentifier: String?) {
         guard !isPaused else { return }
 
+        // Moving between two focus apps doesn't fire didDetectFocusApp, so keep the name current here
+        if let focusApp = focusApps.first(where: { $0.bundleIdentifier == bundleIdentifier }) {
+            focusContextName = focusApp.name
+        }
+
         if let bundleIdentifier, AppConfiguration.isSupportedBrowser(bundleIdentifier) {
             browserManager.startPolling()
             return
@@ -660,11 +674,22 @@ extension FocusManager: BrowserManagerDelegate {
 
     func browserManager(_ manager: any BrowserManaging, didReceiveTabUpdate tabInfo: BrowserTabInfo) {
         self.currentBrowserTab = tabInfo
+        // Moving between two focus sites doesn't flip the focus state, so keep the name current here
+        if isBrowserInFocus && tabInfo.isFocusURL {
+            focusContextName = Self.contextName(for: tabInfo)
+        }
+    }
+
+    private static func contextName(for tab: BrowserTabInfo) -> String {
+        return tab.matchedFocusURL?.name ?? FocusURL.focusTarget(from: tab.url)
     }
 
     private func handleBrowserFocusActivated() {
         let wasInBuffer = bufferManager.isInBufferPeriod
         bufferManager.cancelBuffer()
+        if let tab = currentBrowserTab {
+            focusContextName = Self.contextName(for: tab)
+        }
 
         let wasTrackingInApp = isFocusAppActive && timeSpent > 0 && focusTimer.isRunning
         let hasAccumulatedTime = timeSpent > 0 || focusTimer.currentTime > 0

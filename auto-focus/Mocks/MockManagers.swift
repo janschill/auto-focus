@@ -172,7 +172,7 @@ class MockBufferManager: ObservableObject, BufferManaging {
     weak var delegate: BufferManagerDelegate?
 
     private var bufferTimer: Timer?
-    private var bufferDuration: TimeInterval = 0
+    @Published private(set) var bufferDuration: TimeInterval = 0
 
     // Test configuration
     var shouldFailBuffer = false

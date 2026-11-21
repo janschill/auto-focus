@@ -7,6 +7,7 @@ protocol BufferManagerDelegate: AnyObject {
 
 class BufferManager: ObservableObject, BufferManaging {
     @Published private(set) var bufferTimeRemaining: TimeInterval = 0
+    @Published private(set) var bufferDuration: TimeInterval = 0
     @Published private(set) var isInBufferPeriod = false
 
     private var bufferTimer: Timer?
@@ -23,6 +24,7 @@ class BufferManager: ObservableObject, BufferManaging {
         isInBufferPeriod = true
         remainingBufferTime = duration
         bufferTimeRemaining = remainingBufferTime
+        bufferDuration = duration
 
         // Cancel any existing timer
         bufferTimer?.invalidate()
@@ -59,6 +61,7 @@ class BufferManager: ObservableObject, BufferManaging {
         bufferTimer = nil
         isInBufferPeriod = false
         bufferTimeRemaining = 0
+        bufferDuration = 0
         remainingBufferTime = 0
 
         if timedOut {

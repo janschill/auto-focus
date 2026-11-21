@@ -6,15 +6,20 @@ final class DatabaseManager {
 
     let dbQueue: DatabaseQueue
 
+    /// Location of the app's SQLite database in Application Support.
+    static let databaseURL: URL = FileManager.default
+        .urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        .appendingPathComponent("auto-focus.auto-focus")
+        .appendingPathComponent("autofocus.sqlite")
+
     private init() {
         do {
             let fileManager = FileManager.default
-            let appSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-            let dbDirectory = appSupportURL.appendingPathComponent("auto-focus.auto-focus")
+            let dbDirectory = Self.databaseURL.deletingLastPathComponent()
 
             try fileManager.createDirectory(at: dbDirectory, withIntermediateDirectories: true)
 
-            let dbPath = dbDirectory.appendingPathComponent("autofocus.sqlite").path
+            let dbPath = Self.databaseURL.path
 
             // Migrate database from sandboxed container if this is the first
             // launch after removing the sandbox.

@@ -38,6 +38,8 @@ protocol AppMonitoring: AnyObject, ObservableObject {
 // MARK: - Buffer Management Protocol
 protocol BufferManaging: AnyObject, ObservableObject {
     var bufferTimeRemaining: TimeInterval { get }
+    /// Total length of the running buffer; 0 when no buffer is running.
+    var bufferDuration: TimeInterval { get }
     var isInBufferPeriod: Bool { get }
     var delegate: BufferManagerDelegate? { get set }
 
