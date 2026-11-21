@@ -23,7 +23,8 @@ struct ExportMetadata: Codable {
 
 struct UserSettings: Codable {
     let focusThreshold: TimeInterval
-    let focusLossBuffer: TimeInterval
+    /// Optional so exports made before glance tolerance existed still import.
+    let glanceTolerance: TimeInterval?
     let hasCompletedOnboarding: Bool
 }
 

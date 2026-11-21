@@ -118,6 +118,16 @@ final class AppEventRepository {
         }
     }
 
+    /// The latest event strictly before `date`, which tells what context was active at that moment.
+    func fetchLastEvent(before date: Date) throws -> AppEvent? {
+        try dbQueue.read { db in
+            try AppEvent
+                .filter(Column("timestamp") < date.timeIntervalSinceReferenceDate)
+                .order(Column("timestamp").desc)
+                .fetchOne(db)
+        }
+    }
+
     func deleteEvents(before date: Date) throws {
         try dbQueue.write { db in
             try AppEvent

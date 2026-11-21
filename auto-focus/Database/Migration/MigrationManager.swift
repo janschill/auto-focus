@@ -95,11 +95,6 @@ final class MigrationManager {
             try settingsRepo.setDouble(threshold, forKey: "focusThreshold")
         }
 
-        let buffer = defaults.double(forKey: "focusLossBuffer")
-        if buffer > 0 {
-            try settingsRepo.setDouble(buffer, forKey: "focusLossBuffer")
-        }
-
         let isPaused = defaults.bool(forKey: "isPaused")
         try settingsRepo.setBool(isPaused, forKey: "isPaused")
 

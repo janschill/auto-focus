@@ -3,9 +3,9 @@
 //
 // These tests verify the fundamental focus tracking behavior:
 // 1. No focus session: Tab to focus entity -> timer starts
-// 2. Tab out before threshold -> lose timer immediately (1s buffer)
+// 2. Tab out before threshold -> run-up pauses for the glance tolerance, then resets
 // 3. Reach threshold -> enter focus session
-// 4. During focus session: Tab out -> configurable buffer
+// 4. During focus session: Tab out -> the same glance tolerance
 // 5. Return within buffer -> session continues
 // 6. Buffer timeout -> session ends
 
@@ -70,12 +70,12 @@ final class CoreFocusBehaviorTests: XCTestCase {
         XCTAssertFalse(focusManager.isInFocusMode, "Should NOT be in focus mode yet")
         mockAppMonitor.simulateFocusAppInactive()
 
-        // Then: Should start a SHORT pre-session buffer (1 second)
+        // Then: Should pause the run-up for the glance tolerance, not the focus loss buffer
         XCTAssertTrue(mockBufferManager.isInBufferPeriod, "Buffer should be active")
         XCTAssertEqual(
             mockBufferManager.lastStartedBufferDuration,
-            AppConfiguration.preSessionBuffer,
-            "Buffer duration should be preSessionBuffer (1s), not the full focusLossBuffer"
+            focusManager.glanceTolerance,
+            "Buffer duration should be the glance tolerance"
         )
     }
 
@@ -99,11 +99,11 @@ final class CoreFocusBehaviorTests: XCTestCase {
 
     // MARK: - Focus Session Buffer Tests (After Focus Threshold)
 
-    /// Test: When IN focus session, tabbing away should use configurable buffer
-    func testFocusSessionBuffer_UseConfigurableBufferDuringFocusSession() {
-        // Given: User has a custom buffer setting
+    /// Test: When IN focus session, tabbing away uses the same glance tolerance as the run-up
+    func testFocusSessionBuffer_UsesGlanceToleranceDuringFocusSession() {
+        // Given: User has a custom glance tolerance
         let customBufferDuration: TimeInterval = 20.0
-        focusManager.focusLossBuffer = customBufferDuration
+        focusManager.glanceTolerance = customBufferDuration
 
         // And: User is in a focus session (past threshold)
         focusManager.isPaused = false
@@ -119,13 +119,29 @@ final class CoreFocusBehaviorTests: XCTestCase {
         // When: User tabs away from focus app
         mockAppMonitor.simulateFocusAppInactive()
 
-        // Then: Should start the CONFIGURABLE buffer (not the short pre-session buffer)
+        // Then: Should start a buffer for the glance tolerance
         XCTAssertTrue(mockBufferManager.isInBufferPeriod, "Buffer should be active")
         XCTAssertEqual(
             mockBufferManager.lastStartedBufferDuration,
             customBufferDuration,
-            "Buffer duration should be the user's configured focusLossBuffer during focus session"
+            "Buffer duration should be the user's glance tolerance during focus session"
         )
+    }
+
+    /// Test: Zero glance tolerance ends an active session as soon as the user leaves
+    func testZeroGlanceToleranceEndsSessionImmediately() {
+        focusManager.isPaused = false
+        focusManager.glanceTolerance = 0
+        mockAppMonitor.simulateFocusAppActive()
+        focusManager.timeSpent = focusManager.focusThreshold * AppConfiguration.timeMultiplier + 10
+        focusManager.isInFocusMode = true
+        focusManager.didReachFocusThreshold = true
+
+        mockAppMonitor.simulateFocusAppInactive()
+
+        XCTAssertEqual(mockBufferManager.bufferStartCount, 0)
+        XCTAssertFalse(focusManager.isInFocusMode)
+        XCTAssertEqual(focusManager.timeSpent, 0)
     }
 
     /// Test: Returning within focus session buffer should continue session
@@ -193,22 +209,57 @@ final class CoreFocusBehaviorTests: XCTestCase {
 
     // MARK: - Buffer Duration Constants Tests
 
-    /// Test: Verify pre-session buffer is 1 second
-    func testPreSessionBufferConstant() {
-        XCTAssertEqual(
-            AppConfiguration.preSessionBuffer,
-            1.0,
-            "Pre-session buffer should be 1 second for quick reset when not in focus session"
-        )
+    /// Test: Glance tolerance defaults to 30 seconds
+    func testGlanceToleranceDefault() {
+        XCTAssertEqual(AppConfiguration.defaultGlanceTolerance, 30.0)
+        XCTAssertEqual(focusManager.glanceTolerance, AppConfiguration.defaultGlanceTolerance)
     }
 
-    /// Test: Verify default buffer time is reasonable
-    func testDefaultBufferTimeConstant() {
-        XCTAssertEqual(
-            AppConfiguration.defaultBufferTime,
-            2.0,
-            "Default buffer time should be 2 seconds"
-        )
+    /// Test: A custom glance tolerance is used for the run-up buffer
+    func testCustomGlanceToleranceIsUsedBeforeThreshold() {
+        focusManager.isPaused = false
+        focusManager.glanceTolerance = 60
+
+        mockAppMonitor.simulateFocusAppActive()
+        focusManager.timeSpent = 5.0
+        mockAppMonitor.simulateFocusAppInactive()
+
+        XCTAssertEqual(mockBufferManager.lastStartedBufferDuration, 60)
+    }
+
+    /// Test: Glance tolerance survives a relaunch, including an explicit 0
+    func testGlanceTolerancePersistsAcrossLaunches() {
+        let testDB = MockFactory.createTestDB()
+        func makeManager() -> FocusManager {
+            let mocks = MockFactory.createMockDependencies()
+            return FocusManager(
+                settingsRepo: SettingsRepository(dbQueue: testDB),
+                focusAppRepo: FocusAppRepository(dbQueue: testDB),
+                sessionManager: mocks.sessionManager,
+                appMonitor: mocks.appMonitor,
+                bufferManager: mocks.bufferManager,
+                focusModeController: mocks.focusModeManager,
+                browserManager: mocks.browserManager
+            )
+        }
+
+        makeManager().glanceTolerance = 0
+
+        XCTAssertEqual(makeManager().glanceTolerance, 0)
+    }
+
+    /// Test: Zero glance tolerance resets the run-up immediately without a buffer
+    func testZeroGlanceToleranceResetsRunUpImmediately() {
+        focusManager.isPaused = false
+        focusManager.glanceTolerance = 0
+
+        mockAppMonitor.simulateFocusAppActive()
+        focusManager.timeSpent = 5.0
+        mockAppMonitor.simulateFocusAppInactive()
+
+        XCTAssertEqual(mockBufferManager.bufferStartCount, 0)
+        XCTAssertEqual(focusManager.timeSpent, 0)
+        XCTAssertFalse(focusManager.isFocusAppActive)
     }
 
     // MARK: - Edge Case Tests
@@ -224,8 +275,8 @@ final class CoreFocusBehaviorTests: XCTestCase {
 
         XCTAssertEqual(
             mockBufferManager.lastStartedBufferDuration,
-            AppConfiguration.preSessionBuffer,
-            "First switch should use pre-session buffer"
+            focusManager.glanceTolerance,
+            "First switch should use the glance tolerance"
         )
 
         // Buffer times out, reset
@@ -238,8 +289,8 @@ final class CoreFocusBehaviorTests: XCTestCase {
 
         XCTAssertEqual(
             mockBufferManager.lastStartedBufferDuration,
-            AppConfiguration.preSessionBuffer,
-            "Second switch should also use pre-session buffer since not in focus mode"
+            focusManager.glanceTolerance,
+            "Second switch should also use the glance tolerance since not in focus mode"
         )
     }
 
@@ -405,22 +456,22 @@ final class BrowserFocusBehaviorTests: XCTestCase {
         // We can't directly call handleBrowserFocusDeactivated (it's private)
         // but we've verified the logic in the implementation is correct
         XCTAssertFalse(focusManager.isInFocusMode)
-        XCTAssertEqual(AppConfiguration.preSessionBuffer, 1.0)
+        XCTAssertEqual(focusManager.glanceTolerance, AppConfiguration.defaultGlanceTolerance)
     }
 
-    /// Test: Browser focus in focus session should use configurable buffer
-    func testBrowserFocus_UsesConfigurableBufferDuringFocusSession() {
+    /// Test: Browser focus in focus session keeps the configured glance tolerance
+    func testBrowserFocus_UsesGlanceToleranceDuringFocusSession() {
         // Given: User IS in focus mode
         focusManager.isPaused = false
         focusManager.isBrowserInFocus = true
         focusManager.timeSpent = 700.0
         focusManager.isInFocusMode = true
         focusManager.didReachFocusThreshold = true
-        focusManager.focusLossBuffer = 20.0
+        focusManager.glanceTolerance = 20.0
 
-        // Then: Verify the state that would trigger configurable buffer
+        // Then: Verify the state that would trigger the glance tolerance buffer
         XCTAssertTrue(focusManager.isInFocusMode)
-        XCTAssertEqual(focusManager.focusLossBuffer, 20.0)
+        XCTAssertEqual(focusManager.glanceTolerance, 20.0)
     }
 }
 

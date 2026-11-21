@@ -11,7 +11,7 @@ class DataExportService {
     func exportData(options: ExportOptions = .default) -> AutoFocusExportData {
         let sessions = options.includeSessions ? filterSessions(by: options.dateRange) : []
         let apps = options.includeFocusApps ? focusManager.focusApps : []
-        let settings = options.includeSettings ? createUserSettings() : UserSettings(focusThreshold: 0, focusLossBuffer: 0, hasCompletedOnboarding: false)
+        let settings = options.includeSettings ? createUserSettings() : UserSettings(focusThreshold: 0, glanceTolerance: nil, hasCompletedOnboarding: false)
 
         return AutoFocusExportData(
             metadata: ExportMetadata(),
@@ -116,7 +116,7 @@ class DataExportService {
     private func createUserSettings() -> UserSettings {
         return UserSettings(
             focusThreshold: focusManager.focusThreshold,
-            focusLossBuffer: focusManager.focusLossBuffer,
+            glanceTolerance: focusManager.glanceTolerance,
             hasCompletedOnboarding: focusManager.hasCompletedOnboarding
         )
     }
@@ -168,8 +168,8 @@ class DataExportService {
             focusManager.focusThreshold = settings.focusThreshold
         }
 
-        if settings.focusLossBuffer > 0 {
-            focusManager.focusLossBuffer = settings.focusLossBuffer
+        if let glanceTolerance = settings.glanceTolerance {
+            focusManager.glanceTolerance = glanceTolerance
         }
 
         return true

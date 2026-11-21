@@ -230,19 +230,19 @@ struct ThresholdsView: View {
             LabeledContent {
                 HStack(spacing: 8) {
                     Slider(
-                        value: $focusManager.focusLossBuffer,
-                        in: 0...30,
-                        step: 2
+                        value: $focusManager.glanceTolerance,
+                        in: 0...120,
+                        step: 5
                     )
                     .frame(width: 180)
-                    Text("\(Int(focusManager.focusLossBuffer)) s")
+                    Text("\(Int(focusManager.glanceTolerance)) s")
                         .monospacedDigit()
                         .foregroundStyle(.secondary)
                         .frame(width: 40, alignment: .trailing)
                 }
             } label: {
-                Text("Focus Loss Buffer")
-                Text("Buffer time so you don't lose your focus session immediately after leaving your focus apps.")
+                Text("Glance Tolerance")
+                Text("How long you can check another app (Slack, an agent, a doc) before it counts as leaving focus. The countdown starts over, or an active session ends. The timer pauses while you're away.")
             }
         } header: {
             Text("Thresholds")
