@@ -5,7 +5,7 @@ extension FlowState {
     var title: String {
         switch self {
         case .flow: return "Flow"
-        case .focused: return "Focused"
+        case .focused: return "Steady"
         case .scattered: return "Scattered"
         case .neutral: return "Calm"
         }
