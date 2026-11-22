@@ -1,4 +1,4 @@
-.PHONY: build test test-coverage clean lint fmt shortcut codesign-check archive-mac notarize prepare-downloads prepare-app-for-notarization package-app generate-version prepare-distribution deploy-downloads create-dmg tag-release create-github-release manual-release
+.PHONY: build test screenshots test-coverage clean lint fmt shortcut codesign-check archive-mac notarize prepare-downloads prepare-app-for-notarization package-app generate-version prepare-distribution deploy-downloads create-dmg tag-release create-github-release manual-release
 
 # Project configuration
 PROJECT_NAME = auto-focus
@@ -23,6 +23,18 @@ test:
 		CODE_SIGN_IDENTITY="-" \
 		CODE_SIGNING_ALLOWED=NO \
 		-only-testing:auto-focusTests || exit $$?
+
+# Renders the marketing website screenshots with fixed sample data into build/screenshots
+screenshots:
+	@mkdir -p $(BUILD_DIR)/screenshots
+	@TEST_RUNNER_AUTOFOCUS_SCREENSHOT_DIR="$(CURDIR)/$(BUILD_DIR)/screenshots" xcodebuild test \
+		-project $(PROJECT_NAME).xcodeproj \
+		-scheme $(SCHEME) \
+		-destination 'platform=macOS' \
+		CODE_SIGN_IDENTITY="-" \
+		CODE_SIGNING_ALLOWED=NO \
+		-only-testing:auto-focusTests/MarketingScreenshots || exit $$?
+	@echo "Screenshots written to $(BUILD_DIR)/screenshots"
 
 test-coverage:
 	@echo "Running tests with code coverage..."
