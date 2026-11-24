@@ -68,9 +68,6 @@ struct FocusURL: Identifiable, Codable, Hashable, FetchableRecord, PersistableRe
                 if let requiredPort = focusHost.port, urlHost.port != requiredPort {
                     return false
                 }
-                if focusHost.port == nil, Self.isLoopbackHost(focusHost.host), urlHost.port != nil {
-                    return false
-                }
                 return urlHost.host == focusHost.host || urlHost.host.hasSuffix("." + focusHost.host)
             }
 
@@ -92,9 +89,6 @@ struct FocusURL: Identifiable, Codable, Hashable, FetchableRecord, PersistableRe
         }
 
         if let requiredPort = patternHost.port, urlHost.port != requiredPort {
-            return false
-        }
-        if patternHost.port == nil, Self.isLoopbackHost(patternHost.host), urlHost.port != nil {
             return false
         }
 
@@ -151,10 +145,6 @@ struct FocusURL: Identifiable, Codable, Hashable, FetchableRecord, PersistableRe
 
     private static func normalizedFocusHost(_ host: String) -> String {
         host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
-    }
-
-    private static func isLoopbackHost(_ host: String) -> Bool {
-        host == "localhost" || host == "127.0.0.1" || host == "::1"
     }
 }
 

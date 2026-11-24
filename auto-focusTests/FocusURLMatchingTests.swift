@@ -10,14 +10,15 @@ struct FocusURLMatchingTests {
         #expect(!focusURL.matches("http://127.0.0.1:8899/issue-245-centering-mockup.html"))
     }
 
-    @Test func loopbackDomainWithoutPortDoesNotMatchExplicitPort() {
+    @Test func loopbackDomainWithoutPortMatchesAnyPort() {
         let focusURL = FocusURL(name: "Localhost", domain: "localhost")
         let ipFocusURL = FocusURL(name: "Loopback IP", domain: "127.0.0.1")
 
         #expect(focusURL.matches("http://localhost/issue-245-centering-mockup.html"))
-        #expect(!focusURL.matches("http://localhost:8899/issue-245-centering-mockup.html"))
-        #expect(!focusURL.matches("http://localhost:3000/issue-245-centering-mockup.html"))
-        #expect(!ipFocusURL.matches("http://127.0.0.1:8899/issue-245-centering-mockup.html"))
+        #expect(focusURL.matches("http://localhost:8899/issue-245-centering-mockup.html"))
+        #expect(focusURL.matches("http://localhost:3000/issue-245-centering-mockup.html"))
+        #expect(ipFocusURL.matches("http://127.0.0.1:8899/issue-245-centering-mockup.html"))
+        #expect(!focusURL.matches("http://127.0.0.1:8899/issue-245-centering-mockup.html"))
     }
 
     @Test func nonLoopbackDomainWithoutPortStillMatchesAnyPort() {
