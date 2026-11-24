@@ -1,3 +1,4 @@
+import AppKit
 import Combine
 import Foundation
 
@@ -348,7 +349,7 @@ final class MockBrowserURLQuerier: BrowserURLQuerying {
     var scriptedError: Int?
     private(set) var fetchCallCount = 0
 
-    func fetchURL(appName: String, isSafari: Bool) -> (url: String?, errorNumber: Int?) {
+    func fetchURL(from browser: NSRunningApplication, isSafari: Bool) -> (url: String?, errorNumber: Int?) {
         fetchCallCount += 1
         return (scriptedURL, scriptedError)
     }

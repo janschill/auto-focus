@@ -15,7 +15,8 @@ This document helps AI assistants understand the Auto-Focus codebase structure, 
 
 **Browser Integration:**
 
-- `auto-focus/Services/BrowserManager.swift` - AppleScript-based URL detection for Safari, Chrome, Brave, Edge, Arc, and other browsers
+- `auto-focus/Services/BrowserManager.swift` - URL polling and focus-URL matching for Safari, Chrome, Brave, Edge, Arc, and other browsers
+- `auto-focus/Services/BrowserURLQuerier.swift` - Reads the active tab URL with an Apple Event sent to the frontmost browser process (not by app name, so a second instance such as an automation Chrome is never queried by mistake)
 
 **License & Premium:**
 
@@ -69,7 +70,7 @@ This document helps AI assistants understand the Auto-Focus codebase structure, 
 ### Browser Integration Flow
 
 1. User switches to a supported browser → `FocusManager` calls `browserManager.startPolling()`
-2. `BrowserManager` polls the frontmost browser's URL every 1 second via AppleScript
+2. `BrowserManager` polls the frontmost browser's URL every 1 second via an Apple Event targeted at that process
 3. `BrowserManager` checks if URL matches focus URLs → updates `isBrowserInFocus`
 4. `BrowserManagerDelegate` notifies `FocusManager` → `handleBrowserFocusActivated()` or `handleBrowserFocusDeactivated()`
 5. User switches away from browser → `FocusManager` calls `browserManager.stopPolling()`
@@ -184,7 +185,7 @@ Use the XCode MCP server to interact with the application during development.
 
 - Verify Automation permission is granted for the browser in System Settings > Privacy & Security > Automation
 - Check if `BrowserManager` polling is active (logs browser state changes)
-- Monitor `BrowserManager` logs for AppleScript errors (permission denied = -1743)
+- Monitor `BrowserManager` logs for Apple event errors (permission denied = -1743)
 
 ### License Issues
 
@@ -224,7 +225,7 @@ make clean
 ## When Making Changes
 
 1. **Focus Logic Changes:** Update `FocusManager` and test state transitions
-2. **Browser Changes:** Update `BrowserManager`, test AppleScript URL detection
+2. **Browser Changes:** Update `BrowserManager`, test URL detection, including with two instances of the same browser running
 3. **UI Changes:** Update SwiftUI views, ensure `@Published` properties trigger updates
 4. **License Changes:** Update `LicenseManager`, test free vs. premium behavior
 

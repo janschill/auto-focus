@@ -25,10 +25,6 @@ protocol BrowserManagerDelegate: AnyObject {
     func browserManager(_ manager: any BrowserManaging, didUpdateFocusURLs urls: [FocusURL])
 }
 
-protocol BrowserURLQuerying {
-    func fetchURL(appName: String, isSafari: Bool) -> (url: String?, errorNumber: Int?)
-}
-
 class BrowserManager: ObservableObject, BrowserManaging {
     @Published var focusURLs: [FocusURL] = []
     @Published var currentBrowserTab: BrowserTabInfo?
@@ -61,7 +57,7 @@ class BrowserManager: ObservableObject, BrowserManaging {
         appEventRepo: AppEventRepository? = AppEventRepository(),
         enablementStore: BrowserEnablementStore,
         permissionService: AutomationPermissionService,
-        urlQuerier: BrowserURLQuerying = AppleScriptBrowserURLQuerier()
+        urlQuerier: BrowserURLQuerying = AppleEventBrowserURLQuerier()
     ) {
         self.focusURLRepo = focusURLRepo
         self.licenseManager = licenseManager
@@ -143,7 +139,7 @@ class BrowserManager: ObservableObject, BrowserManaging {
         let generation = pollingGeneration
         let urlQuerier = self.urlQuerier
         urlQueryQueue.async { [weak self] in
-            let (url, errorNumber) = urlQuerier.fetchURL(appName: appName, isSafari: isSafari)
+            let (url, errorNumber) = urlQuerier.fetchURL(from: frontApp, isSafari: isSafari)
 
             DispatchQueue.main.async {
                 guard let self = self else { return }
@@ -362,41 +358,5 @@ class BrowserManager: ObservableObject, BrowserManaging {
         for preset in presets where !focusURLs.contains(where: { $0.domain == preset.domain }) {
             addFocusURL(preset)
         }
-    }
-}
-
-// MARK: - AppleScript-backed URL querier
-
-struct AppleScriptBrowserURLQuerier: BrowserURLQuerying {
-    func fetchURL(appName: String, isSafari: Bool) -> (url: String?, errorNumber: Int?) {
-        let script: String
-        if isSafari {
-            script = "tell application \"\(appName)\" to return URL of front document"
-        } else {
-            script = "tell application \"\(appName)\" to return URL of active tab of front window"
-        }
-
-        guard let appleScript = NSAppleScript(source: script) else {
-            return (nil, nil)
-        }
-
-        var errorInfo: NSDictionary?
-        let result = appleScript.executeAndReturnError(&errorInfo)
-
-        if let error = errorInfo {
-            let errorNumber = error[NSAppleScript.errorNumber] as? Int ?? 0
-            let errorMessage = error[NSAppleScript.errorMessage] as? String ?? "unknown"
-            // -600 = app not running, -1719/-1728 = no front window/document, -1743 = denied
-            if errorNumber != -600 && errorNumber != -1719 && errorNumber != -1728 && errorNumber != -1743 {
-                AppLogger.browser.error("AppleScript error for browser", metadata: [
-                    "browser": appName,
-                    "error_number": String(errorNumber),
-                    "error_message": errorMessage
-                ])
-            }
-            return (nil, errorNumber)
-        }
-
-        return (result.stringValue, nil)
     }
 }
