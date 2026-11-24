@@ -12,6 +12,11 @@ struct BrowserScriptingCodes: Equatable {
     let activeTab: FourCharCode?
     let url: FourCharCode
 
+    /// Codes from Chromium's dictionary, shared by Chrome, Edge, Brave and other Chromium browsers.
+    static let chromium = BrowserScriptingCodes(activeTab: 0x6163_5461, url: 0x5552_4C20) // 'acTa', 'URL '
+    /// Code from Safari's dictionary for a document's URL.
+    static let safari = BrowserScriptingCodes(activeTab: nil, url: 0x7055_524C) // 'pURL'
+
     /// Reads the codes from a browser's scripting definition (sdef XML).
     static func parse(sdef: Data, isSafari: Bool) -> BrowserScriptingCodes? {
         guard let document = try? XMLDocument(data: sdef) else { return nil }
@@ -89,13 +94,17 @@ final class AppleEventBrowserURLQuerier: BrowserURLQuerying {
 
         var sdef: Unmanaged<CFData>?
         let status = OSACopyScriptingDefinitionFromURL(bundleURL as CFURL, 0, &sdef)
-        guard status == noErr, let data = sdef?.takeRetainedValue() as Data?,
-              let codes = BrowserScriptingCodes.parse(sdef: data, isSafari: isSafari) else {
-            AppLogger.browser.error("Browser scripting definition has no URL property", metadata: [
+        let parsed = status == noErr ? (sdef?.takeRetainedValue() as Data?).flatMap {
+            BrowserScriptingCodes.parse(sdef: $0, isSafari: isSafari)
+        } : nil
+
+        // A dictionary split across included files may not list the property; Safari's and Chromium's codes are the norm
+        let codes = parsed ?? (isSafari ? BrowserScriptingCodes.safari : BrowserScriptingCodes.chromium)
+        if parsed == nil {
+            AppLogger.browser.warning("Browser scripting definition has no URL property — using default codes", metadata: [
                 "bundleId": bundleId,
                 "status": String(status)
             ])
-            return nil
         }
 
         codesByBundleId[bundleId] = codes

@@ -49,6 +49,14 @@ final class BrowserScriptingCodesTests: XCTestCase {
         XCTAssertNil(BrowserScriptingCodes.parse(sdef: Data(safariSdef.utf8), isSafari: false))
     }
 
+    func testDefaultCodesMatchTheBrowserDictionaries() throws {
+        let chromium = try XCTUnwrap(BrowserScriptingCodes.parse(sdef: Data(chromiumSdef.utf8), isSafari: false))
+        let safari = try XCTUnwrap(BrowserScriptingCodes.parse(sdef: Data(safariSdef.utf8), isSafari: true))
+
+        XCTAssertEqual(BrowserScriptingCodes.chromium, chromium)
+        XCTAssertEqual(BrowserScriptingCodes.safari, safari)
+    }
+
     func testFourCharCodeRequiresFourBytes() {
         XCTAssertEqual(BrowserScriptingCodes.fourCharCode("cwin"), 0x6377_696E)
         XCTAssertNil(BrowserScriptingCodes.fourCharCode("URL"))
